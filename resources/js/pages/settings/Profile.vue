@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import Combobox from '@/components/Combobox.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -11,6 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+
+const props = defineProps<{
+    timezones: string[];
+}>();
 
 defineOptions({
     layout: {
@@ -25,6 +30,14 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const selectedTimezone = ref(user.value?.timezone || 'UTC');
+
+const timezoneOptions = computed(() =>
+    props.timezones.map((tz) => ({
+        value: tz,
+        label: tz,
+    })),
+);
 </script>
 
 <template>
@@ -71,6 +84,17 @@ const user = computed(() => page.props.auth.user);
                     placeholder="Email address"
                 />
                 <InputError class="mt-2" :message="errors.email" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="timezone">Timezone</Label>
+                <Combobox
+                    v-model="selectedTimezone"
+                    name="timezone"
+                    placeholder="Select timezone"
+                    :options="timezoneOptions"
+                />
+                <InputError class="mt-2" :message="errors.timezone" />
             </div>
 
             <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">

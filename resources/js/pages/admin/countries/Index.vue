@@ -81,11 +81,12 @@ const confirmDelete = (country: Country) => {
                                 country.name
                             }}</TableCell>
                             <TableCell>{{ country.code ?? '—' }}</TableCell>
-                            <TableCell class="text-right">
+                            <TableCell class="text-right space-x-1.5">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/40"
                                     :aria-label="`Manage states for ${country.name}`"
                                     :data-test="`states-${country.id}`"
                                 >
@@ -97,6 +98,7 @@ const confirmDelete = (country: Country) => {
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
                                     :aria-label="`Edit ${country.name}`"
                                     :data-test="`edit-country-${country.id}`"
                                 >
@@ -107,6 +109,7 @@ const confirmDelete = (country: Country) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
                                     :aria-label="`Delete ${country.name}`"
                                     :data-test="`delete-country-${country.id}`"
                                     @click="confirmDelete(country)"

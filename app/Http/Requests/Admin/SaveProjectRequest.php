@@ -18,7 +18,7 @@ class SaveProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'builder_id' => ['required', Rule::exists('builders', 'id')],
+            'builder_id' => ['nullable', Rule::exists('builders', 'id')],
             'project_category_id' => ['required', Rule::exists('project_categories', 'id')],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],

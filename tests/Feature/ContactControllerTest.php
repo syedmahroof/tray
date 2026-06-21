@@ -34,6 +34,7 @@ test('sales executives can create, update, and delete a contact within their own
     $contact = Contact::where('name', 'Jane Prospect')->first();
     expect($contact)->not->toBeNull();
     expect($contact->branch_id)->toBe($branch->id);
+    expect($contact->created_by)->toBe($salesExecutive->id);
 
     $this->actingAs($salesExecutive)
         ->get(route('contacts.show', $contact))
@@ -96,4 +97,31 @@ test('the contact index can be filtered by a search term', function () {
             ->has('contacts.data', 1)
             ->where('contacts.data.0.name', 'Findable Fred')
             ->where('filters.search', 'fred@example'));
+});
+
+test('the contact index can be filtered by creator and created date range', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $creator = User::factory()->create();
+    Contact::factory()->create([
+        'name' => 'Created By Creator',
+        'created_by' => $creator->id,
+        'created_at' => '2026-06-15 12:00:00',
+    ]);
+    Contact::factory()->create([
+        'name' => 'Older Contact',
+        'created_at' => '2026-01-10 12:00:00',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('contacts.index', ['created_by' => $creator->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('contacts.data', 1)
+            ->where('contacts.data.0.name', 'Created By Creator'));
+
+    $this->actingAs($admin)
+        ->get(route('contacts.index', ['created_from' => '2026-06-01', 'created_to' => '2026-06-30']))
+        ->assertInertia(fn ($page) => $page
+            ->has('contacts.data', 1)
+            ->where('contacts.data.0.name', 'Created By Creator'));
 });

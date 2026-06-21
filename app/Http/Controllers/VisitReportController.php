@@ -27,6 +27,8 @@ class VisitReportController extends Controller
         $visitType = $request->input('visit_type');
         $userId = $request->input('user_id');
         $projectId = $request->input('project_id');
+        $createdFrom = $request->input('created_from');
+        $createdTo = $request->input('created_to');
 
         return Inertia::render('visit-reports/Index', [
             'visitReports' => VisitReport::query()
@@ -44,6 +46,8 @@ class VisitReportController extends Controller
                 ->when($visitType, fn ($query) => $query->where('visit_type', $visitType))
                 ->when($userId, fn ($query) => $query->where('user_id', $userId))
                 ->when($projectId, fn ($query) => $query->whereHas('projects', fn ($q) => $q->where('projects.id', $projectId)))
+                ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
+                ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
                 ->orderByDesc('visit_date')
                 ->paginate(15)
                 ->withQueryString(),
@@ -56,6 +60,8 @@ class VisitReportController extends Controller
                 'visit_type' => $visitType,
                 'user_id' => $userId,
                 'project_id' => $projectId,
+                'created_from' => $createdFrom,
+                'created_to' => $createdTo,
             ],
         ]);
     }

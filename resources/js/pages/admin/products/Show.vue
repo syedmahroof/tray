@@ -4,7 +4,7 @@ import { ArrowLeft, Package, Pencil, Tag, BadgeCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { edit, index, show } from '@/routes/products';
 import type { Product, NamedOption, Branch } from '@/types';
 
@@ -39,7 +39,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
                     :href="index()"
                     class="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
                 >
-                    <ArrowLeft class="h-4 w-4" /> Back to List
+                    <ArrowLeft class="h-4 w-4 text-slate-500" /> Back to List
                 </Link>
                 <Heading
                     variant="small"
@@ -55,45 +55,67 @@ const permissions = computed(() => usePage().props.auth.permissions);
 
         <div class="grid gap-6 md:grid-cols-2">
             <!-- Details -->
-            <div class="rounded-lg border p-4 space-y-4">
-                <div class="flex items-center gap-2 border-b pb-2">
-                    <Tag class="h-5 w-5 text-muted-foreground" />
-                    <h3 class="font-semibold text-base">Product Details</h3>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
+            <Card>
+                <CardHeader
+                    class="flex flex-row items-center gap-2 border-b pb-3"
+                >
+                    <Tag class="h-5 w-5 text-[#059669]" />
+                    <CardTitle class="text-base font-semibold"
+                        >Product Details</CardTitle
+                    >
+                </CardHeader>
+                <CardContent class="grid grid-cols-2 gap-4 pt-6">
                     <div>
                         <p class="text-sm text-muted-foreground">Category</p>
-                        <p class="text-sm font-medium">{{ product.product_category.name }}</p>
+                        <p class="text-sm font-medium">
+                            {{ product.product_category.name }}
+                        </p>
                     </div>
                     <div>
                         <p class="text-sm text-muted-foreground">Branch</p>
-                        <p class="text-sm font-medium">{{ product.branch.name }}</p>
+                        <p class="text-sm font-medium">
+                            {{ product.branch.name }}
+                        </p>
                     </div>
                     <div>
                         <p class="text-sm text-muted-foreground">Price</p>
                         <p class="text-sm font-medium">
-                            {{ product.price ? `₹${parseFloat(product.price).toLocaleString()}` : '—' }}
+                            {{
+                                product.price
+                                    ? `₹${parseFloat(product.price).toLocaleString()}`
+                                    : '—'
+                            }}
                         </p>
                     </div>
                     <div>
                         <p class="text-sm text-muted-foreground">Area (Sqft)</p>
                         <p class="text-sm font-medium">
-                            {{ product.area_sqft ? `${parseFloat(product.area_sqft).toLocaleString()} sqft` : '—' }}
+                            {{
+                                product.area_sqft
+                                    ? `${parseFloat(product.area_sqft).toLocaleString()} sqft`
+                                    : '—'
+                            }}
                         </p>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             <!-- Description -->
-            <div class="rounded-lg border p-4 space-y-4">
-                <div class="flex items-center gap-2 border-b pb-2">
-                    <Package class="h-5 w-5 text-muted-foreground" />
-                    <h3 class="font-semibold text-base">Description</h3>
-                </div>
-                <p class="text-sm font-medium whitespace-pre-wrap">
-                    {{ product.description ?? 'No description provided.' }}
-                </p>
-            </div>
+            <Card>
+                <CardHeader
+                    class="flex flex-row items-center gap-2 border-b pb-3"
+                >
+                    <Package class="h-5 w-5 text-[#059669]" />
+                    <CardTitle class="text-base font-semibold"
+                        >Description</CardTitle
+                    >
+                </CardHeader>
+                <CardContent class="pt-6">
+                    <p class="text-sm font-medium whitespace-pre-wrap">
+                        {{ product.description ?? 'No description provided.' }}
+                    </p>
+                </CardContent>
+            </Card>
         </div>
     </div>
 </template>

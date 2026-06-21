@@ -23,10 +23,13 @@ class ContactController extends Controller
         $search = trim((string) $request->input('search', ''));
         $contactTypeId = $request->input('contact_type_id');
         $assignedTo = $request->input('assigned_to');
+        $createdBy = $request->input('created_by');
+        $createdFrom = $request->input('created_from');
+        $createdTo = $request->input('created_to');
 
         return Inertia::render('contacts/Index', [
             'contacts' => Contact::query()
-                ->with(['contactType', 'assignee'])
+                ->with(['contactType', 'assignee', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -36,6 +39,9 @@ class ContactController extends Controller
                 })
                 ->when($contactTypeId, fn ($query) => $query->where('contact_type_id', $contactTypeId))
                 ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
+                ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
+                ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
+                ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
@@ -45,6 +51,9 @@ class ContactController extends Controller
                 'search' => $search,
                 'contact_type_id' => $contactTypeId,
                 'assigned_to' => $assignedTo,
+                'created_by' => $createdBy,
+                'created_from' => $createdFrom,
+                'created_to' => $createdTo,
             ],
         ]);
     }
@@ -67,7 +76,10 @@ class ContactController extends Controller
      */
     public function store(SaveContactRequest $request): RedirectResponse
     {
-        $contact = Contact::create($request->validated());
+        $contact = Contact::create([
+            ...$request->validated(),
+            'created_by' => $request->user()->id,
+        ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contact created.')]);
 
@@ -79,7 +91,7 @@ class ContactController extends Controller
      */
     public function show(Contact $contact): Response
     {
-        $contact->load(['contactType', 'country', 'state', 'district', 'assignee', 'branch']);
+        $contact->load(['contactType', 'country', 'state', 'district', 'assignee', 'creator', 'branch']);
 
         return Inertia::render('contacts/Show', [
             'contact' => $contact,

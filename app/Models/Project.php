@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property int $branch_id
- * @property int $builder_id
+ * @property int|null $builder_id
  * @property int $project_category_id
  * @property string $name
  * @property string|null $address
@@ -32,14 +32,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $expected_maturity
  * @property string|null $preferred_material
  * @property int|null $assignee_id
+ * @property int|null $created_by
  * @property string|null $start_date
  * @property string|null $end_date
- * @property-read Builder $builder
+ * @property-read Builder|null $builder
  * @property-read ProjectCategory $projectCategory
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
  * @property-read User|null $assignee
+ * @property-read User|null $creator
  * @property-read Collection<int, ProjectContact> $projectContacts
  */
 #[Fillable([
@@ -61,6 +63,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'expected_maturity',
     'preferred_material',
     'assignee_id',
+    'created_by',
     'start_date',
     'end_date',
 ])]
@@ -127,6 +130,14 @@ class Project extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

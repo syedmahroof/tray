@@ -66,6 +66,7 @@ const confirmDelete = (customer: CustomerListItem) => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead class="w-12">S.No.</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Contact</TableHead>
                             <TableHead>Assigned to</TableHead>
@@ -74,9 +75,12 @@ const confirmDelete = (customer: CustomerListItem) => {
                     </TableHeader>
                     <TableBody>
                         <TableRow
-                            v-for="customer in customers.data"
+                            v-for="(customer, index) in customers.data"
                             :key="customer.id"
                         >
+                            <TableCell class="font-medium text-muted-foreground">
+                                {{ (customers.from ?? 1) + index }}
+                            </TableCell>
                             <TableCell class="font-medium">
                                 <Link
                                     :href="show(customer.id)"
@@ -94,11 +98,12 @@ const confirmDelete = (customer: CustomerListItem) => {
                             <TableCell>{{
                                 customer.assignee?.name ?? '—'
                             }}</TableCell>
-                            <TableCell class="text-right">
+                            <TableCell class="text-right space-x-1.5">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/40"
                                     :aria-label="`View ${customer.name}`"
                                     :data-test="`view-customer-${customer.id}`"
                                 >
@@ -110,6 +115,7 @@ const confirmDelete = (customer: CustomerListItem) => {
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
                                     :aria-label="`Edit ${customer.name}`"
                                     :data-test="`edit-customer-${customer.id}`"
                                 >
@@ -120,6 +126,7 @@ const confirmDelete = (customer: CustomerListItem) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
                                     :aria-label="`Delete ${customer.name}`"
                                     :data-test="`delete-customer-${customer.id}`"
                                     @click="confirmDelete(customer)"
@@ -130,7 +137,7 @@ const confirmDelete = (customer: CustomerListItem) => {
                         </TableRow>
                         <TableRow v-if="customers.data.length === 0">
                             <TableCell
-                                :colspan="4"
+                                :colspan="5"
                                 class="text-center text-muted-foreground"
                             >
                                 No customers yet.

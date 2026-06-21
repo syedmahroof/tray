@@ -24,13 +24,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $state_id
  * @property int|null $district_id
  * @property int|null $assigned_to
+ * @property int|null $created_by
  * @property-read ContactType $contactType
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
  * @property-read User|null $assignee
+ * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to'])]
+#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to', 'created_by'])]
 class Contact extends Model
 {
     use BelongsToBranch;
@@ -83,6 +85,14 @@ class Contact extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

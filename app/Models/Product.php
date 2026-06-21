@@ -17,9 +17,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $price
  * @property string|null $area_sqft
  * @property string|null $description
+ * @property int|null $created_by
  * @property-read ProductCategory $productCategory
+ * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'product_category_id', 'name', 'price', 'area_sqft', 'description'])]
+#[Fillable(['branch_id', 'product_category_id', 'name', 'price', 'area_sqft', 'description', 'created_by'])]
 class Product extends Model
 {
     use BelongsToBranch;
@@ -44,5 +46,13 @@ class Product extends Model
     public function productCategory(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

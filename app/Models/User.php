@@ -27,11 +27,12 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
  * @property int|null $branch_id
+ * @property string|null $timezone
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Branch|null $branch
  */
-#[Fillable(['name', 'email', 'password', 'branch_id'])]
+#[Fillable(['name', 'email', 'password', 'branch_id', 'timezone'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {

@@ -12,11 +12,14 @@ export type Contact = {
     state_id: number | null;
     district_id: number | null;
     assigned_to: number | null;
+    created_by: number | null;
+    created_at: string;
 };
 
 export type ContactListItem = Contact & {
     contact_type: NamedOption;
     assignee: NamedOption | null;
+    creator: NamedOption | null;
 };
 
 export type ContactDetail = Contact & {
@@ -25,6 +28,7 @@ export type ContactDetail = Contact & {
     state: State | null;
     district: District | null;
     assignee: NamedOption | null;
+    creator: NamedOption | null;
     branch: NamedOption;
 };
 
@@ -121,6 +125,7 @@ export type VisitReport = {
     report: string | null;
     next_meeting_date: string | null;
     next_call_date: string | null;
+    created_at: string;
 };
 
 export type VisitReportListItem = VisitReport & {

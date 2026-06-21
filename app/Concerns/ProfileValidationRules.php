@@ -15,10 +15,16 @@ trait ProfileValidationRules
      */
     protected function profileRules(?int $userId = null): array
     {
-        return [
+        $rules = [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
         ];
+
+        if ($userId !== null) {
+            $rules['timezone'] = ['required', 'string', Rule::in(timezone_identifiers_list())];
+        }
+
+        return $rules;
     }
 
     /**

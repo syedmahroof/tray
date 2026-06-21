@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Pencil } from '@lucide/vue';
+import {
+    Pencil,
+    ArrowLeft,
+    ClipboardList,
+    Info,
+    FileText,
+    Calendar,
+    UserRound,
+    Building,
+    Package,
+} from '@lucide/vue';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import NotesPanel from '@/components/NotesPanel.vue';
@@ -55,11 +66,19 @@ const statusVariant = computed(() => {
 
     <div class="flex flex-col space-y-6">
         <div class="flex items-center justify-between">
-            <Heading
-                variant="small"
-                :title="`Enquiry #${enquiry.id}`"
-                :description="enquiry.contact.name"
-            />
+            <div>
+                <Link
+                    :href="index()"
+                    class="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+                >
+                    <ArrowLeft class="h-4 w-4 text-slate-500" /> Back to List
+                </Link>
+                <Heading
+                    variant="small"
+                    :title="`Enquiry #${enquiry.id}`"
+                    :description="enquiry.contact.name"
+                />
+            </div>
 
             <Button v-if="permissions.includes('enquiries.update')" as-child>
                 <Link :href="edit(enquiry.id)"><Pencil /> Edit</Link>
@@ -68,65 +87,99 @@ const statusVariant = computed(() => {
 
         <Tabs default-value="details">
             <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
-                <TabsTrigger value="reminders">Reminders</TabsTrigger>
+                <TabsTrigger value="details" class="flex items-center gap-1.5">
+                    <Info class="h-4 w-4 text-[#d97706]" />
+                    Details
+                </TabsTrigger>
+                <TabsTrigger value="notes" class="flex items-center gap-1.5">
+                    <FileText class="h-4 w-4 text-emerald-500" />
+                    Notes
+                </TabsTrigger>
+                <TabsTrigger
+                    value="reminders"
+                    class="flex items-center gap-1.5"
+                >
+                    <Calendar class="h-4 w-4 text-rose-500" />
+                    Reminders
+                </TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" class="space-y-6">
-                <div class="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Contact</p>
-                        <Link
-                            :href="showContact(enquiry.contact.id)"
-                            class="text-sm font-medium hover:underline"
+                <Card>
+                    <CardHeader
+                        class="flex flex-row items-center gap-2 border-b pb-3"
+                    >
+                        <ClipboardList class="h-5 w-5 text-[#d97706]" />
+                        <CardTitle class="text-base font-semibold"
+                            >Enquiry Details</CardTitle
                         >
-                            {{ enquiry.contact.name }}
-                        </Link>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Status</p>
-                        <Badge :variant="statusVariant" class="capitalize">
-                            {{ enquiry.status.replace('_', ' ') }}
-                        </Badge>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Project</p>
-                        <p class="text-sm font-medium">
-                            {{ enquiry.project?.name ?? '—' }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Product</p>
-                        <p class="text-sm font-medium">
-                            {{ enquiry.product?.name ?? '—' }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Source</p>
-                        <p class="text-sm font-medium">
-                            {{ enquiry.source ?? '—' }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Assigned to</p>
-                        <p class="text-sm font-medium">
-                            {{ enquiry.assignee?.name ?? '—' }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-muted-foreground">Branch</p>
-                        <p class="text-sm font-medium">
-                            {{ enquiry.branch.name }}
-                        </p>
-                    </div>
-                    <div v-if="enquiry.remarks" class="sm:col-span-2">
-                        <p class="text-sm text-muted-foreground">Remarks</p>
-                        <p class="text-sm font-medium whitespace-pre-wrap">
-                            {{ enquiry.remarks }}
-                        </p>
-                    </div>
-                </div>
+                    </CardHeader>
+                    <CardContent class="grid gap-4 pt-6 sm:grid-cols-2">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Contact</p>
+                            <Link
+                                :href="showContact(enquiry.contact.id)"
+                                class="mt-0.5 flex items-center gap-1.5 text-sm font-medium hover:underline"
+                            >
+                                <UserRound class="h-3.5 w-3.5 text-[#2563eb]" />
+                                {{ enquiry.contact.name }}
+                            </Link>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Status</p>
+                            <Badge
+                                :variant="statusVariant"
+                                class="mt-0.5 capitalize"
+                            >
+                                {{ enquiry.status.replace('_', ' ') }}
+                            </Badge>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Project</p>
+                            <p
+                                class="mt-0.5 flex items-center gap-1.5 text-sm font-medium"
+                            >
+                                <Building class="h-3.5 w-3.5 text-[#4f46e5]" />
+                                {{ enquiry.project?.name ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Product</p>
+                            <p
+                                class="mt-0.5 flex items-center gap-1.5 text-sm font-medium"
+                            >
+                                <Package class="h-3.5 w-3.5 text-[#059669]" />
+                                {{ enquiry.product?.name ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Source</p>
+                            <p class="text-sm font-medium">
+                                {{ enquiry.source ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">
+                                Assigned to
+                            </p>
+                            <p class="text-sm font-medium">
+                                {{ enquiry.assignee?.name ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Branch</p>
+                            <p class="text-sm font-medium">
+                                {{ enquiry.branch.name }}
+                            </p>
+                        </div>
+                        <div v-if="enquiry.remarks" class="sm:col-span-2">
+                            <p class="text-sm text-muted-foreground">Remarks</p>
+                            <p class="text-sm font-medium whitespace-pre-wrap">
+                                {{ enquiry.remarks }}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
 
             <TabsContent value="notes">

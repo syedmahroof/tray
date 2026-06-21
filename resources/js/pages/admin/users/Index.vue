@@ -92,11 +92,12 @@ const confirmDelete = (user: UserListItem) => {
                                     {{ role.name }}
                                 </Badge>
                             </TableCell>
-                            <TableCell class="text-right">
+                            <TableCell class="text-right space-x-1.5">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
                                     :aria-label="`Edit ${user.name}`"
                                     :data-test="`edit-user-${user.id}`"
                                 >
@@ -107,6 +108,7 @@ const confirmDelete = (user: UserListItem) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
                                     :aria-label="`Delete ${user.name}`"
                                     :data-test="`delete-user-${user.id}`"
                                     @click="confirmDelete(user)"

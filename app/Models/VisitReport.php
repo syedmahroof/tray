@@ -39,9 +39,9 @@ class VisitReport extends Model
     protected function casts(): array
     {
         return [
-            'visit_date' => 'date',
-            'next_meeting_date' => 'date',
-            'next_call_date' => 'date',
+            'visit_date' => 'date:Y-m-d',
+            'next_meeting_date' => 'date:Y-m-d',
+            'next_call_date' => 'date:Y-m-d',
         ];
     }
 

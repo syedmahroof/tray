@@ -31,6 +31,7 @@ test('managers can create a builder which is auto-assigned to their own branch',
     $builder = Builder::where('name', 'Acme Developers')->first();
     expect($builder)->not->toBeNull();
     expect($builder->branch_id)->toBe($branch->id);
+    expect($builder->created_by)->toBe($manager->id);
 });
 
 test('admins must choose a branch when creating a builder', function () {
@@ -108,4 +109,31 @@ test('the builder index can be filtered by a search term', function () {
             ->has('builders.data', 1)
             ->where('builders.data.0.name', 'Skyline Developers')
             ->where('filters.search', 'Skyline'));
+});
+
+test('the builder index can be filtered by creator and created date range', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $creator = User::factory()->create();
+    Builder::factory()->create([
+        'name' => 'Creator Builds',
+        'created_by' => $creator->id,
+        'created_at' => '2026-06-15 12:00:00',
+    ]);
+    Builder::factory()->create([
+        'name' => 'Older Builds',
+        'created_at' => '2026-01-10 12:00:00',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('builders.index', ['created_by' => $creator->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('builders.data', 1)
+            ->where('builders.data.0.name', 'Creator Builds'));
+
+    $this->actingAs($admin)
+        ->get(route('builders.index', ['created_from' => '2026-06-01', 'created_to' => '2026-06-30']))
+        ->assertInertia(fn ($page) => $page
+            ->has('builders.data', 1)
+            ->where('builders.data.0.name', 'Creator Builds'));
 });

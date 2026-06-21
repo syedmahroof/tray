@@ -34,6 +34,7 @@ test('managers can create, update, and delete a product', function () {
     $product = Product::where('name', 'Unit 12B')->first();
     expect($product)->not->toBeNull();
     expect($product->branch_id)->toBe($manager->branch_id);
+    expect($product->created_by)->toBe($manager->id);
     expect((float) $product->price)->toBe(4500000.0);
 
     $this->actingAs($manager)
@@ -64,4 +65,31 @@ test('the product index can be filtered by a search term', function () {
             ->has('products.data', 1)
             ->where('products.data.0.name', 'Penthouse Suite')
             ->where('filters.search', 'Penthouse'));
+});
+
+test('the product index can be filtered by creator and created date range', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $creator = User::factory()->create();
+    Product::factory()->create([
+        'name' => 'Creator Unit',
+        'created_by' => $creator->id,
+        'created_at' => '2026-06-15 12:00:00',
+    ]);
+    Product::factory()->create([
+        'name' => 'Older Unit',
+        'created_at' => '2026-01-10 12:00:00',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('products.index', ['created_by' => $creator->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('products.data', 1)
+            ->where('products.data.0.name', 'Creator Unit'));
+
+    $this->actingAs($admin)
+        ->get(route('products.index', ['created_from' => '2026-06-01', 'created_to' => '2026-06-30']))
+        ->assertInertia(fn ($page) => $page
+            ->has('products.data', 1)
+            ->where('products.data.0.name', 'Creator Unit'));
 });

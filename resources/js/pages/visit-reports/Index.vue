@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import {
     BarChart3,
     Briefcase,
+    CalendarDays,
     Eye,
     Phone,
     Pencil,
@@ -10,9 +11,10 @@ import {
     Search,
     Trash2,
     Users,
+    X,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
 import { watchDebounced } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import StatCard from '@/components/StatCard.vue';
@@ -36,6 +38,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { formatDate } from '@/lib/utils';
 import {
     analytics,
     create,
@@ -63,6 +66,8 @@ const props = defineProps<{
         visit_type?: string;
         user_id?: string | number;
         project_id?: string | number;
+        created_from?: string;
+        created_to?: string;
     };
 }>();
 
@@ -74,8 +79,14 @@ defineOptions({
 
 const search = ref(props.filters.search ?? '');
 const visitType = ref(props.filters.visit_type ?? 'all');
-const userId = ref(props.filters.user_id ? String(props.filters.user_id) : 'all');
-const projectId = ref(props.filters.project_id ? String(props.filters.project_id) : 'all');
+const userId = ref(
+    props.filters.user_id ? String(props.filters.user_id) : 'all',
+);
+const projectId = ref(
+    props.filters.project_id ? String(props.filters.project_id) : 'all',
+);
+const createdFrom = ref(props.filters.created_from ?? '');
+const createdTo = ref(props.filters.created_to ?? '');
 
 const updateFilters = () => {
     router.get(
@@ -85,13 +96,35 @@ const updateFilters = () => {
             visit_type: visitType.value !== 'all' ? visitType.value : undefined,
             user_id: userId.value !== 'all' ? userId.value : undefined,
             project_id: projectId.value !== 'all' ? projectId.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
         },
         {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-        }
+        },
     );
+};
+
+const hasActiveFilters = computed(
+    () =>
+        search.value !== '' ||
+        visitType.value !== 'all' ||
+        userId.value !== 'all' ||
+        projectId.value !== 'all' ||
+        createdFrom.value !== '' ||
+        createdTo.value !== '',
+);
+
+const clearFilters = () => {
+    search.value = '';
+    visitType.value = 'all';
+    userId.value = 'all';
+    projectId.value = 'all';
+    createdFrom.value = '';
+    createdTo.value = '';
+    updateFilters();
 };
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
@@ -164,7 +197,9 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
 
         <Card>
             <CardContent>
-                <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:flex-wrap">
+                <div
+                    class="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
+                >
                     <div class="relative w-full max-w-sm">
                         <Search
                             class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -179,7 +214,10 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                     </div>
 
                     <!-- Visit Type Filter -->
-                    <Select v-model="visitType" @update:model-value="updateFilters">
+                    <Select
+                        v-model="visitType"
+                        @update:model-value="updateFilters"
+                    >
                         <SelectTrigger class="w-full sm:w-[160px]">
                             <SelectValue placeholder="Filter by Type" />
                         </SelectTrigger>
@@ -196,7 +234,10 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                     </Select>
 
                     <!-- Reported By Filter -->
-                    <Select v-model="userId" @update:model-value="updateFilters">
+                    <Select
+                        v-model="userId"
+                        @update:model-value="updateFilters"
+                    >
                         <SelectTrigger class="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by Reported By" />
                         </SelectTrigger>
@@ -213,7 +254,10 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                     </Select>
 
                     <!-- Project Filter -->
-                    <Select v-model="projectId" @update:model-value="updateFilters">
+                    <Select
+                        v-model="projectId"
+                        @update:model-value="updateFilters"
+                    >
                         <SelectTrigger class="w-full sm:w-[200px]">
                             <SelectValue placeholder="Filter by Project" />
                         </SelectTrigger>
@@ -228,29 +272,66 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                             </SelectItem>
                         </SelectContent>
                     </Select>
+
+                    <!-- Created Date Range -->
+                    <div class="flex items-center gap-1.5">
+                        <CalendarDays class="h-4 w-4 text-[#16a34a]" />
+                        <Input
+                            v-model="createdFrom"
+                            type="date"
+                            class="w-[150px]"
+                            aria-label="Created from"
+                            @change="updateFilters"
+                        />
+                        <span class="text-sm text-muted-foreground">to</span>
+                        <Input
+                            v-model="createdTo"
+                            type="date"
+                            class="w-[150px]"
+                            aria-label="Created to"
+                            @change="updateFilters"
+                        />
+                    </div>
+
+                    <!-- Clear Filters -->
+                    <Button
+                        v-if="hasActiveFilters"
+                        variant="ghost"
+                        size="sm"
+                        class="text-muted-foreground"
+                        data-test="clear-filters"
+                        @click="clearFilters"
+                    >
+                        <X class="h-4 w-4" /> Clear
+                    </Button>
                 </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead class="w-12">S.No.</TableHead>
                             <TableHead>Visit Date</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Objective</TableHead>
                             <TableHead>Linked to</TableHead>
                             <TableHead>Reported by</TableHead>
+                            <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow
-                            v-for="visitReport in visitReports.data"
+                            v-for="(visitReport, index) in visitReports.data"
                             :key="visitReport.id"
                         >
+                            <TableCell class="font-medium text-muted-foreground">
+                                {{ (visitReports.from ?? 1) + index }}
+                            </TableCell>
                             <TableCell class="font-medium">
                                 <Link
                                     :href="show(visitReport.id)"
                                     class="hover:underline"
                                 >
-                                    {{ visitReport.visit_date }}
+                                    {{ formatDate(visitReport.visit_date) }}
                                 </Link>
                             </TableCell>
                             <TableCell>{{ visitReport.visit_type }}</TableCell>
@@ -269,11 +350,15 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                                 </div>
                             </TableCell>
                             <TableCell>{{ visitReport.user.name }}</TableCell>
-                            <TableCell class="text-right">
+                            <TableCell class="text-sm text-muted-foreground">
+                                {{ formatDate(visitReport.created_at) }}
+                            </TableCell>
+                            <TableCell class="space-x-1.5 text-right">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:hover:text-blue-300"
                                     :aria-label="`View visit report ${visitReport.id}`"
                                     :data-test="`view-visit-report-${visitReport.id}`"
                                 >
@@ -285,6 +370,7 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    class="bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-900/40 dark:hover:text-amber-300"
                                     :aria-label="`Edit visit report ${visitReport.id}`"
                                     :data-test="`edit-visit-report-${visitReport.id}`"
                                 >
@@ -295,6 +381,7 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    class="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 dark:hover:text-red-300"
                                     :aria-label="`Delete visit report ${visitReport.id}`"
                                     :data-test="`delete-visit-report-${visitReport.id}`"
                                     @click="confirmDelete(visitReport)"
@@ -305,7 +392,7 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                         </TableRow>
                         <TableRow v-if="visitReports.data.length === 0">
                             <TableCell
-                                :colspan="6"
+                                :colspan="8"
                                 class="text-center text-muted-foreground"
                             >
                                 No visit reports yet.

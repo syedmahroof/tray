@@ -6,6 +6,13 @@ import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import MultiCombobox from '@/components/MultiCombobox.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -90,157 +97,154 @@ const initialContactIds = computed(() =>
 
         <Form
             v-bind="store.form()"
-            class="max-w-3xl space-y-8"
+            class="space-y-8"
             v-slot="{ errors, processing }"
         >
-            <div class="space-y-4 rounded-lg border p-4">
-                <Heading
-                    variant="small"
-                    title="Link Entities"
-                    description="Select at least one project, customer, or contact"
-                />
-
-                <div class="grid gap-2">
-                    <Label for="project_ids">Projects</Label>
-                    <MultiCombobox
-                        name="project_ids"
-                        placeholder="Search and select multiple projects"
-                        :options="projectOptions"
-                        :model-value="initialProjectIds"
-                    />
-                    <InputError :message="errors.project_ids" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="customer_ids">Customers</Label>
-                    <MultiCombobox
-                        name="customer_ids"
-                        placeholder="Search and select multiple customers"
-                        :options="customerOptions"
-                        :model-value="initialCustomerIds"
-                    />
-                    <InputError :message="errors.customer_ids" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="contact_ids">Contacts</Label>
-                    <MultiCombobox
-                        name="contact_ids"
-                        placeholder="Search and select multiple contacts"
-                        :options="contactOptions"
-                        :model-value="initialContactIds"
-                    />
-                    <InputError :message="errors.contact_ids" />
-                </div>
-            </div>
-
-            <div class="space-y-4 rounded-lg border p-4">
-                <Heading
-                    variant="small"
-                    title="Visit Details"
-                    description="Enter the visit information"
-                />
-
-                <div class="grid gap-4 sm:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Link Entities</CardTitle>
+                    <CardDescription>
+                        Select at least one project, customer, or contact
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="grid gap-4 grid-cols-1 md:grid-cols-3">
                     <div class="grid gap-2">
-                        <Label for="visit_date">Visit Date *</Label>
+                        <Label for="project_ids">Projects</Label>
+                        <MultiCombobox
+                            name="project_ids"
+                            placeholder="Search projects"
+                            :options="projectOptions"
+                            :model-value="initialProjectIds"
+                        />
+                        <InputError :message="errors.project_ids" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="customer_ids">Customers</Label>
+                        <MultiCombobox
+                            name="customer_ids"
+                            placeholder="Search customers"
+                            :options="customerOptions"
+                            :model-value="initialCustomerIds"
+                        />
+                        <InputError :message="errors.customer_ids" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="contact_ids">Contacts</Label>
+                        <MultiCombobox
+                            name="contact_ids"
+                            placeholder="Search contacts"
+                            :options="contactOptions"
+                            :model-value="initialContactIds"
+                        />
+                        <InputError :message="errors.contact_ids" />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Visit Details</CardTitle>
+                    <CardDescription>Enter the visit information</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2" :class="{ 'md:grid-cols-3': branches.length > 0 }">
+                        <div class="grid gap-2">
+                            <Label for="visit_date">Visit Date *</Label>
+                            <Input
+                                id="visit_date"
+                                name="visit_date"
+                                type="date"
+                                required
+                            />
+                            <InputError :message="errors.visit_date" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="visit_type">Visit Type *</Label>
+                            <Select name="visit_type">
+                                <SelectTrigger class="w-full">
+                                    <SelectValue placeholder="Select a type…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="visitType in visitTypes"
+                                        :key="visitType"
+                                        :value="visitType"
+                                    >
+                                        {{ visitType }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError :message="errors.visit_type" />
+                        </div>
+
+                        <div v-if="branches.length > 0" class="grid gap-2">
+                            <Label for="branch_id">Branch</Label>
+                            <Select name="branch_id">
+                                <SelectTrigger class="w-full">
+                                    <SelectValue placeholder="Select a branch…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="branch in branches"
+                                        :key="branch.id"
+                                        :value="String(branch.id)"
+                                    >
+                                        {{ branch.name }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError :message="errors.branch_id" />
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="objective">Objective of Visiting *</Label>
                         <Input
-                            id="visit_date"
-                            name="visit_date"
-                            type="date"
+                            id="objective"
+                            name="objective"
+                            placeholder="e.g., Site inspection, Client meeting, Follow-up discussion"
                             required
                         />
-                        <InputError :message="errors.visit_date" />
+                        <InputError :message="errors.objective" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="visit_type">Visit Type *</Label>
-                        <Select name="visit_type">
-                            <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select a type…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="visitType in visitTypes"
-                                    :key="visitType"
-                                    :value="visitType"
-                                >
-                                    {{ visitType }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <InputError :message="errors.visit_type" />
-                    </div>
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="objective">Objective of Visiting *</Label>
-                    <Input
-                        id="objective"
-                        name="objective"
-                        placeholder="e.g., Site inspection, Client meeting, Follow-up discussion"
-                        required
-                    />
-                    <InputError :message="errors.objective" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="report"
-                        >Daily/Visiting Time Report Update</Label
-                    >
-                    <Textarea
-                        id="report"
-                        name="report"
-                        rows="4"
-                        placeholder="Enter detailed report of the visit, observations, discussions, and any important notes…"
-                    />
-                    <p class="text-sm text-muted-foreground">
-                        Provide a comprehensive summary of the visit
-                    </p>
-                    <InputError :message="errors.report" />
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="grid gap-2">
-                        <Label for="next_meeting_date">Next Meeting Date</Label>
-                        <Input
-                            id="next_meeting_date"
-                            name="next_meeting_date"
-                            type="date"
+                        <Label for="report">Daily/Visiting Time Report Update</Label>
+                        <Textarea
+                            id="report"
+                            name="report"
+                            rows="3"
+                            placeholder="Enter detailed report of the visit, observations, discussions, and any important notes…"
                         />
-                        <InputError :message="errors.next_meeting_date" />
+                        <InputError :message="errors.report" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label for="next_call_date">Next Call Date</Label>
-                        <Input
-                            id="next_call_date"
-                            name="next_call_date"
-                            type="date"
-                        />
-                        <InputError :message="errors.next_call_date" />
-                    </div>
-                </div>
-            </div>
+                    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="next_meeting_date">Next Meeting Date</Label>
+                            <Input
+                                id="next_meeting_date"
+                                name="next_meeting_date"
+                                type="date"
+                            />
+                            <InputError :message="errors.next_meeting_date" />
+                        </div>
 
-            <div v-if="branches.length > 0" class="grid gap-2">
-                <Label for="branch_id">Branch</Label>
-                <Select name="branch_id">
-                    <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select a branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem
-                            v-for="branch in branches"
-                            :key="branch.id"
-                            :value="String(branch.id)"
-                        >
-                            {{ branch.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="errors.branch_id" />
-            </div>
+                        <div class="grid gap-2">
+                            <Label for="next_call_date">Next Call Date</Label>
+                            <Input
+                                id="next_call_date"
+                                name="next_call_date"
+                                type="date"
+                            />
+                            <InputError :message="errors.next_call_date" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Button type="submit" :disabled="processing">
                 Create visit report

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBuilderRequest;
 use App\Models\Builder;
 use App\Models\Country;
+use App\Models\User;
 use App\Support\BranchAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,10 +21,13 @@ class BuilderController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
+        $createdBy = $request->input('created_by');
+        $createdFrom = $request->input('created_from');
+        $createdTo = $request->input('created_to');
 
         return Inertia::render('admin/builders/Index', [
             'builders' => Builder::query()
-                ->with(['country', 'state', 'district'])
+                ->with(['country', 'state', 'district', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -32,10 +36,19 @@ class BuilderController extends Controller
                             ->orWhere('email', 'like', "%{$search}%");
                     });
                 })
+                ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
+                ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
+                ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
-            'filters' => ['search' => $search],
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'search' => $search,
+                'created_by' => $createdBy,
+                'created_from' => $createdFrom,
+                'created_to' => $createdTo,
+            ],
         ]);
     }
 
@@ -58,6 +71,7 @@ class BuilderController extends Controller
         Builder::create([
             ...$request->validated(),
             'is_active' => $request->boolean('is_active'),
+            'created_by' => $request->user()->id,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Builder created.')]);

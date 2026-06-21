@@ -100,6 +100,7 @@ const confirmDelete = (reminder: Reminder) => {
                             v-if="canDelete"
                             variant="ghost"
                             size="sm"
+                            class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
                             aria-label="Delete reminder"
                             @click="confirmDelete(reminder)"
                         >

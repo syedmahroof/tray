@@ -27,10 +27,13 @@ class ProjectController extends Controller
         $builderId = $request->input('builder_id');
         $categoryId = $request->input('project_category_id');
         $status = $request->input('status');
+        $createdBy = $request->input('created_by');
+        $createdFrom = $request->input('created_from');
+        $createdTo = $request->input('created_to');
 
         return Inertia::render('admin/projects/Index', [
             'projects' => Project::query()
-                ->with(['builder', 'projectCategory'])
+                ->with(['builder', 'projectCategory', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -42,17 +45,24 @@ class ProjectController extends Controller
                 ->when($builderId, fn ($query) => $query->where('builder_id', $builderId))
                 ->when($categoryId, fn ($query) => $query->where('project_category_id', $categoryId))
                 ->when($status, fn ($query) => $query->where('status', $status))
+                ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
+                ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
+                ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'projectCategories' => ProjectCategory::query()->orderBy('name')->get(['id', 'name']),
             'statuses' => Project::STATUSES,
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'filters' => [
                 'search' => $search,
                 'builder_id' => $builderId,
                 'project_category_id' => $categoryId,
                 'status' => $status,
+                'created_by' => $createdBy,
+                'created_from' => $createdFrom,
+                'created_to' => $createdTo,
             ],
         ]);
     }
@@ -69,6 +79,7 @@ class ProjectController extends Controller
             'state',
             'district',
             'assignee',
+            'creator',
             'contacts.contactType',
             'projectContacts',
             'visitReports.user',
@@ -101,7 +112,10 @@ class ProjectController extends Controller
      */
     public function store(SaveProjectRequest $request): RedirectResponse
     {
-        $project = Project::create($request->validated());
+        $project = Project::create([
+            ...$request->validated(),
+            'created_by' => $request->user()->id,
+        ]);
 
         if ($request->has('contacts')) {
             $project->contacts()->sync($request->input('contacts', []));

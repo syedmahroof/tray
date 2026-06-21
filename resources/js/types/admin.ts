@@ -79,12 +79,15 @@ export type Builder = {
     state_id: number | null;
     district_id: number | null;
     is_active: boolean;
+    created_by: number | null;
+    created_at: string;
 };
 
 export type BuilderListItem = Builder & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    creator: NamedOption | null;
 };
 
 export type NamedOption = {
@@ -104,7 +107,7 @@ export type ProjectContact = {
 export type Project = {
     id: number;
     branch_id: number;
-    builder_id: number;
+    builder_id: number | null;
     project_category_id: number;
     name: string;
     address: string | null;
@@ -121,15 +124,18 @@ export type Project = {
     expected_maturity: string | null;
     preferred_material: string | null;
     assignee_id: number | null;
+    created_by: number | null;
     start_date: string | null;
     end_date: string | null;
+    created_at: string;
     contacts?: NamedOption[];
     project_contacts?: ProjectContact[];
 };
 
 export type ProjectListItem = Project & {
-    builder: NamedOption;
+    builder: NamedOption | null;
     project_category: NamedOption;
+    creator: NamedOption | null;
 };
 
 export type Product = {
@@ -140,8 +146,11 @@ export type Product = {
     price: string | null;
     area_sqft: string | null;
     description: string | null;
+    created_by: number | null;
+    created_at: string;
 };
 
 export type ProductListItem = Product & {
     product_category: NamedOption;
+    creator: NamedOption | null;
 };
