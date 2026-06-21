@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ReminderNotifications;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,10 +43,11 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
+                'roles' => fn () => $user?->getRoleNames() ?? [],
+                'permissions' => fn () => $user?->getAllPermissions()->pluck('name') ?? [],
             ],
+            'notifications' => fn () => $user ? ReminderNotifications::forUser($user) : ['items' => [], 'total' => 0],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
-            'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
     }
 }

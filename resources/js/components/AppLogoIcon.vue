@@ -15,15 +15,147 @@ defineProps<Props>();
 <template>
     <svg
         xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 40 42"
+        viewBox="0 0 200 200"
         :class="className"
         v-bind="$attrs"
     >
-        <path
-            fill="currentColor"
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="M17.2 5.633 8.6.855 0 5.633v26.51l16.2 9 16.2-9v-8.442l7.6-4.223V9.856l-8.6-4.777-8.6 4.777V18.3l-5.6 3.111V5.633ZM38 18.301l-5.6 3.11v-6.157l5.6-3.11V18.3Zm-1.06-7.856-5.54 3.078-5.54-3.079 5.54-3.078 5.54 3.079ZM24.8 18.3v-6.157l5.6 3.111v6.158L24.8 18.3Zm-1 1.732 5.54 3.078-13.14 7.302-5.54-3.078 13.14-7.3v-.002Zm-16.2 7.89 7.6 4.222V38.3L2 30.966V7.92l5.6 3.111v16.892ZM8.6 9.3 3.06 6.222 8.6 3.143l5.54 3.08L8.6 9.3Zm21.8 15.51-13.2 7.334V38.3l13.2-7.334v-6.156ZM9.6 11.034l5.6-3.11v14.6l-5.6 3.11v-14.6Z"
-        />
+        <defs>
+            <!-- Gradients for Blue Letter (b) -->
+            <linearGradient id="blue-top" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="100%" stop-color="#1d4ed8" />
+            </linearGradient>
+            <linearGradient id="blue-left" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1d4ed8" />
+                <stop offset="100%" stop-color="#1a365d" />
+            </linearGradient>
+            <linearGradient id="blue-right" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb" />
+                <stop offset="100%" stop-color="#1e40af" />
+            </linearGradient>
+
+            <!-- Gradients for Cyan/Light Blue Letter (t) -->
+            <linearGradient id="cyan-top" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#60a5fa" />
+                <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="cyan-left" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb" />
+                <stop offset="100%" stop-color="#1d4ed8" />
+            </linearGradient>
+            <linearGradient id="cyan-right" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="100%" stop-color="#1e40af" />
+            </linearGradient>
+        </defs>
+
+        <g transform="translate(10, 10)">
+            <!-- 3D "b" (Left shape) -->
+            <!-- Pillar Top -->
+            <polygon points="40,60 60,48 80,60 60,72" fill="url(#blue-top)" />
+            <!-- Pillar Left -->
+            <polygon
+                points="40,60 60,72 60,132 40,120"
+                fill="url(#blue-left)"
+            />
+            <!-- Pillar Right (top portion) -->
+            <polygon
+                points="60,72 80,60 80,90 60,102"
+                fill="url(#blue-right)"
+            />
+
+            <!-- Top Left block protrusion of "b" -->
+            <polygon points="20,72 40,60 60,72 40,84" fill="url(#blue-top)" />
+            <polygon points="20,72 40,84 40,104 20,92" fill="url(#blue-left)" />
+            <polygon
+                points="40,84 60,72 60,92 40,104"
+                fill="url(#blue-right)"
+            />
+
+            <!-- Bottom loop projection -->
+            <polygon
+                points="60,120 80,108 100,120 80,132"
+                fill="url(#blue-top)"
+            />
+            <polygon
+                points="60,120 80,132 80,152 60,140"
+                fill="url(#blue-left)"
+            />
+            <polygon
+                points="80,132 100,120 100,140 80,152"
+                fill="url(#blue-right)"
+            />
+
+            <!-- Loop Right Side Column -->
+            <polygon
+                points="80,102 100,90 120,102 100,114"
+                fill="url(#blue-top)"
+            />
+            <polygon
+                points="80,102 100,114 100,134 80,122"
+                fill="url(#blue-left)"
+            />
+            <polygon
+                points="100,114 120,102 120,122 100,134"
+                fill="url(#blue-right)"
+            />
+
+            <!-- Loop Top Connection -->
+            <polygon
+                points="60,102 80,90 100,102 80,114"
+                fill="url(#blue-top)"
+            />
+            <polygon
+                points="60,102 80,114 80,134 60,122"
+                fill="url(#blue-left)"
+            />
+            <polygon
+                points="80,114 100,102 100,122 80,134"
+                fill="url(#blue-right)"
+            />
+
+            <!-- 3D "t" (Right shape) -->
+            <!-- Top Crossbar Left -->
+            <polygon
+                points="100,72 120,60 140,72 120,84"
+                fill="url(#cyan-top)"
+            />
+            <polygon
+                points="100,72 120,84 120,104 100,92"
+                fill="url(#cyan-left)"
+            />
+            <polygon
+                points="120,84 140,72 140,92 120,104"
+                fill="url(#cyan-right)"
+            />
+
+            <!-- Top Crossbar Right -->
+            <polygon
+                points="120,60 140,48 160,60 140,72"
+                fill="url(#cyan-top)"
+            />
+            <polygon
+                points="120,60 140,72 140,92 120,80"
+                fill="url(#cyan-left)"
+            />
+            <polygon
+                points="140,72 160,60 160,80 140,92"
+                fill="url(#cyan-right)"
+            />
+
+            <!-- Vertical Stem -->
+            <polygon
+                points="120,84 140,72 140,132 120,144"
+                fill="url(#cyan-right)"
+            />
+            <polygon
+                points="100,96 120,84 120,144 100,156"
+                fill="url(#cyan-left)"
+            />
+            <polygon
+                points="100,156 120,144 140,132 120,144"
+                fill="url(#cyan-top)"
+            />
+        </g>
     </svg>
 </template>
