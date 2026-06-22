@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
@@ -38,7 +39,7 @@ test('admins can create a user with a branch and role', function () {
             'email' => 'jane@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
-            'branch_id' => $branch->id,
+            'branches' => [$branch->id],
             'role' => 'Sales Executive',
         ])
         ->assertRedirect(route('users.index'));
@@ -47,7 +48,78 @@ test('admins can create a user with a branch and role', function () {
 
     expect($user)->not->toBeNull();
     expect($user->branch_id)->toBe($branch->id);
+    expect($user->branches->pluck('id')->all())->toBe([$branch->id]);
     expect($user->hasRole('Sales Executive'))->toBeTrue();
+});
+
+test('admins can assign multiple branches to a user', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $first = Branch::factory()->create();
+    $second = Branch::factory()->create();
+
+    $this->actingAs($admin)
+        ->post(route('users.store'), [
+            'name' => 'Multi Branch',
+            'email' => 'multi@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'branches' => [$first->id, $second->id],
+            'role' => 'Manager',
+        ])
+        ->assertRedirect(route('users.index'));
+
+    $user = User::where('email', 'multi@example.com')->first();
+
+    expect($user->branch_id)->toBe($first->id);
+    expect($user->branches->pluck('id')->all())->toEqualCanonicalizing([$first->id, $second->id]);
+});
+
+test('admins can restrict a user to specific brands', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $branch = Branch::factory()->create();
+    $brand = Brand::factory()->create();
+
+    $this->actingAs($admin)
+        ->post(route('users.store'), [
+            'name' => 'Brand Restricted',
+            'email' => 'restricted@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'branches' => [$branch->id],
+            'brands' => [$brand->id],
+            'role' => 'Sales Executive',
+        ])
+        ->assertRedirect(route('users.index'));
+
+    $user = User::where('email', 'restricted@example.com')->first();
+
+    expect($user->brands->pluck('id')->all())->toBe([$brand->id]);
+});
+
+test('admins can change the branches assigned to a user', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $first = Branch::factory()->create();
+    $second = Branch::factory()->create();
+    $user = User::factory()->create(['branch_id' => $first->id]);
+    $user->assignRole('Manager');
+    $user->branches()->sync([$first->id]);
+
+    $this->actingAs($admin)
+        ->patch(route('users.update', $user), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'branches' => [$second->id],
+            'role' => 'Manager',
+        ])
+        ->assertRedirect(route('users.index'));
+
+    $user->refresh();
+
+    expect($user->branch_id)->toBe($second->id);
+    expect($user->branches->pluck('id')->all())->toBe([$second->id]);
 });
 
 test('user emails must be unique', function () {

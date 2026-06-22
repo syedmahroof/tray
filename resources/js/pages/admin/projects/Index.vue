@@ -15,6 +15,7 @@ import {
     CircleCheckBig,
     BarChart3,
     Package,
+    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -46,6 +47,7 @@ import {
     create,
     destroy,
     edit,
+    exportMethod,
     index,
     show,
     analytics,
@@ -149,6 +151,22 @@ const clearFilters = () => {
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
 
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            builder_id: builderId.value !== 'all' ? builderId.value : undefined,
+            project_category_id:
+                categoryId.value !== 'all' ? categoryId.value : undefined,
+            status: status.value !== 'all' ? status.value : undefined,
+            product_id: productId.value !== 'all' ? productId.value : undefined,
+            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
+        },
+    }),
+);
+
 const statusVariant = (status: string) => {
     if (status === 'completed') {
         return 'default' as const;
@@ -213,6 +231,9 @@ const confirmDelete = (project: ProjectListItem) => {
             />
 
             <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
                 <Button variant="outline" as-child>
                     <Link :href="analytics()"><BarChart3 /> Analytics</Link>
                 </Button>

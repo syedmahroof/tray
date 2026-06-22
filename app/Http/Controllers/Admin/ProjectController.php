@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveProjectRequest;
 use App\Models\Builder;
@@ -13,11 +14,14 @@ use App\Models\ProjectCategory;
 use App\Models\User;
 use App\Support\BranchAccess;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProjectController extends Controller
 {
@@ -47,23 +51,8 @@ class ProjectController extends Controller
                 'ongoing' => (int) $statusCounts->get('ongoing', 0),
                 'completed' => (int) $statusCounts->get('completed', 0),
             ],
-            'projects' => Project::query()
+            'projects' => $this->filteredQuery($request)
                 ->with(['builder', 'projectCategory', 'creator'])
-                ->when($search !== '', function ($query) use ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                            ->orWhere('owner_name', 'like', "%{$search}%")
-                            ->orWhere('location', 'like', "%{$search}%")
-                            ->orWhereHas('builder', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
-                    });
-                })
-                ->when($builderId, fn ($query) => $query->where('builder_id', $builderId))
-                ->when($categoryId, fn ($query) => $query->where('project_category_id', $categoryId))
-                ->when($status, fn ($query) => $query->where('status', $status))
-                ->when($productId, fn ($query) => $query->whereHas('products', fn ($q) => $q->where('products.id', $productId)))
-                ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
-                ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
-                ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
@@ -83,6 +72,63 @@ class ProjectController extends Controller
                 'created_to' => $createdTo,
             ],
         ]);
+    }
+
+    /**
+     * Export the filtered projects to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $projects = $this->filteredQuery($request)
+            ->with(['builder', 'projectCategory', 'creator'])
+            ->orderBy('name')
+            ->get();
+
+        $rows = $projects->map(fn (Project $project): array => [
+            $project->name,
+            $project->builder?->name,
+            $project->projectCategory->name,
+            ucfirst($project->status),
+            $project->owner_name,
+            $project->location,
+            $project->creator?->name,
+            $project->created_at?->format('Y-m-d'),
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Name', 'Builder', 'Category', 'Status', 'Owner', 'Location', 'Created By', 'Created At'],
+                $rows,
+            ),
+            'projects.xlsx',
+        );
+    }
+
+    /**
+     * Build the filtered project query shared by the index and export.
+     *
+     * @return EloquentBuilder<Project>
+     */
+    private function filteredQuery(Request $request): EloquentBuilder
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        return Project::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('owner_name', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%")
+                        ->orWhereHas('builder', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->input('builder_id'), fn ($query, $value) => $query->where('builder_id', $value))
+            ->when($request->input('project_category_id'), fn ($query, $value) => $query->where('project_category_id', $value))
+            ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
+            ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value));
     }
 
     /**

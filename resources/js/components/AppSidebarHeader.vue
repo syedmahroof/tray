@@ -8,6 +8,12 @@ import HeaderUserMenu from '@/components/HeaderUserMenu.vue';
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { index as buildersIndex } from '@/routes/builders';
 import { index as contactsIndex } from '@/routes/contacts';
 import { index as projectsIndex } from '@/routes/projects';
@@ -58,25 +64,31 @@ const shortcuts = [
         </div>
 
         <div class="flex items-center gap-1">
-            <nav class="mr-1 hidden items-center gap-0.5 md:flex">
-                <Button
-                    v-for="shortcut in shortcuts"
-                    :key="shortcut.label"
-                    variant="ghost"
-                    size="icon"
-                    as-child
-                    :title="shortcut.label"
-                    :aria-label="shortcut.label"
-                >
-                    <Link :href="shortcut.href">
-                        <component
-                            :is="shortcut.icon"
-                            class="h-4 w-4"
-                            :style="{ color: shortcut.color }"
-                        />
-                    </Link>
-                </Button>
-            </nav>
+            <TooltipProvider :delay-duration="0">
+                <nav class="mr-1 hidden items-center gap-0.5 md:flex">
+                    <Tooltip v-for="shortcut in shortcuts" :key="shortcut.label">
+                        <TooltipTrigger as-child>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                as-child
+                                :aria-label="shortcut.label"
+                            >
+                                <Link :href="shortcut.href">
+                                    <component
+                                        :is="shortcut.icon"
+                                        class="h-4 w-4"
+                                        :style="{ color: shortcut.color }"
+                                    />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{{ shortcut.label }}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </nav>
+            </TooltipProvider>
 
             <div class="mr-2">
                 <GlobalSearchBar />

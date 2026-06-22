@@ -9,6 +9,7 @@ import {
     User,
     CalendarDays,
     X,
+    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -35,7 +36,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { create, destroy, edit, index, show } from '@/routes/builders';
+import {
+    create,
+    destroy,
+    edit,
+    exportMethod,
+    index,
+    show,
+} from '@/routes/builders';
 import type { BuilderListItem, Filters, NamedOption, Paginated } from '@/types';
 
 const props = defineProps<{
@@ -96,6 +104,17 @@ const clearFilters = () => {
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
 
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
+        },
+    }),
+);
+
 const deleteDialogOpen = ref(false);
 const builderToDelete = ref<BuilderListItem | null>(null);
 
@@ -116,9 +135,14 @@ const confirmDelete = (builder: BuilderListItem) => {
                 description="Manage the developers behind your projects"
             />
 
-            <Button as-child>
-                <Link :href="create()"><Plus /> New builder</Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
+                <Button as-child>
+                    <Link :href="create()"><Plus /> New builder</Link>
+                </Button>
+            </div>
         </div>
 
         <Card>
@@ -213,7 +237,9 @@ const confirmDelete = (builder: BuilderListItem) => {
                             v-for="(builder, index) in builders.data"
                             :key="builder.id"
                         >
-                            <TableCell class="font-medium text-muted-foreground">
+                            <TableCell
+                                class="font-medium text-muted-foreground"
+                            >
                                 {{ (builders.from ?? 1) + index }}
                             </TableCell>
                             <TableCell class="font-medium">

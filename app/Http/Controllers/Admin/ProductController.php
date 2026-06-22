@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveProductRequest;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -12,6 +14,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProductController extends Controller
 {
@@ -27,7 +31,7 @@ class ProductController extends Controller
 
         return Inertia::render('admin/products/Index', [
             'products' => Product::query()
-                ->with(['productCategory', 'creator'])
+                ->with(['productCategory', 'brand', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -51,12 +55,53 @@ class ProductController extends Controller
     }
 
     /**
+     * Export the filtered products to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $products = Product::query()
+            ->with(['productCategory', 'creator'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('productCategory', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->orderBy('name')
+            ->get();
+
+        $rows = $products->map(fn (Product $product): array => [
+            $product->name,
+            $product->productCategory->name,
+            $product->brand?->name,
+            $product->price,
+            $product->area_sqft,
+            $product->creator?->name,
+            $product->created_at?->format('Y-m-d'),
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Name', 'Category', 'Brand', 'Price', 'Area (sqft)', 'Created By', 'Created At'],
+                $rows,
+            ),
+            'products.xlsx',
+        );
+    }
+
+    /**
      * Show the form for creating a new product.
      */
     public function create(): Response
     {
         return Inertia::render('admin/products/Create', [
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
     }
@@ -81,7 +126,7 @@ class ProductController extends Controller
      */
     public function show(Product $product): Response
     {
-        $product->load(['productCategory', 'branch', 'projects.builder']);
+        $product->load(['productCategory', 'brand', 'branch', 'projects.builder']);
 
         return Inertia::render('admin/products/Show', [
             'product' => $product,
@@ -96,6 +141,7 @@ class ProductController extends Controller
         return Inertia::render('admin/products/Edit', [
             'product' => $product,
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
     }

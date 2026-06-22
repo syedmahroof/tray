@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Project;
@@ -66,6 +67,41 @@ test('managers can create, update, and delete a product', function () {
         ->assertRedirect(route('products.index'));
 
     $this->assertModelMissing($product);
+});
+
+test('a product can be created with a brand', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+    $brand = Brand::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'name' => 'Branded Unit',
+        ])
+        ->assertRedirect(route('products.index'));
+
+    expect(Product::where('name', 'Branded Unit')->first()->brand_id)->toBe($brand->id);
+});
+
+test('an empty brand selection is stored as no brand', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'brand_id' => '',
+            'name' => 'Brandless Unit',
+        ])
+        ->assertRedirect(route('products.index'));
+
+    expect(Product::where('name', 'Brandless Unit')->first()->brand_id)->toBeNull();
 });
 
 test('the product index can be filtered by a search term', function () {

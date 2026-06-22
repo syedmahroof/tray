@@ -26,7 +26,10 @@ class SaveUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($user instanceof User ? $user->id : null),
             ],
             'password' => [$this->isMethod('post') ? 'required' : 'nullable', 'string', Password::default(), 'confirmed'],
-            'branch_id' => ['nullable', Rule::exists('branches', 'id')],
+            'branches' => ['nullable', 'array'],
+            'branches.*' => [Rule::exists('branches', 'id')],
+            'brands' => ['nullable', 'array'],
+            'brands.*' => [Rule::exists('brands', 'id')],
             'role' => ['required', 'string', Rule::exists('roles', 'name')],
         ];
     }

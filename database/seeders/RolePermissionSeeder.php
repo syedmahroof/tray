@@ -16,11 +16,11 @@ class RolePermissionSeeder extends Seeder
     private const RESOURCES = [
         'users', 'branches', 'roles',
         'countries', 'states', 'districts',
-        'project-categories', 'product-categories', 'contact-types',
+        'project-categories', 'product-categories', 'contact-types', 'brands',
         'builders', 'projects', 'products',
         'contacts', 'customers', 'enquiries',
         'notes', 'reminders', 'visit-reports',
-        'quotations',
+        'quotations', 'reports',
     ];
 
     /**
@@ -45,16 +45,17 @@ class RolePermissionSeeder extends Seeder
         Role::findOrCreate('Manager')->syncPermissions([
             ...$this->permissionNames(['countries', 'states', 'districts'], ['view']),
             ...$this->permissionNames([
-                'project-categories', 'product-categories', 'contact-types',
+                'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products',
                 'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations',
             ], self::ACTIONS),
+            ...$this->permissionNames(['reports'], ['view']),
         ]);
 
         Role::findOrCreate('Sales Executive')->syncPermissions([
             ...$this->permissionNames([
                 'countries', 'states', 'districts',
-                'project-categories', 'product-categories', 'contact-types',
+                'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products',
             ], ['view']),
             ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations'], self::ACTIONS),
@@ -63,7 +64,7 @@ class RolePermissionSeeder extends Seeder
         Role::findOrCreate('Telecaller')->syncPermissions([
             ...$this->permissionNames([
                 'countries', 'states', 'districts',
-                'project-categories', 'product-categories', 'contact-types',
+                'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products', 'contacts', 'customers',
             ], ['view']),
             ...$this->permissionNames(['enquiries', 'notes', 'reminders', 'visit-reports'], ['view', 'create', 'update']),

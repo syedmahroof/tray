@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Scopes\BrandScope;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,22 +16,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $id
  * @property int $branch_id
  * @property int $product_category_id
+ * @property int|null $brand_id
  * @property string $name
  * @property string|null $price
  * @property string|null $area_sqft
  * @property string|null $description
  * @property int|null $created_by
  * @property-read ProductCategory $productCategory
+ * @property-read Brand|null $brand
  * @property-read User|null $creator
  * @property-read Collection<int, Project> $projects
  */
-#[Fillable(['branch_id', 'product_category_id', 'name', 'price', 'area_sqft', 'description', 'created_by'])]
+#[Fillable(['branch_id', 'product_category_id', 'brand_id', 'name', 'price', 'area_sqft', 'description', 'created_by'])]
 class Product extends Model
 {
     use BelongsToBranch;
 
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
+
+    /**
+     * Boot the model and restrict queries to the user's accessible brands.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new BrandScope);
+    }
 
     /**
      * @return array<string, string>
@@ -49,6 +60,14 @@ class Product extends Model
     public function productCategory(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class);
+    }
+
+    /**
+     * @return BelongsTo<Brand, $this>
+     */
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     /**

@@ -4,6 +4,7 @@ import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -14,10 +15,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { create, index, store } from '@/routes/users';
-import type { Branch } from '@/types';
+import type { Branch, NamedOption } from '@/types';
 
 defineProps<{
     branches: Branch[];
+    brands: NamedOption[];
     roles: string[];
 }>();
 
@@ -76,22 +78,49 @@ defineOptions({
             </div>
 
             <div class="grid gap-2">
-                <Label for="branch_id">Branch</Label>
-                <Select name="branch_id">
-                    <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select a branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem
-                            v-for="branch in branches"
-                            :key="branch.id"
+                <Label>Branches</Label>
+                <p class="text-sm text-muted-foreground">
+                    Select every branch this user may access. The first one is
+                    used as their default for new records.
+                </p>
+                <div class="flex flex-wrap gap-4 rounded-lg border p-4">
+                    <Label
+                        v-for="branch in branches"
+                        :key="branch.id"
+                        class="flex items-center space-x-2 font-normal"
+                    >
+                        <Checkbox
+                            name="branches[]"
                             :value="String(branch.id)"
-                        >
-                            {{ branch.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="errors.branch_id" />
+                            :data-test="`branch-${branch.id}`"
+                        />
+                        <span>{{ branch.name }}</span>
+                    </Label>
+                </div>
+                <InputError :message="errors.branches" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label>Brands</Label>
+                <p class="text-sm text-muted-foreground">
+                    Limit this user to specific product brands. Leave all
+                    unchecked for no brand restriction.
+                </p>
+                <div class="flex flex-wrap gap-4 rounded-lg border p-4">
+                    <Label
+                        v-for="brand in brands"
+                        :key="brand.id"
+                        class="flex items-center space-x-2 font-normal"
+                    >
+                        <Checkbox
+                            name="brands[]"
+                            :value="String(brand.id)"
+                            :data-test="`brand-${brand.id}`"
+                        />
+                        <span>{{ brand.name }}</span>
+                    </Label>
+                </div>
+                <InputError :message="errors.brands" />
             </div>
 
             <div class="grid gap-2">

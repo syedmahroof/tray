@@ -9,6 +9,7 @@ import {
     User,
     CalendarDays,
     X,
+    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -34,7 +35,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { create, destroy, edit, index, show } from '@/routes/contacts';
+import {
+    create,
+    destroy,
+    edit,
+    exportMethod,
+    index,
+    show,
+} from '@/routes/contacts';
 import type { ContactListItem, Filters, Paginated, NamedOption } from '@/types';
 
 const props = defineProps<{
@@ -114,6 +122,21 @@ const clearFilters = () => {
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
 
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            contact_type_id:
+                contactTypeId.value !== 'all' ? contactTypeId.value : undefined,
+            assigned_to:
+                assignedTo.value !== 'all' ? assignedTo.value : undefined,
+            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
+        },
+    }),
+);
+
 const deleteDialogOpen = ref(false);
 const contactToDelete = ref<ContactListItem | null>(null);
 
@@ -134,9 +157,14 @@ const confirmDelete = (contact: ContactListItem) => {
                 description="Manage leads and customers"
             />
 
-            <Button as-child>
-                <Link :href="create()"><Plus /> New contact</Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
+                <Button as-child>
+                    <Link :href="create()"><Plus /> New contact</Link>
+                </Button>
+            </div>
         </div>
 
         <Card>

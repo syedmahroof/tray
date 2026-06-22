@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     Building,
     Building2,
+    ChartColumnBig,
     ClipboardCheck,
     ClipboardList,
     Contact,
@@ -14,6 +15,7 @@ import {
     Package,
     Shapes,
     Shield,
+    Tag,
     Tags,
     UserRound,
     Users,
@@ -31,6 +33,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as branchesIndex } from '@/routes/branches';
+import { index as brandsIndex } from '@/routes/brands';
 import { index as buildersIndex } from '@/routes/builders';
 import { index as contactTypesIndex } from '@/routes/contact-types';
 import { index as contactsIndex } from '@/routes/contacts';
@@ -45,6 +48,7 @@ import { index as productsIndex } from '@/routes/products';
 import { index as projectCategoriesIndex } from '@/routes/project-categories';
 import { index as projectsIndex } from '@/routes/projects';
 import { index as quotationsIndex } from '@/routes/quotations';
+import { index as reportsIndex } from '@/routes/reports';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as usersIndex } from '@/routes/users';
 import {
@@ -91,6 +95,12 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: contactTypesIndex(),
             icon: Contact,
             color: '#0d9488',
+        },
+        permissions.value.includes('brands.view') && {
+            title: 'Brands',
+            href: brandsIndex(),
+            icon: Tag,
+            color: '#e11d48',
         },
     ].filter((item): item is NavItem => Boolean(item));
 
@@ -196,6 +206,12 @@ const crmNavItems = computed<NavItem[]>(() => {
             href: quotationsIndex(),
             icon: FileText,
             color: '#4f46e5',
+        },
+        permissions.value.includes('reports.view') && {
+            title: 'Reports',
+            href: reportsIndex(),
+            icon: ChartColumnBig,
+            color: '#0ea5e9',
         },
     ];
 

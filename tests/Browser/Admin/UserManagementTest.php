@@ -24,7 +24,7 @@ test('an admin can create and edit a user through the UI', function () {
         ->fill('email', 'jane@example.com')
         ->fill('password', 'password')
         ->fill('password_confirmation', 'password')
-        ->select('branch_id', 'Head Office')
+        ->check("@branch-{$branch->id}")
         ->select('role', 'Sales Executive')
         ->click('Create user')
         ->assertSee('User created.')

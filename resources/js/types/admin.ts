@@ -35,6 +35,8 @@ export type UserDetail = {
     name: string;
     email: string;
     branch_id: number | null;
+    branch_ids: number[];
+    brand_ids: number[];
     role: string | null;
 };
 
@@ -143,6 +145,7 @@ export type Product = {
     id: number;
     branch_id: number;
     product_category_id: number;
+    brand_id: number | null;
     name: string;
     price: string | null;
     area_sqft: string | null;
@@ -153,5 +156,6 @@ export type Product = {
 
 export type ProductListItem = Product & {
     product_category: NamedOption;
+    brand: NamedOption | null;
     creator: NamedOption | null;
 };

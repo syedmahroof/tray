@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Requests\SaveQuotationRequest;
 use App\Models\Contact;
 use App\Models\Product;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class QuotationController extends Controller
@@ -61,6 +64,45 @@ class QuotationController extends Controller
                 'created_by' => $createdBy,
             ],
         ]);
+    }
+
+    /**
+     * Export the filtered quotations to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $quotations = Quotation::query()
+            ->with(['contact', 'project', 'creator'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('number', 'like', "%{$search}%")
+                        ->orWhereHas('contact', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->latest()
+            ->get();
+
+        $rows = $quotations->map(fn (Quotation $quotation): array => [
+            $quotation->number,
+            $quotation->contact?->name,
+            $quotation->project?->name,
+            $quotation->quotation_date?->format('Y-m-d'),
+            ucfirst($quotation->status),
+            $quotation->total,
+            $quotation->creator?->name,
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Number', 'Contact', 'Project', 'Date', 'Status', 'Total', 'Created By'],
+                $rows,
+            ),
+            'quotations.xlsx',
+        );
     }
 
     /**

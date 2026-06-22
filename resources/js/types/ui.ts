@@ -1,3 +1,9 @@
+export type Branding = {
+    name: string;
+    subtitle: string | null;
+    logo: string | null;
+};
+
 export type Appearance = 'light' | 'dark' | 'system';
 export type ResolvedAppearance = 'light' | 'dark';
 

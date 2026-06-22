@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Requests\SaveContactRequest;
 use App\Models\Contact;
 use App\Models\ContactType;
@@ -12,6 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContactController extends Controller
 {
@@ -56,6 +59,49 @@ class ContactController extends Controller
                 'created_to' => $createdTo,
             ],
         ]);
+    }
+
+    /**
+     * Export the filtered contacts to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $contacts = Contact::query()
+            ->with(['contactType', 'assignee', 'creator'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->input('contact_type_id'), fn ($query, $value) => $query->where('contact_type_id', $value))
+            ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->orderBy('name')
+            ->get();
+
+        $rows = $contacts->map(fn (Contact $contact): array => [
+            $contact->name,
+            $contact->contactType->name,
+            $contact->phone,
+            $contact->email,
+            $contact->assignee?->name,
+            $contact->creator?->name,
+            $contact->created_at?->format('Y-m-d'),
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Name', 'Type', 'Phone', 'Email', 'Assigned To', 'Created By', 'Created At'],
+                $rows,
+            ),
+            'contacts.xlsx',
+        );
     }
 
     /**

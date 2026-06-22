@@ -6,10 +6,15 @@ use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VisitReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('contacts/export', [ContactController::class, 'export'])
+        ->middleware('permission:contacts.view')
+        ->name('contacts.export');
+
     Route::resource('contacts', ContactController::class)
         ->middlewareFor(['index', 'show'], 'permission:contacts.view')
         ->middlewareFor(['create', 'store'], 'permission:contacts.create')
@@ -66,6 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:visit-reports.view')
         ->name('visit-reports.analytics');
 
+    Route::get('visit-reports/export', [VisitReportController::class, 'export'])
+        ->middleware('permission:visit-reports.view')
+        ->name('visit-reports.export');
+
     Route::resource('visit-reports', VisitReportController::class)
         ->middlewareFor(['index', 'show'], 'permission:visit-reports.view')
         ->middlewareFor(['create', 'store'], 'permission:visit-reports.create')
@@ -77,10 +86,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:quotations.view')
         ->name('quotations.pdf');
 
+    Route::get('quotations/export', [QuotationController::class, 'export'])
+        ->middleware('permission:quotations.view')
+        ->name('quotations.export');
+
     Route::resource('quotations', QuotationController::class)
         ->middlewareFor(['index', 'show'], 'permission:quotations.view')
         ->middlewareFor(['create', 'store'], 'permission:quotations.create')
         ->middlewareFor('edit', 'permission:quotations.view')
         ->middlewareFor('update', 'permission:quotations.update')
         ->middlewareFor('destroy', 'permission:quotations.delete');
+
+    Route::get('reports', [ReportController::class, 'index'])
+        ->middleware('permission:reports.view')
+        ->name('reports.index');
 });

@@ -20,6 +20,7 @@ import type { Branch, NamedOption } from '@/types';
 
 const props = defineProps<{
     productCategories: NamedOption[];
+    brands: NamedOption[];
     branches: Branch[];
 }>();
 
@@ -36,6 +37,13 @@ const categoryOptions = computed(() =>
     props.productCategories.map((category) => ({
         value: String(category.id),
         label: category.name,
+    })),
+);
+
+const brandOptions = computed(() =>
+    props.brands.map((brand) => ({
+        value: String(brand.id),
+        label: brand.name,
     })),
 );
 </script>
@@ -69,6 +77,16 @@ const categoryOptions = computed(() =>
                     :options="categoryOptions"
                 />
                 <InputError :message="errors.product_category_id" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="brand_id">Brand</Label>
+                <Combobox
+                    name="brand_id"
+                    placeholder="Select a brand (optional)"
+                    :options="brandOptions"
+                />
+                <InputError :message="errors.brand_id" />
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">

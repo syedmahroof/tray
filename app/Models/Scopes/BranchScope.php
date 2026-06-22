@@ -26,6 +26,6 @@ class BranchScope implements Scope
             return;
         }
 
-        $builder->where($model->qualifyColumn('branch_id'), $user->branch_id);
+        $builder->whereIn($model->qualifyColumn('branch_id'), $user->accessibleBranchIds());
     }
 }

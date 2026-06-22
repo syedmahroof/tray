@@ -17,6 +17,7 @@ type ProductProject = NamedOption & {
 
 type ProductDetail = Product & {
     product_category: NamedOption;
+    brand: NamedOption | null;
     branch: Branch;
     projects: ProductProject[];
 };
@@ -77,6 +78,12 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         <p class="text-sm text-muted-foreground">Category</p>
                         <p class="text-sm font-medium">
                             {{ product.product_category.name }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Brand</p>
+                        <p class="text-sm font-medium">
+                            {{ product.brand?.name ?? '—' }}
                         </p>
                     </div>
                     <div>

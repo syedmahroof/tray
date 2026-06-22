@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             ContactTypeSeeder::class,
             ProjectCategorySeeder::class,
+            BrandSeeder::class,
             CountryStateDistrictSeeder::class,
         ]);
 
@@ -36,6 +37,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $user->assignRole('Super Admin');
+        $user->branches()->sync([$branch->id]);
 
         $superAdmin = User::create([
             'name' => 'Rashid Super Admin',
@@ -45,6 +47,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $superAdmin->assignRole('Super Admin');
+        $superAdmin->branches()->sync([$branch->id]);
 
         $this->call(GokulamAndThulaProjectSeeder::class);
     }

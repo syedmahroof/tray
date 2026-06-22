@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Requests\SaveVisitReportRequest;
 use App\Models\Contact;
 use App\Models\Customer;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class VisitReportController extends Controller
 {
@@ -85,6 +88,49 @@ class VisitReportController extends Controller
             'visitReportsByType' => $this->visitReportsByType(),
             'visitReportsByMonth' => $this->visitReportsByMonth(),
         ]);
+    }
+
+    /**
+     * Export the filtered visit reports to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $visitReports = VisitReport::query()
+            ->with(['user', 'projects', 'customers', 'contacts'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('visit_type', 'like', "%{$search}%")
+                        ->orWhere('objective', 'like', "%{$search}%")
+                        ->orWhere('report', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->input('visit_type'), fn ($query, $value) => $query->where('visit_type', $value))
+            ->when($request->input('user_id'), fn ($query, $value) => $query->where('user_id', $value))
+            ->when($request->input('project_id'), fn ($query, $value) => $query->whereHas('projects', fn ($q) => $q->where('projects.id', $value)))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->orderByDesc('visit_date')
+            ->get();
+
+        $rows = $visitReports->map(fn (VisitReport $report): array => [
+            $report->visit_date?->format('Y-m-d'),
+            $report->visit_type,
+            $report->objective,
+            $report->projects->merge($report->customers)->merge($report->contacts)->pluck('name')->join(', '),
+            $report->user->name,
+            $report->next_meeting_date?->format('Y-m-d'),
+            $report->created_at?->format('Y-m-d'),
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Visit Date', 'Type', 'Objective', 'Linked To', 'Reported By', 'Next Meeting', 'Created At'],
+                $rows,
+            ),
+            'visit-reports.xlsx',
+        );
     }
 
     /**

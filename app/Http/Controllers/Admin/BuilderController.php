@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\GenericSheetExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBuilderRequest;
 use App\Models\Builder;
@@ -12,6 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BuilderController extends Controller
 {
@@ -50,6 +53,49 @@ class BuilderController extends Controller
                 'created_to' => $createdTo,
             ],
         ]);
+    }
+
+    /**
+     * Export the filtered builders to an Excel spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $builders = Builder::query()
+            ->with(['country', 'state', 'district', 'creator'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('contact_person', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->orderBy('name')
+            ->get();
+
+        $rows = $builders->map(fn (Builder $builder): array => [
+            $builder->name,
+            $builder->contact_person,
+            $builder->phone,
+            $builder->email,
+            collect([$builder->district?->name, $builder->state?->name, $builder->country?->name])->filter()->join(', '),
+            $builder->is_active ? 'Active' : 'Inactive',
+            $builder->creator?->name,
+            $builder->created_at?->format('Y-m-d'),
+        ])->all();
+
+        return Excel::download(
+            new GenericSheetExport(
+                ['Name', 'Contact Person', 'Phone', 'Email', 'Location', 'Status', 'Created By', 'Created At'],
+                $rows,
+            ),
+            'builders.xlsx',
+        );
     }
 
     /**

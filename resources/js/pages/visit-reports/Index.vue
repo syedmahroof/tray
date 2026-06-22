@@ -12,6 +12,7 @@ import {
     Trash2,
     Users,
     X,
+    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -44,6 +45,7 @@ import {
     create,
     destroy,
     edit,
+    exportMethod,
     index,
     show,
 } from '@/routes/visit-reports';
@@ -128,6 +130,19 @@ const clearFilters = () => {
 };
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
+
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            visit_type: visitType.value !== 'all' ? visitType.value : undefined,
+            user_id: userId.value !== 'all' ? userId.value : undefined,
+            project_id: projectId.value !== 'all' ? projectId.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
+        },
+    }),
+);
 
 const typeMeta: Record<string, { icon: typeof Search; color: string }> = {
     'Site Visit': { icon: Search, color: '#3b82f6' },
@@ -269,6 +284,9 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
             />
 
             <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
                 <Button variant="outline" as-child>
                     <Link :href="analytics()"><BarChart3 /> Analytics</Link>
                 </Button>

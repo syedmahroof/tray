@@ -6,6 +6,10 @@ use App\Http\Controllers\Admin\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('builders/export', [BuilderController::class, 'export'])
+        ->middleware('permission:builders.view')
+        ->name('builders.export');
+
     Route::resource('builders', BuilderController::class)
         ->middlewareFor(['index', 'show'], 'permission:builders.view')
         ->middlewareFor(['create', 'store'], 'permission:builders.create')
@@ -17,12 +21,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:projects.view')
         ->name('projects.analytics');
 
+    Route::get('projects/export', [ProjectController::class, 'export'])
+        ->middleware('permission:projects.view')
+        ->name('projects.export');
+
     Route::resource('projects', ProjectController::class)
         ->middlewareFor(['index', 'show'], 'permission:projects.view')
         ->middlewareFor(['create', 'store'], 'permission:projects.create')
         ->middlewareFor('edit', 'permission:projects.view')
         ->middlewareFor('update', 'permission:projects.update')
         ->middlewareFor('destroy', 'permission:projects.delete');
+
+    Route::get('products/export', [ProductController::class, 'export'])
+        ->middleware('permission:products.view')
+        ->name('products.export');
 
     Route::resource('products', ProductController::class)
         ->middlewareFor(['index', 'show'], 'permission:products.view')

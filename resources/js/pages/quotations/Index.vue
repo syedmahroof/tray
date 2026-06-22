@@ -40,7 +40,15 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { create, destroy, edit, index, pdf, show } from '@/routes/quotations';
+import {
+    create,
+    destroy,
+    edit,
+    exportMethod,
+    index,
+    pdf,
+    show,
+} from '@/routes/quotations';
 import type {
     Filters,
     NamedOption,
@@ -103,6 +111,16 @@ const clearFilters = () => {
 };
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
+
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            status: status.value !== 'all' ? status.value : undefined,
+            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+        },
+    }),
+);
 
 const statCards = computed(() => [
     {
@@ -174,9 +192,14 @@ const confirmDelete = (quotation: QuotationListItem) => {
                 description="Create and manage price quotations"
             />
 
-            <Button as-child>
-                <Link :href="create()"><Plus /> New quotation</Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
+                <Button as-child>
+                    <Link :href="create()"><Plus /> New quotation</Link>
+                </Button>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ContactTypeController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DistrictController;
@@ -59,4 +60,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('store', 'permission:contact-types.create')
         ->middlewareFor('update', 'permission:contact-types.update')
         ->middlewareFor('destroy', 'permission:contact-types.delete');
+
+    Route::resource('brands', BrandController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middlewareFor('index', 'permission:brands.view')
+        ->middlewareFor('store', 'permission:brands.create')
+        ->middlewareFor('update', 'permission:brands.update')
+        ->middlewareFor('destroy', 'permission:brands.delete');
 });

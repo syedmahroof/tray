@@ -9,6 +9,7 @@ import {
     User,
     CalendarDays,
     X,
+    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -34,7 +35,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { create, destroy, edit, index, show } from '@/routes/products';
+import {
+    create,
+    destroy,
+    edit,
+    exportMethod,
+    index,
+    show,
+} from '@/routes/products';
 import type { Filters, NamedOption, Paginated, ProductListItem } from '@/types';
 
 const props = defineProps<{
@@ -95,6 +103,17 @@ const clearFilters = () => {
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
 
+const exportUrl = computed(() =>
+    exportMethod.url({
+        query: {
+            search: search.value || undefined,
+            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_from: createdFrom.value || undefined,
+            created_to: createdTo.value || undefined,
+        },
+    }),
+);
+
 const deleteDialogOpen = ref(false);
 const productToDelete = ref<ProductListItem | null>(null);
 
@@ -115,9 +134,14 @@ const confirmDelete = (product: ProductListItem) => {
                 description="Manage units and offerings within each project"
             />
 
-            <Button as-child>
-                <Link :href="create()"><Plus /> New product</Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <a :href="exportUrl"><Download /> Export</a>
+                </Button>
+                <Button as-child>
+                    <Link :href="create()"><Plus /> New product</Link>
+                </Button>
+            </div>
         </div>
 
         <Card>
@@ -201,6 +225,7 @@ const confirmDelete = (product: ProductListItem) => {
                             <TableHead class="w-12">S.No.</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Category</TableHead>
+                            <TableHead>Brand</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
@@ -211,7 +236,9 @@ const confirmDelete = (product: ProductListItem) => {
                             v-for="(product, index) in products.data"
                             :key="product.id"
                         >
-                            <TableCell class="font-medium text-muted-foreground">
+                            <TableCell
+                                class="font-medium text-muted-foreground"
+                            >
                                 {{ (products.from ?? 1) + index }}
                             </TableCell>
                             <TableCell class="font-medium">
@@ -225,6 +252,7 @@ const confirmDelete = (product: ProductListItem) => {
                             <TableCell>{{
                                 product.product_category.name
                             }}</TableCell>
+                            <TableCell>{{ product.brand?.name ?? '—' }}</TableCell>
                             <TableCell>{{ product.price ?? '—' }}</TableCell>
                             <TableCell>
                                 <div class="text-sm">
@@ -273,7 +301,7 @@ const confirmDelete = (product: ProductListItem) => {
                         </TableRow>
                         <TableRow v-if="products.data.length === 0">
                             <TableCell
-                                :colspan="6"
+                                :colspan="7"
                                 class="text-center text-muted-foreground"
                             >
                                 No products yet.

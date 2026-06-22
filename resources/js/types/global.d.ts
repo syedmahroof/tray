@@ -1,5 +1,5 @@
 import type { Auth } from '@/types/auth';
-import type { Notifications } from '@/types/ui';
+import type { Branding, Notifications } from '@/types/ui';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -18,6 +18,7 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
+            brand: Branding;
             auth: Auth;
             notifications: Notifications;
             sidebarOpen: boolean;
