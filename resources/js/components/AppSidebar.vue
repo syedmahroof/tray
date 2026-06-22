@@ -6,6 +6,7 @@ import {
     ClipboardCheck,
     ClipboardList,
     Contact,
+    FileText,
     Globe,
     HardHat,
     IdCard,
@@ -43,6 +44,7 @@ import { index as productCategoriesIndex } from '@/routes/product-categories';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectCategoriesIndex } from '@/routes/project-categories';
 import { index as projectsIndex } from '@/routes/projects';
+import { index as quotationsIndex } from '@/routes/quotations';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as usersIndex } from '@/routes/users';
 import {
@@ -189,9 +191,19 @@ const crmNavItems = computed<NavItem[]>(() => {
                 { title: 'Analytics', href: visitReportsAnalytics() },
             ],
         },
+        permissions.value.includes('quotations.view') && {
+            title: 'Quotations',
+            href: quotationsIndex(),
+            icon: FileText,
+            color: '#4f46e5',
+        },
     ];
 
     return items.filter((item): item is NavItem => Boolean(item));
+});
+
+const combinedNavItems = computed<NavItem[]>(() => {
+    return [...mainNavItems.value, ...catalogNavItems.value];
 });
 </script>
 
@@ -210,12 +222,7 @@ const crmNavItems = computed<NavItem[]>(() => {
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain label="Platform" :items="mainNavItems" />
-            <NavMain
-                v-if="catalogNavItems.length > 0"
-                label="Catalog"
-                :items="catalogNavItems"
-            />
+            <NavMain :items="combinedNavItems" />
             <NavMain
                 v-if="crmNavItems.length > 0"
                 label="CRM"

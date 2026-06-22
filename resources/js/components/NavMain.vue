@@ -20,7 +20,7 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import type { NavItem } from '@/types';
 
 defineProps<{
-    label: string;
+    label?: string;
     items: NavItem[];
 }>();
 
@@ -32,7 +32,7 @@ const isParentActive = (item: NavItem) =>
 
 <template>
     <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel>{{ label }}</SidebarGroupLabel>
+        <SidebarGroupLabel v-if="label">{{ label }}</SidebarGroupLabel>
         <SidebarMenu>
             <template v-for="item in items" :key="item.title">
                 <Collapsible

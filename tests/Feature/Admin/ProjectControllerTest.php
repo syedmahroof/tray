@@ -3,6 +3,7 @@
 use App\Models\Branch;
 use App\Models\Builder;
 use App\Models\Contact;
+use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\User;
@@ -92,6 +93,68 @@ test('managers can create, update, and delete a project within their own branch'
         ->assertRedirect(route('projects.index'));
 
     $this->assertModelMissing($project);
+});
+
+test('a project can be created with linked products', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $category = ProjectCategory::factory()->create();
+    $productA = Product::factory()->create(['branch_id' => $branch->id]);
+    $productB = Product::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('projects.store'), [
+            'project_category_id' => $category->id,
+            'name' => 'Product Linked Project',
+            'status' => 'planning',
+            'product_ids' => [$productA->id, $productB->id],
+        ])
+        ->assertRedirect(route('projects.index'));
+
+    $project = Project::where('name', 'Product Linked Project')->first();
+    expect($project->products->pluck('id')->toArray())
+        ->toEqualCanonicalizing([$productA->id, $productB->id]);
+});
+
+test('project products can be synced on update', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $category = ProjectCategory::factory()->create();
+    $project = Project::factory()->create(['branch_id' => $branch->id]);
+    $oldProduct = Product::factory()->create(['branch_id' => $branch->id]);
+    $newProduct = Product::factory()->create(['branch_id' => $branch->id]);
+    $project->products()->attach($oldProduct);
+
+    $this->actingAs($manager)
+        ->patch(route('projects.update', $project), [
+            'builder_id' => $project->builder_id,
+            'project_category_id' => $category->id,
+            'name' => $project->name,
+            'status' => 'planning',
+            'product_ids' => [$newProduct->id],
+        ])
+        ->assertRedirect(route('projects.index'));
+
+    expect($project->refresh()->products->pluck('id')->toArray())
+        ->toEqualCanonicalizing([$newProduct->id]);
+});
+
+test('the project index can be filtered by product', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $product = Product::factory()->create();
+    $withProduct = Project::factory()->create(['name' => 'Has The Product']);
+    $withProduct->products()->attach($product);
+    Project::factory()->create(['name' => 'No Product']);
+
+    $this->actingAs($admin)
+        ->get(route('projects.index', ['product_id' => $product->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.name', 'Has The Product')
+            ->where('filters.product_id', (string) $product->id));
 });
 
 test('a project can be created without a builder', function () {
@@ -198,6 +261,22 @@ test('the project index can be filtered by a search term', function () {
             ->has('projects.data', 1)
             ->where('projects.data.0.name', 'Riverside Heights')
             ->where('filters.search', 'Riverside'));
+});
+
+test('the project index exposes status count stats', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Project::factory()->count(2)->create(['status' => 'planning']);
+    Project::factory()->create(['status' => 'ongoing']);
+    Project::factory()->count(3)->create(['status' => 'completed']);
+
+    $this->actingAs($admin)
+        ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.total', 6)
+            ->where('stats.planning', 2)
+            ->where('stats.ongoing', 1)
+            ->where('stats.completed', 3));
 });
 
 test('the project index can be filtered by creator', function () {

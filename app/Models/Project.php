@@ -43,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read User|null $assignee
  * @property-read User|null $creator
  * @property-read Collection<int, ProjectContact> $projectContacts
+ * @property-read Collection<int, Product> $products
  */
 #[Fillable([
     'branch_id',
@@ -146,6 +147,14 @@ class Project extends Model
     public function contacts(): BelongsToMany
     {
         return $this->belongsToMany(Contact::class);
+    }
+
+    /**
+     * @return BelongsToMany<Product, $this>
+     */
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class);
     }
 
     /**

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Building2, ClipboardList, HardHat, Search, Users } from '@lucide/vue';
+import { Building2, ClipboardList, HardHat, Users } from '@lucide/vue';
 import AppearanceToggleDropdown from '@/components/AppearanceToggleDropdown.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import GlobalSearchBar from '@/components/GlobalSearchBar.vue';
 import HeaderUserMenu from '@/components/HeaderUserMenu.vue';
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useGlobalSearch } from '@/composables/useGlobalSearch';
 import { index as buildersIndex } from '@/routes/builders';
 import { index as contactsIndex } from '@/routes/contacts';
 import { index as projectsIndex } from '@/routes/projects';
@@ -22,8 +22,6 @@ withDefaults(
         breadcrumbs: () => [],
     },
 );
-
-const { open } = useGlobalSearch();
 
 const shortcuts = [
     {
@@ -80,19 +78,9 @@ const shortcuts = [
                 </Button>
             </nav>
 
-            <Button
-                variant="outline"
-                class="relative mr-2 h-9 w-40 cursor-pointer justify-start rounded-lg text-sm text-muted-foreground sm:pr-12 md:w-60"
-                @click="open"
-            >
-                <Search class="mr-2 h-4 w-4" />
-                <span class="inline-flex">Search...</span>
-                <kbd
-                    class="pointer-events-none absolute top-2 right-1.5 hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex"
-                >
-                    <span class="text-xs">⌘</span>K
-                </kbd>
-            </Button>
+            <div class="mr-2">
+                <GlobalSearchBar />
+            </div>
             <AppearanceToggleDropdown />
             <NotificationsDropdown />
             <HeaderUserMenu />

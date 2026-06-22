@@ -146,3 +146,56 @@ export type VisitReportDetail = VisitReport & {
 export type VisitReportTypeCount = { type: VisitType; count: number };
 
 export type VisitReportMonthCount = { month: string; count: number };
+
+export type QuotationStatus =
+    | 'draft'
+    | 'sent'
+    | 'accepted'
+    | 'rejected'
+    | 'expired';
+
+export type QuotationItem = {
+    id: number;
+    quotation_id: number;
+    product_id: number | null;
+    description: string;
+    quantity: string;
+    unit_price: string;
+    product?: NamedOption | null;
+};
+
+export type Quotation = {
+    id: number;
+    branch_id: number;
+    number: string;
+    contact_id: number | null;
+    project_id: number | null;
+    quotation_date: string;
+    valid_until: string | null;
+    status: QuotationStatus;
+    subtotal: string;
+    discount: string;
+    tax_percent: string;
+    tax_amount: string;
+    total: string;
+    notes: string | null;
+    terms: string | null;
+    created_by: number | null;
+    created_at: string;
+};
+
+export type QuotationListItem = Quotation & {
+    contact: NamedOption | null;
+    project: NamedOption | null;
+    creator: NamedOption | null;
+};
+
+export type QuotationDetail = Quotation & {
+    contact:
+        | (NamedOption & { phone: string | null; email: string | null })
+        | null;
+    project: NamedOption | null;
+    creator: NamedOption | null;
+    branch: NamedOption;
+    items: QuotationItem[];
+};

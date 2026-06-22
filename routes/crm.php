@@ -4,6 +4,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\VisitReportController;
 use Illuminate\Support\Facades\Route;
@@ -71,4 +72,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('edit', 'permission:visit-reports.view')
         ->middlewareFor('update', 'permission:visit-reports.update')
         ->middlewareFor('destroy', 'permission:visit-reports.delete');
+
+    Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])
+        ->middleware('permission:quotations.view')
+        ->name('quotations.pdf');
+
+    Route::resource('quotations', QuotationController::class)
+        ->middlewareFor(['index', 'show'], 'permission:quotations.view')
+        ->middlewareFor(['create', 'store'], 'permission:quotations.create')
+        ->middlewareFor('edit', 'permission:quotations.view')
+        ->middlewareFor('update', 'permission:quotations.update')
+        ->middlewareFor('destroy', 'permission:quotations.delete');
 });

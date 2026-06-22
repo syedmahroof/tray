@@ -1,19 +1,27 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Package, Pencil, Tag, BadgeCheck } from '@lucide/vue';
+import { ArrowLeft, Building2, Package, Pencil, Tag } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { edit, index, show } from '@/routes/products';
+import { show as showProject } from '@/routes/projects';
 import type { Product, NamedOption, Branch } from '@/types';
+
+type ProductProject = NamedOption & {
+    status: string;
+    builder: NamedOption | null;
+};
 
 type ProductDetail = Product & {
     product_category: NamedOption;
     branch: Branch;
+    projects: ProductProject[];
 };
 
-const props = defineProps<{
+defineProps<{
     product: ProductDetail;
 }>();
 
@@ -117,5 +125,44 @@ const permissions = computed(() => usePage().props.auth.permissions);
                 </CardContent>
             </Card>
         </div>
+
+        <!-- Project Information -->
+        <Card>
+            <CardHeader class="flex flex-row items-center gap-2 border-b pb-3">
+                <Building2 class="h-5 w-5 text-[#4f46e5]" />
+                <CardTitle class="text-base font-semibold"
+                    >Project Information</CardTitle
+                >
+            </CardHeader>
+            <CardContent class="pt-6">
+                <div
+                    v-if="product.projects.length"
+                    class="flex flex-wrap gap-2"
+                >
+                    <Link
+                        v-for="project in product.projects"
+                        :key="project.id"
+                        :href="showProject(project.id)"
+                        class="hover:underline"
+                    >
+                        <Badge variant="secondary" class="gap-1.5">
+                            {{ project.name }}
+                            <span class="text-muted-foreground capitalize">
+                                {{ project.status }}
+                            </span>
+                            <span
+                                v-if="project.builder"
+                                class="text-muted-foreground"
+                            >
+                                · {{ project.builder.name }}
+                            </span>
+                        </Badge>
+                    </Link>
+                </div>
+                <p v-else class="text-sm text-muted-foreground">
+                    This product is not linked to any project yet.
+                </p>
+            </CardContent>
+        </Card>
     </div>
 </template>

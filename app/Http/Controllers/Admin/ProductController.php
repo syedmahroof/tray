@@ -81,7 +81,7 @@ class ProductController extends Controller
      */
     public function show(Product $product): Response
     {
-        $product->load(['productCategory', 'branch']);
+        $product->load(['productCategory', 'branch', 'projects.builder']);
 
         return Inertia::render('admin/products/Show', [
             'product' => $product,

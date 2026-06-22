@@ -20,6 +20,7 @@ class RolePermissionSeeder extends Seeder
         'builders', 'projects', 'products',
         'contacts', 'customers', 'enquiries',
         'notes', 'reminders', 'visit-reports',
+        'quotations',
     ];
 
     /**
@@ -46,7 +47,7 @@ class RolePermissionSeeder extends Seeder
             ...$this->permissionNames([
                 'project-categories', 'product-categories', 'contact-types',
                 'builders', 'projects', 'products',
-                'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports',
+                'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations',
             ], self::ACTIONS),
         ]);
 
@@ -56,7 +57,7 @@ class RolePermissionSeeder extends Seeder
                 'project-categories', 'product-categories', 'contact-types',
                 'builders', 'projects', 'products',
             ], ['view']),
-            ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports'], self::ACTIONS),
+            ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations'], self::ACTIONS),
         ]);
 
         Role::findOrCreate('Telecaller')->syncPermissions([

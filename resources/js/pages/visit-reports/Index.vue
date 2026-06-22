@@ -21,7 +21,7 @@ import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -164,7 +164,103 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
 <template>
     <Head title="Visit Reports" />
 
-    <div class="flex flex-col space-y-6">
+    <div class="relative flex flex-col space-y-6">
+        <!-- Light Infographics Background -->
+        <div
+            class="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-[0.03] dark:opacity-[0.05]"
+        >
+            <svg
+                class="absolute top-0 right-0 h-[400px] w-[600px] text-primary"
+                viewBox="0 0 600 400"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <!-- Grid lines -->
+                <path
+                    d="M 0 50 L 600 50 M 0 100 L 600 100 M 0 150 L 600 150 M 0 200 L 600 200 M 0 250 L 600 250 M 0 300 L 600 300 M 0 350 L 600 350"
+                    stroke="currentColor"
+                    stroke-width="1"
+                />
+                <path
+                    d="M 50 0 L 50 400 M 100 0 L 100 400 M 150 0 L 150 400 M 200 0 L 200 400 M 250 0 L 250 400 M 300 0 L 300 400 M 350 0 L 350 400 M 400 0 L 400 400 M 450 0 L 450 400 M 500 0 L 500 400 M 550 0 L 550 400"
+                    stroke="currentColor"
+                    stroke-width="1"
+                />
+
+                <!-- Chart Line 1 -->
+                <path
+                    d="M 50 300 Q 150 250 250 150 T 450 100 T 550 50"
+                    stroke="#0ea5e9"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                />
+                <!-- Chart Line 2 -->
+                <path
+                    d="M 50 350 Q 120 200 220 280 T 420 180 T 550 120"
+                    stroke="#10b981"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-dasharray="6,4"
+                />
+
+                <!-- Graphic Circles/Dots -->
+                <circle cx="50" cy="300" r="6" fill="#0ea5e9" />
+                <circle cx="250" cy="150" r="6" fill="#0ea5e9" />
+                <circle cx="450" cy="100" r="6" fill="#0ea5e9" />
+                <circle cx="550" cy="50" r="6" fill="#0ea5e9" />
+
+                <circle cx="220" cy="280" r="4" fill="#10b981" />
+                <circle cx="420" cy="180" r="4" fill="#10b981" />
+                <circle cx="550" cy="120" r="4" fill="#10b981" />
+
+                <!-- Bars -->
+                <rect
+                    x="80"
+                    y="200"
+                    width="20"
+                    height="200"
+                    rx="4"
+                    fill="currentColor"
+                    opacity="0.5"
+                />
+                <rect
+                    x="180"
+                    y="120"
+                    width="20"
+                    height="280"
+                    rx="4"
+                    fill="currentColor"
+                    opacity="0.5"
+                />
+                <rect
+                    x="280"
+                    y="180"
+                    width="20"
+                    height="220"
+                    rx="4"
+                    fill="currentColor"
+                    opacity="0.5"
+                />
+                <rect
+                    x="380"
+                    y="80"
+                    width="20"
+                    height="320"
+                    rx="4"
+                    fill="currentColor"
+                    opacity="0.5"
+                />
+                <rect
+                    x="480"
+                    y="140"
+                    width="20"
+                    height="260"
+                    rx="4"
+                    fill="currentColor"
+                    opacity="0.5"
+                />
+            </svg>
+        </div>
         <div class="flex items-center justify-between">
             <Heading
                 variant="small"
@@ -182,9 +278,7 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
             </div>
         </div>
 
-        <div
-            class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6"
-        >
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard
                 v-for="card in statCards"
                 :key="card.key"
@@ -196,9 +290,9 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
         </div>
 
         <Card>
-            <CardContent>
+            <CardHeader class="border-b">
                 <div
-                    class="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
+                    class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
                 >
                     <div class="relative w-full max-w-sm">
                         <Search
@@ -305,6 +399,8 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                         <X class="h-4 w-4" /> Clear
                     </Button>
                 </div>
+            </CardHeader>
+            <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -323,7 +419,9 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                             v-for="(visitReport, index) in visitReports.data"
                             :key="visitReport.id"
                         >
-                            <TableCell class="font-medium text-muted-foreground">
+                            <TableCell
+                                class="font-medium text-muted-foreground"
+                            >
                                 {{ (visitReports.from ?? 1) + index }}
                             </TableCell>
                             <TableCell class="font-medium">

@@ -9,11 +9,18 @@ import {
     User,
     CalendarDays,
     X,
+    Building2,
+    PencilRuler,
+    Loader,
+    CircleCheckBig,
+    BarChart3,
+    Package,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,19 +42,34 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { create, destroy, edit, index, show } from '@/routes/projects';
+import {
+    create,
+    destroy,
+    edit,
+    index,
+    show,
+    analytics,
+} from '@/routes/projects';
 import type { Filters, Paginated, ProjectListItem, NamedOption } from '@/types';
 
 const props = defineProps<{
     projects: Paginated<ProjectListItem>;
     builders: NamedOption[];
     projectCategories: NamedOption[];
+    products: NamedOption[];
     statuses: string[];
     users: NamedOption[];
+    stats: {
+        total: number;
+        planning: number;
+        ongoing: number;
+        completed: number;
+    };
     filters: Filters & {
         builder_id?: string | number;
         project_category_id?: string | number;
         status?: string;
+        product_id?: string | number;
         created_by?: string | number;
         created_from?: string;
         created_to?: string;
@@ -70,6 +92,9 @@ const categoryId = ref(
         : 'all',
 );
 const status = ref(props.filters.status ?? 'all');
+const productId = ref(
+    props.filters.product_id ? String(props.filters.product_id) : 'all',
+);
 const createdBy = ref(
     props.filters.created_by ? String(props.filters.created_by) : 'all',
 );
@@ -85,6 +110,7 @@ const updateFilters = () => {
             project_category_id:
                 categoryId.value !== 'all' ? categoryId.value : undefined,
             status: status.value !== 'all' ? status.value : undefined,
+            product_id: productId.value !== 'all' ? productId.value : undefined,
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
@@ -103,6 +129,7 @@ const hasActiveFilters = computed(
         builderId.value !== 'all' ||
         categoryId.value !== 'all' ||
         status.value !== 'all' ||
+        productId.value !== 'all' ||
         createdBy.value !== 'all' ||
         createdFrom.value !== '' ||
         createdTo.value !== '',
@@ -113,6 +140,7 @@ const clearFilters = () => {
     builderId.value = 'all';
     categoryId.value = 'all';
     status.value = 'all';
+    productId.value = 'all';
     createdBy.value = 'all';
     createdFrom.value = '';
     createdTo.value = '';
@@ -132,6 +160,37 @@ const statusVariant = (status: string) => {
 
     return 'secondary' as const;
 };
+
+const statCards = computed(() => [
+    {
+        key: 'total',
+        label: 'Total Projects',
+        value: props.stats.total,
+        icon: Building2,
+        color: '#4f46e5',
+    },
+    {
+        key: 'planning',
+        label: 'Planning',
+        value: props.stats.planning,
+        icon: PencilRuler,
+        color: '#7c3aed',
+    },
+    {
+        key: 'ongoing',
+        label: 'Ongoing',
+        value: props.stats.ongoing,
+        icon: Loader,
+        color: '#ca8a04',
+    },
+    {
+        key: 'completed',
+        label: 'Completed',
+        value: props.stats.completed,
+        icon: CircleCheckBig,
+        color: '#16a34a',
+    },
+]);
 
 const deleteDialogOpen = ref(false);
 const projectToDelete = ref<ProjectListItem | null>(null);
@@ -153,9 +212,25 @@ const confirmDelete = (project: ProjectListItem) => {
                 description="Manage real-estate projects across builders"
             />
 
-            <Button as-child>
-                <Link :href="create()"><Plus /> New project</Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <Link :href="analytics()"><BarChart3 /> Analytics</Link>
+                </Button>
+                <Button as-child>
+                    <Link :href="create()"><Plus /> New project</Link>
+                </Button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard
+                v-for="card in statCards"
+                :key="card.key"
+                :label="card.label"
+                :value="card.value"
+                :icon="card.icon"
+                :color="card.color"
+            />
         </div>
 
         <Card>
@@ -237,6 +312,29 @@ const confirmDelete = (project: ProjectListItem) => {
                         </SelectContent>
                     </Select>
 
+                    <!-- Product Filter -->
+                    <Select
+                        v-model="productId"
+                        @update:model-value="updateFilters"
+                    >
+                        <SelectTrigger
+                            class="flex w-full items-center gap-1.5 sm:w-[170px]"
+                        >
+                            <Package class="h-4 w-4 text-[#10b981]" />
+                            <SelectValue placeholder="All Products" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Products</SelectItem>
+                            <SelectItem
+                                v-for="product in products"
+                                :key="product.id"
+                                :value="String(product.id)"
+                            >
+                                {{ product.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <!-- Created By Filter -->
                     <Select
                         v-model="createdBy"
@@ -311,7 +409,9 @@ const confirmDelete = (project: ProjectListItem) => {
                             v-for="(project, index) in projects.data"
                             :key="project.id"
                         >
-                            <TableCell class="font-medium text-muted-foreground">
+                            <TableCell
+                                class="font-medium text-muted-foreground"
+                            >
                                 {{ (projects.from ?? 1) + index }}
                             </TableCell>
                             <TableCell class="font-medium">

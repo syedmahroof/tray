@@ -6,6 +6,7 @@ import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationSelect from '@/components/LocationSelect.vue';
+import MultiCombobox from '@/components/MultiCombobox.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,15 @@ const props = defineProps<{
     branches: Branch[];
     users: NamedOption[];
     contacts: ContactListItem[];
+    products: NamedOption[];
 }>();
+
+const productOptions = computed(() =>
+    props.products.map((product) => ({
+        value: String(product.id),
+        label: product.name,
+    })),
+);
 
 defineOptions({
     layout: {
@@ -552,7 +561,17 @@ const removeProjectContact = (key: number) => {
                         <CardHeader>
                             <CardTitle>Additional Info</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent class="space-y-4">
+                            <div class="grid gap-2">
+                                <Label for="product_ids">Products</Label>
+                                <MultiCombobox
+                                    name="product_ids"
+                                    placeholder="Select products (optional)"
+                                    :options="productOptions"
+                                />
+                                <InputError :message="errors.product_ids" />
+                            </div>
+
                             <div class="grid gap-2">
                                 <Label for="description">Description</Label>
                                 <Textarea

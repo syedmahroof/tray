@@ -43,6 +43,8 @@ class SaveProjectRequest extends FormRequest
             'end_date' => ['nullable', 'date'],
             'contacts' => ['nullable', 'array'],
             'contacts.*' => ['required', Rule::exists('contacts', 'id')],
+            'product_ids' => ['nullable', 'array'],
+            'product_ids.*' => ['required', Rule::exists('products', 'id')],
             'project_contacts' => ['nullable', 'array'],
             'project_contacts.*.name' => ['required', 'string', 'max:255'],
             'project_contacts.*.role' => ['nullable', 'string', 'max:255'],

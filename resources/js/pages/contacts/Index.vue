@@ -16,7 +16,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -140,9 +140,9 @@ const confirmDelete = (contact: ContactListItem) => {
         </div>
 
         <Card>
-            <CardContent>
+            <CardHeader class="border-b">
                 <div
-                    class="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
+                    class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
                 >
                     <div class="relative w-full max-w-sm">
                         <Search
@@ -252,6 +252,8 @@ const confirmDelete = (contact: ContactListItem) => {
                         <X class="h-4 w-4" /> Clear
                     </Button>
                 </div>
+            </CardHeader>
+            <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -269,7 +271,9 @@ const confirmDelete = (contact: ContactListItem) => {
                             v-for="(contact, index) in contacts.data"
                             :key="contact.id"
                         >
-                            <TableCell class="font-medium text-muted-foreground">
+                            <TableCell
+                                class="font-medium text-muted-foreground"
+                            >
                                 {{ (contacts.from ?? 1) + index }}
                             </TableCell>
                             <TableCell class="font-medium">
@@ -300,12 +304,12 @@ const confirmDelete = (contact: ContactListItem) => {
                                     {{ contact.creator?.name ?? '—' }}
                                 </div>
                             </TableCell>
-                            <TableCell class="text-right space-x-1.5">
+                            <TableCell class="space-x-1.5 text-right">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
-                                    class="bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/40"
+                                    class="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:hover:text-blue-300"
                                     :aria-label="`View ${contact.name}`"
                                     :data-test="`view-contact-${contact.id}`"
                                 >
@@ -317,7 +321,7 @@ const confirmDelete = (contact: ContactListItem) => {
                                     variant="ghost"
                                     size="sm"
                                     as-child
-                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
+                                    class="bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-900/40 dark:hover:text-amber-300"
                                     :aria-label="`Edit ${contact.name}`"
                                     :data-test="`edit-contact-${contact.id}`"
                                 >
@@ -328,7 +332,7 @@ const confirmDelete = (contact: ContactListItem) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
+                                    class="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 dark:hover:text-red-300"
                                     :aria-label="`Delete ${contact.name}`"
                                     :data-test="`delete-contact-${contact.id}`"
                                     @click="confirmDelete(contact)"

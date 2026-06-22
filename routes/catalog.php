@@ -13,6 +13,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('update', 'permission:builders.update')
         ->middlewareFor('destroy', 'permission:builders.delete');
 
+    Route::get('projects/analytics', [ProjectController::class, 'analytics'])
+        ->middleware('permission:projects.view')
+        ->name('projects.analytics');
+
     Route::resource('projects', ProjectController::class)
         ->middlewareFor(['index', 'show'], 'permission:projects.view')
         ->middlewareFor(['create', 'store'], 'permission:projects.create')

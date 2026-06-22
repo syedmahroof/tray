@@ -15,6 +15,8 @@ import {
     HardHat,
     Users,
     ClipboardList,
+    Eye,
+    Package,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
@@ -24,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/utils';
 import { show as showContact } from '@/routes/contacts';
+import { show as showProduct } from '@/routes/products';
 import { edit, index, show } from '@/routes/projects';
 import {
     show as showVisitReport,
@@ -46,6 +49,11 @@ type ContactWithDetails = NamedOption & {
     contact_type: NamedOption;
 };
 
+type ProductWithDetails = NamedOption & {
+    price: string | null;
+    product_category: NamedOption;
+};
+
 type VisitReportWithUser = VisitReport & {
     user: { id: number; name: string };
 };
@@ -60,6 +68,7 @@ type ProjectDetail = Project & {
     creator: NamedOption | null;
     contacts: ContactWithDetails[];
     project_contacts: ProjectContact[];
+    products: ProductWithDetails[];
     visit_reports: VisitReportWithUser[];
     branch: Branch;
 };
@@ -410,6 +419,41 @@ const permissions = computed(() => usePage().props.auth.permissions);
                             </p>
                         </CardContent>
                     </Card>
+
+                    <!-- Products -->
+                    <Card class="md:col-span-2">
+                        <CardHeader
+                            class="flex flex-row items-center gap-2 border-b pb-3"
+                        >
+                            <Package class="h-5 w-5 text-[#10b981]" />
+                            <CardTitle class="text-base font-semibold"
+                                >Products</CardTitle
+                            >
+                        </CardHeader>
+                        <CardContent class="pt-6">
+                            <div
+                                v-if="project.products.length"
+                                class="flex flex-wrap gap-2"
+                            >
+                                <Link
+                                    v-for="product in project.products"
+                                    :key="product.id"
+                                    :href="showProduct(product.id)"
+                                    class="flex items-center gap-1 hover:underline"
+                                >
+                                    <Badge variant="secondary" class="gap-1.5">
+                                        {{ product.name }}
+                                        <span class="text-muted-foreground">
+                                            {{ product.product_category.name }}
+                                        </span>
+                                    </Badge>
+                                </Link>
+                            </div>
+                            <p v-else class="text-sm text-muted-foreground">
+                                No products linked to this project.
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
             </TabsContent>
 
@@ -517,21 +561,34 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                     {{ contact.contact_type.name }}
                                 </span>
                             </div>
-                            <div class="space-y-0.5 text-right text-sm">
-                                <p
-                                    v-if="contact.phone"
-                                    class="flex items-center justify-end gap-1 text-muted-foreground"
+                            <div class="flex items-center gap-3">
+                                <div class="space-y-0.5 text-right text-sm">
+                                    <p
+                                        v-if="contact.phone"
+                                        class="flex items-center justify-end gap-1 text-muted-foreground"
+                                    >
+                                        <Phone class="h-3 w-3 text-green-600" />
+                                        {{ contact.phone }}
+                                    </p>
+                                    <p
+                                        v-if="contact.email"
+                                        class="flex items-center justify-end gap-1 text-muted-foreground"
+                                    >
+                                        <Mail class="h-3 w-3 text-blue-500" />
+                                        {{ contact.email }}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    as-child
+                                    class="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:hover:text-blue-300"
+                                    :aria-label="`View ${contact.name}`"
                                 >
-                                    <Phone class="h-3 w-3 text-green-600" />
-                                    {{ contact.phone }}
-                                </p>
-                                <p
-                                    v-if="contact.email"
-                                    class="flex items-center justify-end gap-1 text-muted-foreground"
-                                >
-                                    <Mail class="h-3 w-3 text-blue-500" />
-                                    {{ contact.email }}
-                                </p>
+                                    <Link :href="showContact(contact.id)">
+                                        <Eye class="h-4 w-4" />
+                                    </Link>
+                                </Button>
                             </div>
                         </div>
                         <div

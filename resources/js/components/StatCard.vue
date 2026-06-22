@@ -11,10 +11,18 @@ defineProps<{
 </script>
 
 <template>
-    <Card>
-        <CardContent class="flex items-center gap-4">
+    <Card class="relative overflow-hidden py-0">
+        <!-- Light background infographic -->
+        <component
+            :is="icon"
+            class="pointer-events-none absolute -right-3 -bottom-3 size-20 opacity-[0.08]"
+            :style="{ color }"
+            aria-hidden="true"
+        />
+
+        <CardContent class="flex items-center gap-3 p-4">
             <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg"
                 :style="{
                     backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`,
                     color,
@@ -22,9 +30,13 @@ defineProps<{
             >
                 <component :is="icon" class="size-5" />
             </span>
-            <div>
-                <p class="text-2xl font-semibold tabular-nums">{{ value }}</p>
-                <p class="text-sm text-muted-foreground">{{ label }}</p>
+            <div class="min-w-0">
+                <p class="text-xl leading-none font-semibold tabular-nums">
+                    {{ value }}
+                </p>
+                <p class="mt-1 truncate text-xs text-muted-foreground">
+                    {{ label }}
+                </p>
             </div>
         </CardContent>
     </Card>

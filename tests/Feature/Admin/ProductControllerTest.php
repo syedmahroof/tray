@@ -3,6 +3,7 @@
 use App\Models\Branch;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Project;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 
@@ -14,6 +15,20 @@ test('users without permission cannot view products', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->get(route('products.index'))->assertForbidden();
+});
+
+test('the product show page lists the projects it is linked to', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $product = Product::factory()->create();
+    $project = Project::factory()->create(['name' => 'Linked Project']);
+    $project->products()->attach($product);
+
+    $this->actingAs($admin)
+        ->get(route('products.show', $product))
+        ->assertInertia(fn ($page) => $page
+            ->has('product.projects', 1)
+            ->where('product.projects.0.name', 'Linked Project'));
 });
 
 test('managers can create, update, and delete a product', function () {

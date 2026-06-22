@@ -130,6 +130,7 @@ export type Project = {
     created_at: string;
     contacts?: NamedOption[];
     project_contacts?: ProjectContact[];
+    products?: NamedOption[];
 };
 
 export type ProjectListItem = Project & {

@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToBranch;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * @property int $id
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $created_by
  * @property-read ProductCategory $productCategory
  * @property-read User|null $creator
+ * @property-read Collection<int, Project> $projects
  */
 #[Fillable(['branch_id', 'product_category_id', 'name', 'price', 'area_sqft', 'description', 'created_by'])]
 class Product extends Model
@@ -54,5 +57,13 @@ class Product extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsToMany<Project, $this>
+     */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class);
     }
 }
