@@ -18,12 +18,12 @@ test('a known domain resolves to its own logo and name', function () {
             ->where('brand.logo', '/images/logos/longlast.png'));
 });
 
-test('an unknown domain falls back to the default branding with no image', function () {
+test('an unknown domain falls back to the default branding', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get('https://unknown.example.com/dashboard')
         ->assertInertia(fn ($page) => $page
             ->where('brand.name', 'Build Tech')
-            ->where('brand.logo', null));
+            ->where('brand.logo', '/images/logos/buildtech.png'));
 });

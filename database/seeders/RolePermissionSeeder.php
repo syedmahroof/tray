@@ -24,6 +24,13 @@ class RolePermissionSeeder extends Seeder
     ];
 
     /**
+     * Additional one-off permissions that do not follow the resource/action grid.
+     *
+     * @var list<string>
+     */
+    private const EXTRA_PERMISSIONS = [];
+
+    /**
      * @var list<string>
      */
     private const ACTIONS = ['view', 'create', 'update', 'delete'];
@@ -37,6 +44,10 @@ class RolePermissionSeeder extends Seeder
             foreach (self::ACTIONS as $action) {
                 Permission::findOrCreate("{$resource}.{$action}");
             }
+        }
+
+        foreach (self::EXTRA_PERMISSIONS as $permission) {
+            Permission::findOrCreate($permission);
         }
 
         Role::findOrCreate('Super Admin')->syncPermissions(Permission::all());

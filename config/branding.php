@@ -15,7 +15,7 @@ return [
     'default' => [
         'name' => 'Build Tech',
         'subtitle' => 'Supports',
-        'logo' => null,
+        'logo' => '/images/logos/buildtech.png',
     ],
 
     /*

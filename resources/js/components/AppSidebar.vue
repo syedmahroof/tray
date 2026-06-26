@@ -9,16 +9,19 @@ import {
     Contact,
     FileText,
     Globe,
+    CalendarDays,
     HardHat,
     IdCard,
     LayoutGrid,
     Package,
+    PlaneTakeoff,
     Shapes,
     Shield,
     Tag,
     Tags,
     UserRound,
     Users,
+    Wallet,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -43,6 +46,7 @@ import {
     index as enquiriesIndex,
     kanban as enquiriesKanban,
 } from '@/routes/enquiries';
+
 import { index as productCategoriesIndex } from '@/routes/product-categories';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectCategoriesIndex } from '@/routes/project-categories';
@@ -218,6 +222,8 @@ const crmNavItems = computed<NavItem[]>(() => {
     return items.filter((item): item is NavItem => Boolean(item));
 });
 
+
+
 const combinedNavItems = computed<NavItem[]>(() => {
     return [...mainNavItems.value, ...catalogNavItems.value];
 });
@@ -244,6 +250,7 @@ const combinedNavItems = computed<NavItem[]>(() => {
                 label="CRM"
                 :items="crmNavItems"
             />
+
             <NavMain
                 v-if="adminNavItems.length > 0"
                 label="Administration"
