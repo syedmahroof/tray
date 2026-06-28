@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * @property int $id
@@ -109,5 +110,101 @@ class Contact extends Model
     public function visitReports(): BelongsToMany
     {
         return $this->belongsToMany(VisitReport::class, 'visit_report_contact');
+    }
+
+    /**
+     * @return MorphMany<AuditLog, $this>
+     */
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(AuditLog::class, 'auditable');
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Contact $contact) {
+            $contact->auditLogs()->create([
+                'user_id' => auth()->id(),
+                'action' => 'created',
+                'description' => 'Contact created.',
+            ]);
+        });
+
+        static::updating(function (Contact $contact) {
+            $dirty = $contact->getDirty();
+            unset($dirty['updated_at']);
+
+            if (empty($dirty)) {
+                return;
+            }
+
+            $userId = auth()->id();
+
+            // Check if assigned_to changed
+            if (array_key_exists('assigned_to', $dirty)) {
+                $oldAssigneeId = $contact->getOriginal('assigned_to');
+                $newAssigneeId = $contact->assigned_to;
+
+                $oldName = $oldAssigneeId ? User::find($oldAssigneeId)?->name : 'Unassigned';
+                $newName = $newAssigneeId ? User::find($newAssigneeId)?->name : 'Unassigned';
+
+                $contact->auditLogs()->create([
+                    'user_id' => $userId,
+                    'action' => 'assigned',
+                    'description' => "Assignment changed from {$oldName} to {$newName}.",
+                    'changes' => [
+                        'old' => ['assigned_to' => $oldAssigneeId, 'name' => $oldName],
+                        'new' => ['assigned_to' => $newAssigneeId, 'name' => $newName],
+                    ],
+                ]);
+
+                unset($dirty['assigned_to']);
+            }
+
+            if (! empty($dirty)) {
+                $descriptions = [];
+                $changesDetail = ['old' => [], 'new' => []];
+
+                foreach ($dirty as $key => $newValue) {
+                    $oldValue = $contact->getOriginal($key);
+                    $fieldName = str_replace('_id', '', $key);
+                    $fieldName = ucwords(str_replace('_', ' ', $fieldName));
+
+                    if ($key === 'contact_type_id') {
+                        $oldName = $oldValue ? ContactType::find($oldValue)?->name : 'None';
+                        $newName = $newValue ? ContactType::find($newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } elseif ($key === 'country_id') {
+                        $oldName = $oldValue ? Country::find($oldValue)?->name : 'None';
+                        $newName = $newValue ? Country::find($newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } elseif ($key === 'state_id') {
+                        $oldName = $oldValue ? State::find($oldValue)?->name : 'None';
+                        $newName = $newValue ? State::find($newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } elseif ($key === 'district_id') {
+                        $oldName = $oldValue ? District::find($oldValue)?->name : 'None';
+                        $newName = $newValue ? District::find($newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } else {
+                        $oldDisp = $oldValue ?? 'None';
+                        $newDisp = $newValue ?? 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldDisp}' to '{$newDisp}'";
+                    }
+
+                    $changesDetail['old'][$key] = $oldValue;
+                    $changesDetail['new'][$key] = $newValue;
+                }
+
+                if (! empty($descriptions)) {
+                    $contact->auditLogs()->create([
+                        'user_id' => $userId,
+                        'action' => 'updated',
+                        'description' => implode(', ', $descriptions).'.',
+                        'changes' => $changesDetail,
+                    ]);
+                }
+            }
+        });
     }
 }

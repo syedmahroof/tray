@@ -26,7 +26,8 @@ class ContactController extends Controller
         $search = trim((string) $request->input('search', ''));
         $contactTypeId = $request->input('contact_type_id');
         $assignedTo = $request->input('assigned_to');
-        $createdBy = $request->input('created_by');
+        $isSuperAdmin = $request->user()->hasRole('Super Admin');
+        $createdBy = $isSuperAdmin ? $request->input('created_by') : null;
         $createdFrom = $request->input('created_from');
         $createdTo = $request->input('created_to');
 
@@ -58,6 +59,19 @@ class ContactController extends Controller
                 'created_from' => $createdFrom,
                 'created_to' => $createdTo,
             ],
+            'stats' => [
+                'total' => Contact::count(),
+                'unassigned' => Contact::whereNull('assigned_to')->count(),
+                'newThisMonth' => Contact::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->count(),
+                'typesBreakdown' => Contact::query()
+                    ->join('contact_types', 'contacts.contact_type_id', '=', 'contact_types.id')
+                    ->selectRaw('contact_types.name as label, count(contacts.id) as value')
+                    ->groupBy('contact_types.name')
+                    ->get()
+                    ->toArray(),
+            ],
         ]);
     }
 
@@ -79,7 +93,7 @@ class ContactController extends Controller
             })
             ->when($request->input('contact_type_id'), fn ($query, $value) => $query->where('contact_type_id', $value))
             ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
-            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->user()->hasRole('Super Admin') && $request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
             ->orderBy('name')
@@ -145,6 +159,110 @@ class ContactController extends Controller
             'reminders' => $contact->reminders()->with('user')->orderBy('remind_at')->get(),
             'visitReports' => $contact->visitReports()->with('user')->orderByDesc('visit_date')->get(),
             'enquiries' => $contact->enquiries()->with(['project', 'product'])->latest()->get(),
+            'auditLogs' => $contact->auditLogs()->with('user')->latest()->get(),
+        ]);
+    }
+
+    /**
+     * Display contact analytics.
+     */
+    public function analytics(Request $request): Response
+    {
+        $range = $request->input('range', '30d');
+        $from = $request->input('from');
+        $to = $request->input('to');
+
+        $query = Contact::query();
+
+        // Date filter
+        if ($range === 'custom' && $from && $to) {
+            $query->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
+        } else {
+            $days = match ($range) {
+                '7d' => 7,
+                'this_month' => now()->day,
+                '3m' => 90,
+                '6m' => 180,
+                '1y' => 365,
+                default => 30, // '30d'
+            };
+            $query->where('created_at', '>=', now()->subDays($days));
+        }
+
+        // Gather all filtered contacts to build aggregations
+        $filteredContacts = $query->with(['contactType', 'assignee', 'branch'])->get();
+
+        // 1. General Stats
+        $stats = [
+            'total' => Contact::count(),
+            'inRange' => $filteredContacts->count(),
+            'unassigned' => $filteredContacts->whereNull('assigned_to')->count(),
+            'newThisMonth' => Contact::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+
+        // 2. Contacts by Type
+        $contactsByType = $filteredContacts->groupBy('contactType.name')
+            ->map(fn ($group) => ['type' => $group->first()->contactType->name, 'count' => $group->count()])
+            ->values()
+            ->toArray();
+
+        // 3. Contacts by Branch
+        $contactsByBranch = $filteredContacts->groupBy('branch.name')
+            ->map(fn ($group) => ['branch' => $group->first()->branch?->name ?? 'No Branch', 'count' => $group->count()])
+            ->values()
+            ->toArray();
+
+        // 4. Contacts by Assignee
+        $contactsByStaff = $filteredContacts->groupBy('assignee.name')
+            ->map(fn ($group) => ['staff' => $group->first()->assignee?->name ?? 'Unassigned', 'count' => $group->count()])
+            ->values()
+            ->toArray();
+
+        // 5. Creation Trend
+        $trendFormat = ($range === '6m' || $range === '1y' || ($range === 'custom' && now()->parse($from)->diffInDays($to) > 60))
+            ? '%Y-%m'
+            : '%Y-%m-%d';
+
+        $dbDriver = Contact::query()->getConnection()->getDriverName();
+        $selectRaw = $dbDriver === 'sqlite'
+            ? ($trendFormat === '%Y-%m' ? "strftime('%Y-%m', created_at) as label, count(id) as count" : "strftime('%Y-%m-%d', created_at) as label, count(id) as count")
+            : "DATE_FORMAT(created_at, '{$trendFormat}') as label, count(id) as count";
+
+        $rawTrend = Contact::query()
+            ->when($range === 'custom' && $from && $to, function ($q) use ($from, $to) {
+                $q->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
+            }, function ($q) use ($range) {
+                $days = match ($range) {
+                    '7d' => 7,
+                    'this_month' => now()->day,
+                    '3m' => 90,
+                    '6m' => 180,
+                    '1y' => 365,
+                    default => 30,
+                };
+                $q->where('created_at', '>=', now()->subDays($days));
+            })
+            ->selectRaw($selectRaw)
+            ->groupBy('label')
+            ->orderBy('label')
+            ->get();
+
+        $contactTrends = $rawTrend->map(fn ($item) => [
+            'label' => $item->label,
+            'count' => $item->count,
+        ])->toArray();
+
+        return Inertia::render('contacts/Analytics', [
+            'range' => $range,
+            'from' => $from,
+            'to' => $to,
+            'stats' => $stats,
+            'contactsByType' => $contactsByType,
+            'contactsByBranch' => $contactsByBranch,
+            'contactsByStaff' => $contactsByStaff,
+            'contactTrends' => $contactTrends,
         ]);
     }
 

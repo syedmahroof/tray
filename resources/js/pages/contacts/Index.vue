@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     Eye,
     Pencil,
@@ -10,9 +10,14 @@ import {
     CalendarDays,
     X,
     Download,
+    BarChart3,
+    Users,
+    UserRoundCheck,
+    UserRoundX,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import StatCard from '@/components/StatCard.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import TablePagination from '@/components/TablePagination.vue';
@@ -42,6 +47,7 @@ import {
     exportMethod,
     index,
     show,
+    analytics,
 } from '@/routes/contacts';
 import type { ContactListItem, Filters, Paginated, NamedOption } from '@/types';
 
@@ -56,7 +62,17 @@ const props = defineProps<{
         created_from?: string;
         created_to?: string;
     };
+    stats: {
+        total: number;
+        unassigned: number;
+        newThisMonth: number;
+        typesBreakdown: { label: string; value: number }[];
+    };
 }>();
+
+const isSuperAdmin = computed(() =>
+    usePage().props.auth.roles.includes('Super Admin')
+);
 
 defineOptions({
     layout: {
@@ -88,7 +104,10 @@ const updateFilters = () => {
                 contactTypeId.value !== 'all' ? contactTypeId.value : undefined,
             assigned_to:
                 assignedTo.value !== 'all' ? assignedTo.value : undefined,
-            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_by:
+                isSuperAdmin.value && createdBy.value !== 'all'
+                    ? createdBy.value
+                    : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
         },
@@ -105,7 +124,7 @@ const hasActiveFilters = computed(
         search.value !== '' ||
         contactTypeId.value !== 'all' ||
         assignedTo.value !== 'all' ||
-        createdBy.value !== 'all' ||
+        (isSuperAdmin.value && createdBy.value !== 'all') ||
         createdFrom.value !== '' ||
         createdTo.value !== '',
 );
@@ -130,7 +149,10 @@ const exportUrl = computed(() =>
                 contactTypeId.value !== 'all' ? contactTypeId.value : undefined,
             assigned_to:
                 assignedTo.value !== 'all' ? assignedTo.value : undefined,
-            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+            created_by:
+                isSuperAdmin.value && createdBy.value !== 'all'
+                    ? createdBy.value
+                    : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
         },
@@ -159,12 +181,52 @@ const confirmDelete = (contact: ContactListItem) => {
 
             <div class="flex items-center gap-2">
                 <Button variant="outline" as-child>
+                    <Link :href="analytics()"><BarChart3 class="h-4 w-4" /> Analytics</Link>
+                </Button>
+                <Button variant="outline" as-child>
                     <a :href="exportUrl"><Download /> Export</a>
                 </Button>
                 <Button as-child>
                     <Link :href="create()"><Plus /> New contact</Link>
                 </Button>
             </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+                label="Total Contacts"
+                :value="stats.total"
+                :icon="Users"
+                color="#2563eb"
+            />
+            <StatCard
+                label="Unassigned"
+                :value="stats.unassigned"
+                :icon="UserRoundX"
+                color="#ea580c"
+            />
+            <StatCard
+                label="New This Month"
+                :value="stats.newThisMonth"
+                :icon="CalendarDays"
+                color="#16a34a"
+            />
+            <StatCard
+                v-for="typeStat in stats.typesBreakdown.slice(0, 1)"
+                :key="typeStat.label"
+                :label="typeStat.label"
+                :value="typeStat.value"
+                :icon="UserRoundCheck"
+                color="#db2777"
+            />
+            <StatCard
+                v-if="stats.typesBreakdown.length === 0"
+                label="Leads"
+                :value="0"
+                :icon="UserRoundCheck"
+                color="#db2777"
+            />
         </div>
 
         <Card>
@@ -227,6 +289,7 @@ const confirmDelete = (contact: ContactListItem) => {
 
                     <!-- Created By Filter -->
                     <Select
+                        v-if="isSuperAdmin"
                         v-model="createdBy"
                         @update:model-value="updateFilters"
                     >

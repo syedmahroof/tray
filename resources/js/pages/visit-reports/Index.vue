@@ -13,6 +13,11 @@ import {
     Users,
     X,
     Download,
+    Building,
+    UserRound,
+    IdCard,
+    AlertCircle,
+    AlertTriangle,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
@@ -151,6 +156,13 @@ const typeMeta: Record<string, { icon: typeof Search; color: string }> = {
     Inspection: { icon: Briefcase, color: '#7c3aed' },
 };
 
+const typeBadgeClasses: Record<string, string> = {
+    'Site Visit': 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50',
+    'Client Meeting': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
+    'Follow-up': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
+    'Inspection': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50',
+};
+
 const statCards = computed(() =>
     props.visitReportsByType.map((item) => ({
         key: item.type,
@@ -169,11 +181,42 @@ const confirmDelete = (visitReport: VisitReportListItem) => {
     deleteDialogOpen.value = true;
 };
 
-const linkedEntities = (visitReport: VisitReportListItem) => [
-    ...visitReport.projects.map((p) => p.name),
-    ...visitReport.customers.map((c) => c.name),
-    ...visitReport.contacts.map((c) => c.name),
+const getLinkedEntities = (visitReport: VisitReportListItem) => [
+    ...visitReport.projects.map((p) => ({ name: p.name, icon: Building, colorClass: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50' })),
+    ...visitReport.customers.map((c) => ({ name: c.name, icon: UserRound, colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50' })),
+    ...visitReport.contacts.map((c) => ({ name: c.name, icon: IdCard, colorClass: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50' })),
 ];
+
+const getDateStatus = (dateStr: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const targetDate = new Date(dateStr);
+    targetDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+        return {
+            colorClass: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50',
+            isNear: true,
+            isOverdue: true,
+        };
+    } else if (diffDays <= 3) {
+        return {
+            colorClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
+            isNear: true,
+            isOverdue: false,
+        };
+    } else {
+        return {
+            colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
+            isNear: false,
+            isOverdue: false,
+        };
+    }
+};
 </script>
 
 <template>
@@ -428,7 +471,7 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                             <TableHead>Objective</TableHead>
                             <TableHead>Linked to</TableHead>
                             <TableHead>Reported by</TableHead>
-                            <TableHead>Created</TableHead>
+                            <TableHead>Next Follow-up</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -450,24 +493,78 @@ const linkedEntities = (visitReport: VisitReportListItem) => [
                                     {{ formatDate(visitReport.visit_date) }}
                                 </Link>
                             </TableCell>
-                            <TableCell>{{ visitReport.visit_type }}</TableCell>
+                            <TableCell>
+                                <Badge
+                                    variant="outline"
+                                    :class="typeBadgeClasses[visitReport.visit_type] || 'bg-slate-50 text-slate-700 border-slate-200'"
+                                >
+                                    {{ visitReport.visit_type }}
+                                </Badge>
+                            </TableCell>
                             <TableCell>{{ visitReport.objective }}</TableCell>
                             <TableCell>
-                                <div class="flex flex-wrap gap-1">
+                                <div class="flex flex-wrap gap-1.5">
                                     <Badge
-                                        v-for="name in linkedEntities(
-                                            visitReport,
-                                        )"
-                                        :key="name"
-                                        variant="secondary"
+                                        v-for="entity in getLinkedEntities(visitReport)"
+                                        :key="entity.name"
+                                        variant="outline"
+                                        :class="['flex items-center gap-1 font-medium px-2 py-0.5', entity.colorClass]"
                                     >
-                                        {{ name }}
+                                        <component :is="entity.icon" class="h-3.5 w-3.5" />
+                                        {{ entity.name }}
                                     </Badge>
                                 </div>
                             </TableCell>
                             <TableCell>{{ visitReport.user.name }}</TableCell>
-                            <TableCell class="text-sm text-muted-foreground">
-                                {{ formatDate(visitReport.created_at) }}
+                            <TableCell>
+                                <div class="flex flex-col gap-1">
+                                    <div
+                                        v-if="visitReport.next_meeting_date"
+                                        class="flex items-center gap-1"
+                                    >
+                                        <Badge
+                                            variant="outline"
+                                            :class="['flex items-center gap-1 px-1.5 py-0.5 text-xs', getDateStatus(visitReport.next_meeting_date).colorClass]"
+                                        >
+                                            <CalendarDays class="h-3 w-3" />
+                                            <span>Meet: {{ formatDate(visitReport.next_meeting_date) }}</span>
+                                            <AlertCircle
+                                                v-if="getDateStatus(visitReport.next_meeting_date).isOverdue"
+                                                class="h-3 w-3 text-red-500 animate-pulse ml-0.5"
+                                            />
+                                            <AlertTriangle
+                                                v-else-if="getDateStatus(visitReport.next_meeting_date).isNear"
+                                                class="h-3 w-3 text-amber-500 ml-0.5"
+                                            />
+                                        </Badge>
+                                    </div>
+                                    <div
+                                        v-if="visitReport.next_call_date"
+                                        class="flex items-center gap-1"
+                                    >
+                                        <Badge
+                                            variant="outline"
+                                            :class="['flex items-center gap-1 px-1.5 py-0.5 text-xs', getDateStatus(visitReport.next_call_date).colorClass]"
+                                        >
+                                            <Phone class="h-3 w-3" />
+                                            <span>Call: {{ formatDate(visitReport.next_call_date) }}</span>
+                                            <AlertCircle
+                                                v-if="getDateStatus(visitReport.next_call_date).isOverdue"
+                                                class="h-3 w-3 text-red-500 animate-pulse ml-0.5"
+                                            />
+                                            <AlertTriangle
+                                                v-else-if="getDateStatus(visitReport.next_call_date).isNear"
+                                                class="h-3 w-3 text-amber-500 ml-0.5"
+                                            />
+                                        </Badge>
+                                    </div>
+                                    <span
+                                        v-if="!visitReport.next_meeting_date && !visitReport.next_call_date"
+                                        class="text-xs text-muted-foreground italic"
+                                    >
+                                        None
+                                    </span>
+                                </div>
                             </TableCell>
                             <TableCell class="space-x-1.5 text-right">
                                 <Button

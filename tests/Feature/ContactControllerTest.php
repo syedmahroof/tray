@@ -99,7 +99,9 @@ test('the contact index can be filtered by a search term', function () {
             ->where('filters.search', 'fred@example'));
 });
 
-test('the contact index can be filtered by creator and created date range', function () {
+test('the contact index can be filtered by creator (super admin only) and created date range', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole('Super Admin');
     $admin = User::factory()->create();
     $admin->assignRole('Admin');
     $creator = User::factory()->create();
@@ -113,12 +115,20 @@ test('the contact index can be filtered by creator and created date range', func
         'created_at' => '2026-01-10 12:00:00',
     ]);
 
-    $this->actingAs($admin)
+    // Super Admin can filter by creator
+    $this->actingAs($superAdmin)
         ->get(route('contacts.index', ['created_by' => $creator->id]))
         ->assertInertia(fn ($page) => $page
             ->has('contacts.data', 1)
             ->where('contacts.data.0.name', 'Created By Creator'));
 
+    // Non-super admin (Admin) cannot filter by creator (the filter is ignored)
+    $this->actingAs($admin)
+        ->get(route('contacts.index', ['created_by' => $creator->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('contacts.data', 2));
+
+    // Both can filter by date range
     $this->actingAs($admin)
         ->get(route('contacts.index', ['created_from' => '2026-06-01', 'created_to' => '2026-06-30']))
         ->assertInertia(fn ($page) => $page

@@ -11,6 +11,10 @@ use App\Http\Controllers\VisitReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('contacts/analytics', [ContactController::class, 'analytics'])
+        ->middleware('permission:contacts.view')
+        ->name('contacts.analytics');
+
     Route::get('contacts/export', [ContactController::class, 'export'])
         ->middleware('permission:contacts.view')
         ->name('contacts.export');

@@ -12,6 +12,7 @@ import {
     Info,
     FileText,
     Calendar,
+    History,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
@@ -59,6 +60,13 @@ defineProps<{
     reminders: Reminder[];
     visitReports: ContactVisitReport[];
     enquiries: ContactEnquiry[];
+    auditLogs: {
+        id: number;
+        action: string;
+        description: string;
+        user: ActivityAuthor | null;
+        created_at: string;
+    }[];
 }>();
 
 defineOptions({
@@ -136,6 +144,13 @@ const permissions = computed(() => usePage().props.auth.permissions);
                 >
                     <ClipboardCheck class="h-4 w-4 text-[#0ea5e9]" />
                     Visit Reports
+                </TabsTrigger>
+                <TabsTrigger
+                    value="history"
+                    class="flex items-center gap-1.5"
+                >
+                    <History class="h-4 w-4 text-slate-500" />
+                    History
                 </TabsTrigger>
             </TabsList>
 
@@ -327,6 +342,56 @@ const permissions = computed(() => usePage().props.auth.permissions);
                             class="p-8 text-center text-sm text-muted-foreground"
                         >
                             No visit reports yet.
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="history" class="space-y-6">
+                <Card>
+                    <CardHeader class="border-b pb-3 flex flex-row items-center gap-2">
+                        <History class="h-5 w-5 text-slate-500" />
+                        <CardTitle class="text-base font-semibold">Contact History & Audit Log</CardTitle>
+                    </CardHeader>
+                    <CardContent class="pt-6">
+                        <div class="relative pl-6 border-l border-slate-200 dark:border-slate-800 space-y-8 ml-3">
+                            <div
+                                v-for="log in auditLogs"
+                                :key="log.id"
+                                class="relative"
+                            >
+                                <span class="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white dark:bg-slate-900 border-2" 
+                                    :class="{
+                                        'border-blue-500': log.action === 'created',
+                                        'border-amber-500': log.action === 'updated',
+                                        'border-purple-500': log.action === 'assigned',
+                                    }"
+                                >
+                                </span>
+                                <div>
+                                    <div class="flex items-center justify-between gap-4">
+                                        <p class="text-sm font-semibold capitalize text-slate-900 dark:text-slate-100">
+                                            {{ log.action }}
+                                        </p>
+                                        <time class="text-xs text-muted-foreground whitespace-nowrap">
+                                            {{ formatDate(log.created_at) }}
+                                        </time>
+                                    </div>
+                                    <p class="mt-1 text-sm text-muted-foreground">
+                                        {{ log.description }}
+                                    </p>
+                                    <p class="mt-1.5 text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                        <User class="h-3 w-3" />
+                                        By: {{ log.user?.name ?? 'System' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div
+                                v-if="auditLogs.length === 0"
+                                class="p-4 text-center text-sm text-muted-foreground"
+                            >
+                                No history available.
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
