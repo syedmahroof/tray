@@ -26,7 +26,7 @@ class EnquiryController extends Controller
 
         return Inertia::render('enquiries/Index', [
             'enquiries' => Enquiry::query()
-                ->with(['contact', 'project', 'product', 'assignee'])
+                ->with(['customer', 'contact', 'project', 'product', 'assignee'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('status', 'like', "%{$search}%")
@@ -51,7 +51,7 @@ class EnquiryController extends Controller
     public function kanban(): Response
     {
         $enquiries = Enquiry::query()
-            ->with(['contact', 'project', 'product', 'assignee'])
+            ->with(['customer', 'contact', 'project', 'product', 'assignee'])
             ->latest()
             ->get();
 
@@ -83,6 +83,7 @@ class EnquiryController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('enquiries/Create', [
+            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),
@@ -90,6 +91,7 @@ class EnquiryController extends Controller
             'statuses' => Enquiry::STATUSES,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'preselectedContactId' => $request->integer('contact_id') ?: null,
+            'preselectedCustomerId' => $request->integer('customer_id') ?: null,
         ]);
     }
 
@@ -110,7 +112,7 @@ class EnquiryController extends Controller
      */
     public function show(Enquiry $enquiry): Response
     {
-        $enquiry->load(['contact', 'project', 'product', 'assignee', 'branch']);
+        $enquiry->load(['customer', 'contact', 'project', 'product', 'assignee', 'branch']);
 
         return Inertia::render('enquiries/Show', [
             'enquiry' => $enquiry,
@@ -128,6 +130,7 @@ class EnquiryController extends Controller
     {
         return Inertia::render('enquiries/Edit', [
             'enquiry' => $enquiry,
+            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),

@@ -47,7 +47,10 @@
         <tr>
             <td style="width: 50%;">
                 <div class="section-title">Quotation For</div>
-                <div>{{ $quotation->contact->name ?? '—' }}</div>
+                @if ($quotation->customer)
+                    <div style="font-weight: bold; margin-bottom: 4px;">{{ $quotation->customer->name }}</div>
+                @endif
+                <div>Contact: {{ $quotation->contact->name ?? '—' }}</div>
                 @if ($quotation->contact?->phone)
                     <div class="muted">{{ $quotation->contact->phone }}</div>
                 @endif
@@ -55,7 +58,7 @@
                     <div class="muted">{{ $quotation->contact->email }}</div>
                 @endif
                 @if ($quotation->gstin)
-                    <div class="muted">GSTIN: {{ $quotation->gstin }}</div>
+                    <div class="muted" style="margin-top: 4px;">GSTIN: {{ $quotation->gstin }}</div>
                 @endif
             </td>
             <td style="width: 50%;">

@@ -52,7 +52,7 @@ class QuotationController extends Controller
                 'accepted' => (int) $statusCounts->get('accepted', 0),
             ],
             'quotations' => Quotation::query()
-                ->with(['contact', 'project', 'creator'])
+                ->with(['customer', 'contact', 'project', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('number', 'like', "%{$search}%")
@@ -182,7 +182,7 @@ class QuotationController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $quotations = Quotation::query()
-            ->with(['contact', 'project', 'creator'])
+            ->with(['customer', 'contact', 'project', 'creator'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('number', 'like', "%{$search}%")
@@ -255,7 +255,7 @@ class QuotationController extends Controller
      */
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['contact', 'project', 'enquiry.contact:id,name', 'builder', 'creator', 'branch', 'items.product']);
+        $quotation->load(['customer', 'contact', 'project', 'enquiry.contact:id,name', 'builder', 'creator', 'branch', 'items.product']);
 
         $rootId = $quotation->rootId();
 
@@ -373,15 +373,17 @@ class QuotationController extends Controller
      */
     public function email(Request $request, Quotation $quotation): RedirectResponse
     {
-        $quotation->load(['contact', 'branch']);
+        $quotation->load(['customer', 'branch']);
 
-        if (! $quotation->contact?->email) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('This contact has no email address.')]);
+        $email = $quotation->customer?->email;
+
+        if (! $email) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This customer has no email address.')]);
 
             return back();
         }
 
-        Mail::to($quotation->contact->email)->queue(new QuotationMail($quotation));
+        Mail::to($email)->queue(new QuotationMail($quotation));
 
         if ($quotation->status === 'draft') {
             $quotation->update(['status' => 'sent']);
@@ -390,10 +392,10 @@ class QuotationController extends Controller
         $quotation->auditLogs()->create([
             'user_id' => $request->user()->id,
             'action' => 'emailed',
-            'description' => "Quotation emailed to {$quotation->contact->email}.",
+            'description' => "Quotation emailed to {$email}.",
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation emailed to :email.', ['email' => $quotation->contact->email])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation emailed to :email.', ['email' => $email])]);
 
         return back();
     }
@@ -416,7 +418,7 @@ class QuotationController extends Controller
 
             $revision = Quotation::create([
                 ...$quotation->only([
-                    'branch_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
+                    'branch_id', 'customer_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
                     'gstin', 'supply_type', 'valid_until', 'subtotal', 'discount',
                     'tax_percent', 'tax_amount', 'cgst_amount', 'sgst_amount',
                     'igst_amount', 'total', 'notes', 'terms',
@@ -483,6 +485,7 @@ class QuotationController extends Controller
     private function formData(): array
     {
         return [
+            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
@@ -509,6 +512,7 @@ class QuotationController extends Controller
     private function prefillDefaults(Request $request): array
     {
         $defaults = [
+            'customer_id' => $request->integer('customer_id') ?: null,
             'contact_id' => $request->integer('contact_id') ?: null,
             'project_id' => $request->integer('project_id') ?: null,
             'enquiry_id' => $request->integer('enquiry_id') ?: null,

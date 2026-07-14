@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Product|null $product
  * @property-read User|null $assignee
  */
-#[Fillable(['branch_id', 'contact_id', 'project_id', 'product_id', 'assigned_to', 'status', 'source', 'remarks'])]
+#[Fillable(['branch_id', 'customer_id', 'contact_id', 'project_id', 'product_id', 'assigned_to', 'status', 'source', 'remarks'])]
 class Enquiry extends Model
 {
     use BelongsToBranch;
@@ -43,6 +43,14 @@ class Enquiry extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<Customer, $this>
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

@@ -71,6 +71,8 @@ class CustomerController extends Controller
 
         return Inertia::render('customers/Show', [
             'customer' => $customer,
+            'quotations' => $customer->quotations()->latest()->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
+            'enquiries' => $customer->enquiries()->with(['contact', 'project'])->latest()->get(),
         ]);
     }
 

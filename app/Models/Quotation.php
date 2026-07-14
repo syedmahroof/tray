@@ -49,7 +49,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, QuotationItem> $items
  */
 #[Fillable([
-    'branch_id', 'number', 'version', 'parent_id', 'contact_id', 'project_id',
+    'branch_id', 'number', 'version', 'parent_id', 'customer_id', 'contact_id', 'project_id',
     'enquiry_id', 'builder_id', 'gstin', 'supply_type', 'quotation_date',
     'valid_until', 'status', 'subtotal', 'discount', 'tax_percent', 'tax_amount',
     'cgst_amount', 'sgst_amount', 'igst_amount', 'total', 'notes', 'terms',
@@ -92,6 +92,14 @@ class Quotation extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<Customer, $this>
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

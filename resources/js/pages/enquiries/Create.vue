@@ -24,6 +24,7 @@ import {
 } from '@/types';
 
 const props = defineProps<{
+    customers: NamedOption[];
     contacts: ContactSelectOption[];
     projects: NamedOption[];
     products: NamedOption[];
@@ -31,6 +32,7 @@ const props = defineProps<{
     statuses: string[];
     branches: Branch[];
     preselectedContactId: number | null;
+    preselectedCustomerId: number | null;
 }>();
 
 defineOptions({
@@ -42,6 +44,12 @@ defineOptions({
     },
 });
 
+const customerOptions = computed(() =>
+    props.customers.map((customer) => ({
+        value: String(customer.id),
+        label: customer.name,
+    })),
+);
 const contactOptions = computed(() =>
     props.contacts.map((contact) => ({
         value: String(contact.id),
@@ -80,19 +88,36 @@ const productOptions = computed(() =>
             class="max-w-3xl space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
-                <Label for="contact_id">Contact</Label>
-                <Combobox
-                    name="contact_id"
-                    placeholder="Select a contact"
-                    :options="contactOptions"
-                    :model-value="
-                        preselectedContactId
-                            ? String(preselectedContactId)
-                            : undefined
-                    "
-                />
-                <InputError :message="errors.contact_id" />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="customer_id">Customer</Label>
+                    <Combobox
+                        name="customer_id"
+                        placeholder="Select a customer"
+                        :options="customerOptions"
+                        :model-value="
+                            preselectedCustomerId
+                                ? String(preselectedCustomerId)
+                                : undefined
+                        "
+                    />
+                    <InputError :message="errors.customer_id" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="contact_id">Contact</Label>
+                    <Combobox
+                        name="contact_id"
+                        placeholder="Select a contact"
+                        :options="contactOptions"
+                        :model-value="
+                            preselectedContactId
+                                ? String(preselectedContactId)
+                                : undefined
+                        "
+                    />
+                    <InputError :message="errors.contact_id" />
+                </div>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">

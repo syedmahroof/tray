@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -79,5 +80,21 @@ class Customer extends Model
     public function visitReports(): BelongsToMany
     {
         return $this->belongsToMany(VisitReport::class, 'visit_report_customer');
+    }
+
+    /**
+     * @return HasMany<Quotation, $this>
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    /**
+     * @return HasMany<Enquiry, $this>
+     */
+    public function enquiries(): HasMany
+    {
+        return $this->hasMany(Enquiry::class);
     }
 }

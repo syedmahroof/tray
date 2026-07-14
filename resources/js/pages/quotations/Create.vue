@@ -19,6 +19,7 @@ type ContactOption = NamedOption & {
 };
 
 defineProps<{
+    customers: NamedOption[];
     contacts: ContactOption[];
     projects: NamedOption[];
     enquiries: NamedOption[];
@@ -28,6 +29,7 @@ defineProps<{
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaults: {
+        customer_id: number | null;
         contact_id: number | null;
         project_id: number | null;
         enquiry_id: number | null;
@@ -65,6 +67,7 @@ defineOptions({
         />
 
         <QuotationForm
+            :customers="customers"
             :contacts="contacts"
             :projects="projects"
             :enquiries="enquiries"

@@ -176,8 +176,11 @@ const columnCounts = computed(() =>
                                 :href="show(enquiry.id)"
                                 class="text-sm font-medium hover:underline"
                             >
-                                {{ enquiry.contact.name }}
+                                {{ enquiry.customer?.name ?? enquiry.contact?.name ?? '—' }}
                             </Link>
+                            <p v-if="enquiry.customer && enquiry.contact" class="text-xs text-muted-foreground mt-0.5">
+                                c/o {{ enquiry.contact.name }}
+                            </p>
                             <p class="text-xs text-muted-foreground">
                                 {{ enquiry.project?.name ?? 'No project' }}
                             </p>

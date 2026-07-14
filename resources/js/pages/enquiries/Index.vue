@@ -137,7 +137,7 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
                     <TableHeader>
                         <TableRow>
                             <TableHead class="w-12">S.No.</TableHead>
-                            <TableHead>Contact</TableHead>
+                            <TableHead>Customer / Contact</TableHead>
                             <TableHead>Project</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Assigned to</TableHead>
@@ -157,8 +157,11 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
                                     :href="show(enquiry.id)"
                                     class="hover:underline"
                                 >
-                                    {{ enquiry.contact.name }}
+                                    {{ enquiry.customer?.name ?? enquiry.contact?.name ?? '—' }}
                                 </Link>
+                                <span v-if="enquiry.customer && enquiry.contact" class="block text-xs text-muted-foreground mt-0.5">
+                                    c/o {{ enquiry.contact.name }}
+                                </span>
                             </TableCell>
                             <TableCell>{{
                                 enquiry.project?.name ?? '—'
@@ -180,7 +183,7 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
                                     size="sm"
                                     as-child
                                     class="bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/40"
-                                    :aria-label="`View enquiry for ${enquiry.contact.name}`"
+                                    :aria-label="`View enquiry for ${enquiry.customer?.name ?? enquiry.contact?.name}`"
                                     :data-test="`view-enquiry-${enquiry.id}`"
                                 >
                                     <Link :href="show(enquiry.id)">
@@ -192,7 +195,7 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
                                     size="sm"
                                     as-child
                                     class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
-                                    :aria-label="`Edit enquiry for ${enquiry.contact.name}`"
+                                    :aria-label="`Edit enquiry for ${enquiry.customer?.name ?? enquiry.contact?.name}`"
                                     :data-test="`edit-enquiry-${enquiry.id}`"
                                 >
                                     <Link :href="edit(enquiry.id)">
@@ -203,7 +206,7 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
                                     variant="ghost"
                                     size="sm"
                                     class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
-                                    :aria-label="`Delete enquiry for ${enquiry.contact.name}`"
+                                    :aria-label="`Delete enquiry for ${enquiry.customer?.name ?? enquiry.contact?.name}`"
                                     :data-test="`delete-enquiry-${enquiry.id}`"
                                     @click="confirmDelete(enquiry)"
                                 >
@@ -230,7 +233,7 @@ const confirmDelete = (enquiry: EnquiryListItem) => {
     <ConfirmDeleteModal
         :open="deleteDialogOpen"
         title="Delete enquiry"
-        :description="`This will permanently delete the enquiry for “${enquiryToDelete?.contact.name}”.`"
+        :description="`This will permanently delete the enquiry for “${enquiryToDelete?.customer?.name ?? enquiryToDelete?.contact?.name}”.`"
         :delete-url="enquiryToDelete ? destroy.url(enquiryToDelete.id) : null"
         @update:open="deleteDialogOpen = $event"
     />

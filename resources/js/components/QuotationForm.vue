@@ -40,6 +40,7 @@ type QuotationDefaults = {
 
 const props = defineProps<{
     quotation?: QuotationDetail | null;
+    customers: { id: number; name: string }[];
     contacts: ContactOption[];
     projects: NamedOption[];
     enquiries: NamedOption[];
@@ -48,7 +49,7 @@ const props = defineProps<{
     statuses: string[];
     gstSlabs: Record<string, number>;
     branches: Branch[];
-    defaults?: QuotationDefaults | null;
+    defaults?: QuotationDefaults & { customer_id?: number } | null;
 }>();
 
 // Distinct GST rates for the per-line tax select box (e.g. 0, 5, 12, 18, 28).
@@ -68,6 +69,9 @@ const emptyItem = () => ({
 const idString = (value?: number | null) => (value ? String(value) : undefined);
 
 const form = useForm({
+    customer_id: idString(
+        props.quotation?.customer_id ?? props.defaults?.customer_id,
+    ),
     contact_id: idString(
         props.quotation?.contact_id ?? props.defaults?.contact_id,
     ),
@@ -108,6 +112,9 @@ const form = useForm({
             : [emptyItem()],
 });
 
+const customerOptions = computed(() =>
+    props.customers.map((c) => ({ value: String(c.id), label: c.name })),
+);
 const contactOptions = computed(() =>
     props.contacts.map((c) => ({
         value: String(c.id),
@@ -163,6 +170,12 @@ const onProductSelect = (index: number) => {
 const lineTotal = (item: { quantity: string; unit_price: string }) =>
     (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
 
+const lineTax = (item: { quantity: string; unit_price: string; tax_percentage: string }) =>
+    (lineTotal(item) * (parseFloat(item.tax_percentage) || 0)) / 100;
+
+const lineGrandTotal = (item: { quantity: string; unit_price: string; tax_percentage: string }) =>
+    lineTotal(item) + lineTax(item);
+
 const subtotal = computed(() =>
     form.items.reduce((sum, item) => sum + lineTotal(item), 0),
 );
@@ -212,19 +225,28 @@ const submit = () => {
 
 <template>
     <form class="space-y-6" @submit.prevent="submit">
-        <div class="grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6">
             <!-- Main -->
-            <div class="space-y-6 lg:col-span-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Quotation Details</CardTitle>
-                    </CardHeader>
-                    <CardContent class="grid gap-4 sm:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Quotation Details</CardTitle>
+                </CardHeader>
+                <CardContent class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div class="grid gap-2">
-                            <Label>Contact *</Label>
+                            <Label>Customer *</Label>
+                            <Combobox
+                                v-model="form.customer_id"
+                                placeholder="Select a customer"
+                                :options="customerOptions"
+                            />
+                            <InputError :message="form.errors.customer_id" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Contact</Label>
                             <Combobox
                                 v-model="form.contact_id"
-                                placeholder="Select a contact"
+                                placeholder="Select a contact (optional)"
                                 :options="contactOptions"
                             />
                             <InputError :message="form.errors.contact_id" />
@@ -366,15 +388,29 @@ const submit = () => {
                             <Plus class="h-4 w-4" /> Add item
                         </Button>
                     </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div
-                            v-for="(item, index) in form.items"
-                            :key="index"
-                            class="space-y-2 rounded-lg border p-3"
-                        >
-                            <div class="grid items-end gap-3 sm:grid-cols-12">
-                                <div class="grid gap-1.5 sm:col-span-3">
-                                    <Label class="text-xs">Product</Label>
+                    <CardContent class="overflow-x-auto">
+                        <div class="min-w-[1050px] space-y-3 pb-2">
+                            <!-- Header Row -->
+                            <div class="grid grid-cols-[1.5fr_2fr_1fr_0.75fr_1fr_0.75fr_1fr_1fr_1fr_auto] gap-3 px-1 text-xs font-medium text-muted-foreground pb-2 border-b">
+                                <div>Product</div>
+                                <div>Description *</div>
+                                <div>HSN</div>
+                                <div>Qty</div>
+                                <div>Unit Price</div>
+                                <div>GST %</div>
+                                <div>Taxable</div>
+                                <div>Tax Amt</div>
+                                <div>Total</div>
+                                <div class="w-8"></div>
+                            </div>
+
+                            <!-- Line Items -->
+                            <div
+                                v-for="(item, index) in form.items"
+                                :key="index"
+                                class="grid grid-cols-[1.5fr_2fr_1fr_0.75fr_1fr_0.75fr_1fr_1fr_1fr_auto] gap-3 items-start"
+                            >
+                                <div>
                                     <Combobox
                                         v-model="item.product_id"
                                         placeholder="Optional"
@@ -384,8 +420,7 @@ const submit = () => {
                                         "
                                     />
                                 </div>
-                                <div class="grid gap-1.5 sm:col-span-3">
-                                    <Label class="text-xs">Description *</Label>
+                                <div class="grid gap-1.5">
                                     <Input
                                         v-model="item.description"
                                         placeholder="Item description"
@@ -398,15 +433,13 @@ const submit = () => {
                                         "
                                     />
                                 </div>
-                                <div class="grid gap-1.5 sm:col-span-2">
-                                    <Label class="text-xs">HSN</Label>
+                                <div>
                                     <Input
                                         v-model="item.hsn_code"
                                         placeholder="Code"
                                     />
                                 </div>
-                                <div class="grid gap-1.5 sm:col-span-1">
-                                    <Label class="text-xs">Qty</Label>
+                                <div>
                                     <Input
                                         v-model="item.quantity"
                                         type="number"
@@ -414,8 +447,7 @@ const submit = () => {
                                         step="0.01"
                                     />
                                 </div>
-                                <div class="grid gap-1.5 sm:col-span-2">
-                                    <Label class="text-xs">Unit Price</Label>
+                                <div>
                                     <Input
                                         v-model="item.unit_price"
                                         type="number"
@@ -423,8 +455,7 @@ const submit = () => {
                                         step="0.01"
                                     />
                                 </div>
-                                <div class="grid gap-1.5 sm:col-span-1">
-                                    <Label class="text-xs">GST %</Label>
+                                <div>
                                     <Select v-model="item.tax_percentage">
                                         <SelectTrigger class="w-full">
                                             <SelectValue placeholder="%" />
@@ -440,76 +471,51 @@ const submit = () => {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>
-                            <div
-                                class="flex items-center justify-between border-t pt-2"
-                            >
-                                <span class="text-sm text-muted-foreground">
-                                    Amount
-                                    <span
-                                        class="font-medium text-foreground tabular-nums"
-                                        >{{ money(lineTotal(item)) }}</span
+                                <div>
+                                    <Input
+                                        :value="lineTotal(item).toFixed(2)"
+                                        readonly
+                                        class="bg-muted text-muted-foreground"
+                                    />
+                                </div>
+                                <div>
+                                    <Input
+                                        :value="lineTax(item).toFixed(2)"
+                                        readonly
+                                        class="bg-muted text-muted-foreground"
+                                    />
+                                </div>
+                                <div>
+                                    <Input
+                                        :value="lineGrandTotal(item).toFixed(2)"
+                                        readonly
+                                        class="bg-muted font-medium text-foreground"
+                                    />
+                                </div>
+                                <div class="flex justify-end">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        :disabled="form.items.length === 1"
+                                        @click="removeItem(index)"
                                     >
-                                    <span class="text-xs"
-                                        >+ GST
-                                        {{
-                                            Number(item.tax_percentage) || 0
-                                        }}%</span
-                                    >
-                                </span>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    :disabled="form.items.length === 1"
-                                    @click="removeItem(index)"
-                                >
-                                    <Trash2 class="h-4 w-4 text-red-500" />
-                                </Button>
+                                        <Trash2 class="h-4 w-4 text-red-500" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
-                        <InputError :message="form.errors.items" />
+                        <InputError :message="form.errors.items" class="mt-2" />
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Notes &amp; Terms</CardTitle>
-                    </CardHeader>
-                    <CardContent class="grid gap-4 sm:grid-cols-2">
-                        <div class="grid gap-2">
-                            <Label for="notes">Notes</Label>
-                            <Textarea
-                                id="notes"
-                                v-model="form.notes"
-                                rows="4"
-                            />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="terms">Terms &amp; Conditions</Label>
-                            <Textarea
-                                id="terms"
-                                v-model="form.terms"
-                                rows="4"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <!-- Summary sidebar -->
-            <div class="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-muted-foreground">Subtotal</span>
-                            <span class="font-medium tabular-nums">{{
-                                money(subtotal)
-                            }}</span>
-                        </div>
+            <!-- Summary (Bottom) -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent class="flex flex-col sm:flex-row justify-between gap-6">
+                    <div class="w-full sm:w-1/3">
                         <div class="grid gap-2">
                             <Label for="discount">Discount</Label>
                             <Input
@@ -520,6 +526,15 @@ const submit = () => {
                                 step="0.01"
                             />
                             <InputError :message="form.errors.discount" />
+                        </div>
+                    </div>
+                    
+                    <div class="w-full sm:w-1/3 space-y-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">Subtotal</span>
+                            <span class="font-medium tabular-nums">{{
+                                money(subtotal)
+                            }}</span>
                         </div>
                         <div
                             v-if="discountValue > 0"
@@ -566,18 +581,44 @@ const submit = () => {
                             <span>Total</span>
                             <span class="tabular-nums">{{ money(total) }}</span>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-                        <Button
-                            type="submit"
-                            class="w-full"
-                            :disabled="form.processing"
-                        >
-                            {{
-                                quotation ? 'Save Changes' : 'Create Quotation'
-                            }}
-                        </Button>
-                    </CardContent>
-                </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Notes &amp; Terms</CardTitle>
+                </CardHeader>
+                <CardContent class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label for="notes">Notes</Label>
+                        <Textarea
+                            id="notes"
+                            v-model="form.notes"
+                            rows="4"
+                        />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="terms">Terms &amp; Conditions</Label>
+                        <Textarea
+                            id="terms"
+                            v-model="form.terms"
+                            rows="4"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div class="flex justify-end">
+                <Button
+                    type="submit"
+                    class="w-full sm:w-auto"
+                    :disabled="form.processing"
+                >
+                    {{
+                        quotation ? 'Save Changes' : 'Create Quotation'
+                    }}
+                </Button>
             </div>
         </div>
     </form>

@@ -75,7 +75,8 @@ export type EnquiryStatus = 'new' | 'in_progress' | 'converted' | 'lost';
 export type Enquiry = {
     id: number;
     branch_id: number;
-    contact_id: number;
+    customer_id: number | null;
+    contact_id: number | null;
     project_id: number | null;
     product_id: number | null;
     assigned_to: number | null;
@@ -85,14 +86,16 @@ export type Enquiry = {
 };
 
 export type EnquiryListItem = Enquiry & {
-    contact: NamedOption;
+    customer: NamedOption | null;
+    contact: NamedOption | null;
     project: NamedOption | null;
     product: NamedOption | null;
     assignee: NamedOption | null;
 };
 
 export type EnquiryDetail = Enquiry & {
-    contact: NamedOption;
+    customer: NamedOption | null;
+    contact: NamedOption | null;
     project: NamedOption | null;
     product: NamedOption | null;
     assignee: NamedOption | null;
@@ -209,6 +212,7 @@ export type Quotation = {
     number: string;
     version: number;
     parent_id: number | null;
+    customer_id: number | null;
     contact_id: number | null;
     project_id: number | null;
     enquiry_id: number | null;
@@ -233,12 +237,14 @@ export type Quotation = {
 };
 
 export type QuotationListItem = Quotation & {
+    customer: NamedOption | null;
     contact: NamedOption | null;
     project: NamedOption | null;
     creator: NamedOption | null;
 };
 
 export type QuotationDetail = Quotation & {
+    customer: NamedOption | null;
     contact:
         | (NamedOption & { phone: string | null; email: string | null })
         | null;

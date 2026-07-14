@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 import { show as showBuilder } from '@/routes/builders';
+import { show as showCustomer } from '@/routes/customers';
 import { show as showContact } from '@/routes/contacts';
 import { show as showEnquiry } from '@/routes/enquiries';
 import { show as showProject } from '@/routes/projects';
@@ -289,7 +290,7 @@ const createRevision = () => {
                             <MessageCircle class="h-4 w-4" /> WhatsApp
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                            v-if="canSend && quotation.contact?.email"
+                            v-if="canSend && quotation.customer?.email"
                             @select="emailDialogOpen = true"
                         >
                             <Mail class="h-4 w-4" /> Email to customer
@@ -331,6 +332,16 @@ const createRevision = () => {
                     >
                 </CardHeader>
                 <CardContent class="space-y-1 pt-6 text-sm">
+                    <Link
+                        v-if="quotation.customer"
+                        :href="showCustomer(quotation.customer.id)"
+                        class="font-medium hover:underline text-base"
+                    >
+                        {{ quotation.customer.name }}
+                    </Link>
+                    <p v-else class="text-muted-foreground">—</p>
+
+                    <p class="text-xs text-muted-foreground mt-3 mb-1 uppercase font-semibold tracking-wider">Contact Person</p>
                     <Link
                         v-if="quotation.contact"
                         :href="showContact(quotation.contact.id)"
@@ -630,7 +641,7 @@ const createRevision = () => {
                     Send quotation {{ quotation.number }} with the PDF attached
                     to
                     <span class="font-medium text-foreground">{{
-                        quotation.contact?.email
+                        quotation.customer?.email
                     }}</span
                     >. Draft quotations will be marked as sent.
                 </DialogDescription>

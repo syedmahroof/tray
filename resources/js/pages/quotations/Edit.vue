@@ -20,6 +20,7 @@ type ContactOption = NamedOption & {
 
 defineProps<{
     quotation: QuotationDetail;
+    customers: NamedOption[];
     contacts: ContactOption[];
     projects: NamedOption[];
     enquiries: NamedOption[];
@@ -65,6 +66,7 @@ defineOptions({
 
         <QuotationForm
             :quotation="quotation"
+            :customers="customers"
             :contacts="contacts"
             :projects="projects"
             :enquiries="enquiries"

@@ -18,7 +18,8 @@ class SaveEnquiryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_id' => ['required', Rule::exists('contacts', 'id')],
+            'customer_id' => ['required_without:contact_id', 'nullable', Rule::exists('customers', 'id')],
+            'contact_id' => ['required_without:customer_id', 'nullable', Rule::exists('contacts', 'id')],
             'project_id' => ['nullable', Rule::exists('projects', 'id')],
             'product_id' => ['nullable', Rule::exists('products', 'id')],
             'assigned_to' => ['nullable', Rule::exists('users', 'id')],

@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTabQuery } from '@/composables/useTabQuery';
 import { show as showContact } from '@/routes/contacts';
+import { show as showCustomer } from '@/routes/customers';
 import { edit, index, show } from '@/routes/enquiries';
 import { store as storeNote } from '@/routes/enquiries/notes';
 import { store as storeReminder } from '@/routes/enquiries/reminders';
@@ -137,7 +138,17 @@ const statusVariant = computed(() => {
                         >
                     </CardHeader>
                     <CardContent class="grid gap-4 pt-6 sm:grid-cols-2">
-                        <div>
+                        <div v-if="enquiry.customer">
+                            <p class="text-sm text-muted-foreground">Customer</p>
+                            <Link
+                                :href="showCustomer(enquiry.customer.id)"
+                                class="mt-0.5 flex items-center gap-1.5 text-sm font-medium hover:underline"
+                            >
+                                <UserRound class="h-3.5 w-3.5 text-[#2563eb]" />
+                                {{ enquiry.customer.name }}
+                            </Link>
+                        </div>
+                        <div v-if="enquiry.contact">
                             <p class="text-sm text-muted-foreground">Contact</p>
                             <Link
                                 :href="showContact(enquiry.contact.id)"

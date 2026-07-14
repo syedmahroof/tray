@@ -26,7 +26,8 @@ class SaveQuotationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_id' => ['required', Rule::exists('contacts', 'id')],
+            'customer_id' => ['required', Rule::exists('customers', 'id')],
+            'contact_id' => ['nullable', Rule::exists('contacts', 'id')],
             'project_id' => ['nullable', Rule::exists('projects', 'id')],
             'enquiry_id' => ['nullable', Rule::exists('enquiries', 'id')],
             'builder_id' => ['nullable', Rule::exists('builders', 'id')],
