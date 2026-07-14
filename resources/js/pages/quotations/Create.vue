@@ -15,9 +15,17 @@ type ContactOption = NamedOption & {
 defineProps<{
     contacts: ContactOption[];
     projects: NamedOption[];
+    enquiries: NamedOption[];
+    builders: NamedOption[];
     products: ProductOption[];
     statuses: string[];
     branches: Branch[];
+    defaults: {
+        contact_id: number | null;
+        project_id: number | null;
+        enquiry_id: number | null;
+        builder_id: number | null;
+    };
 }>();
 
 defineOptions({
@@ -52,9 +60,12 @@ defineOptions({
         <QuotationForm
             :contacts="contacts"
             :projects="projects"
+            :enquiries="enquiries"
+            :builders="builders"
             :products="products"
             :statuses="statuses"
             :branches="branches"
+            :defaults="defaults"
         />
     </div>
 </template>

@@ -28,6 +28,8 @@ class SaveQuotationRequest extends FormRequest
         return [
             'contact_id' => ['required', Rule::exists('contacts', 'id')],
             'project_id' => ['nullable', Rule::exists('projects', 'id')],
+            'enquiry_id' => ['nullable', Rule::exists('enquiries', 'id')],
+            'builder_id' => ['nullable', Rule::exists('builders', 'id')],
             'quotation_date' => ['required', 'date'],
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],

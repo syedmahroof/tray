@@ -10,14 +10,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property int $branch_id
  * @property string $number
+ * @property int $version
+ * @property int|null $parent_id
  * @property int|null $contact_id
  * @property int|null $project_id
+ * @property int|null $enquiry_id
+ * @property int|null $builder_id
  * @property Carbon $quotation_date
  * @property Carbon|null $valid_until
  * @property string $status
@@ -31,13 +36,18 @@ use Illuminate\Support\Carbon;
  * @property int|null $created_by
  * @property-read Contact|null $contact
  * @property-read Project|null $project
+ * @property-read Enquiry|null $enquiry
+ * @property-read Builder|null $builder
  * @property-read User|null $creator
+ * @property-read Quotation|null $parent
+ * @property-read Collection<int, Quotation> $revisions
  * @property-read Collection<int, QuotationItem> $items
  */
 #[Fillable([
-    'branch_id', 'number', 'contact_id', 'project_id', 'quotation_date',
-    'valid_until', 'status', 'subtotal', 'discount', 'tax_percent',
-    'tax_amount', 'total', 'notes', 'terms', 'created_by',
+    'branch_id', 'number', 'version', 'parent_id', 'contact_id', 'project_id',
+    'enquiry_id', 'builder_id', 'quotation_date', 'valid_until', 'status',
+    'subtotal', 'discount', 'tax_percent', 'tax_amount', 'total', 'notes',
+    'terms', 'created_by',
 ])]
 class Quotation extends Model
 {
@@ -46,7 +56,7 @@ class Quotation extends Model
     /** @use HasFactory<QuotationFactory> */
     use HasFactory;
 
-    public const array STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+    public const array STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired', 'revised'];
 
     /**
      * @return array<string, string>
@@ -54,6 +64,7 @@ class Quotation extends Model
     protected function casts(): array
     {
         return [
+            'version' => 'integer',
             'quotation_date' => 'date:Y-m-d',
             'valid_until' => 'date:Y-m-d',
             'subtotal' => 'decimal:2',
@@ -81,6 +92,50 @@ class Quotation extends Model
     }
 
     /**
+     * @return BelongsTo<Enquiry, $this>
+     */
+    public function enquiry(): BelongsTo
+    {
+        return $this->belongsTo(Enquiry::class);
+    }
+
+    /**
+     * @return BelongsTo<Builder, $this>
+     */
+    public function builder(): BelongsTo
+    {
+        return $this->belongsTo(Builder::class);
+    }
+
+    /**
+     * The original quotation this revision descends from.
+     *
+     * @return BelongsTo<Quotation, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'parent_id');
+    }
+
+    /**
+     * Later revisions that descend from this quotation.
+     *
+     * @return HasMany<Quotation, $this>
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(Quotation::class, 'parent_id');
+    }
+
+    /**
+     * The id of the root quotation for this revision group.
+     */
+    public function rootId(): int
+    {
+        return $this->parent_id ?? $this->id;
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -94,5 +149,13 @@ class Quotation extends Model
     public function items(): HasMany
     {
         return $this->hasMany(QuotationItem::class);
+    }
+
+    /**
+     * @return MorphMany<AuditLog, $this>
+     */
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(AuditLog::class, 'auditable');
     }
 }

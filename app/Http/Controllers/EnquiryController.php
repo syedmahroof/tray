@@ -116,6 +116,8 @@ class EnquiryController extends Controller
             'enquiry' => $enquiry,
             'notes' => $enquiry->notes()->with('user')->latest()->get(),
             'reminders' => $enquiry->reminders()->with('user')->orderBy('remind_at')->get(),
+            'quotations' => $enquiry->quotations()->latest()
+                ->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
         ]);
     }
 

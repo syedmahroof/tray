@@ -17,6 +17,7 @@ import {
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import NotesPanel from '@/components/NotesPanel.vue';
+import QuotationsCard from '@/components/QuotationsCard.vue';
 import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import {
     show as showEnquiry,
 } from '@/routes/enquiries';
 import { destroy as destroyNote } from '@/routes/notes';
+import { create as createQuotation } from '@/routes/quotations';
 import { destroy as destroyReminder } from '@/routes/reminders';
 import {
     create as createVisitReport,
@@ -41,6 +43,7 @@ import type {
     Enquiry,
     NamedOption,
     Note,
+    QuotationSummary,
     Reminder,
     VisitReport,
 } from '@/types';
@@ -60,6 +63,7 @@ defineProps<{
     reminders: Reminder[];
     visitReports: ContactVisitReport[];
     enquiries: ContactEnquiry[];
+    quotations: QuotationSummary[];
     auditLogs: {
         id: number;
         action: string;
@@ -145,10 +149,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
                     <ClipboardCheck class="h-4 w-4 text-[#0ea5e9]" />
                     Visit Reports
                 </TabsTrigger>
-                <TabsTrigger
-                    value="history"
-                    class="flex items-center gap-1.5"
-                >
+                <TabsTrigger value="history" class="flex items-center gap-1.5">
                     <History class="h-4 w-4 text-slate-500" />
                     History
                 </TabsTrigger>
@@ -268,6 +269,16 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         </div>
                     </CardContent>
                 </Card>
+
+                <QuotationsCard
+                    :quotations="quotations"
+                    :create-href="
+                        createQuotation.url({
+                            query: { contact_id: contact.id },
+                        })
+                    "
+                    :can-create="permissions.includes('quotations.create')"
+                />
             </TabsContent>
 
             <TabsContent value="notes">
@@ -349,38 +360,58 @@ const permissions = computed(() => usePage().props.auth.permissions);
 
             <TabsContent value="history" class="space-y-6">
                 <Card>
-                    <CardHeader class="border-b pb-3 flex flex-row items-center gap-2">
+                    <CardHeader
+                        class="flex flex-row items-center gap-2 border-b pb-3"
+                    >
                         <History class="h-5 w-5 text-slate-500" />
-                        <CardTitle class="text-base font-semibold">Contact History & Audit Log</CardTitle>
+                        <CardTitle class="text-base font-semibold"
+                            >Contact History & Audit Log</CardTitle
+                        >
                     </CardHeader>
                     <CardContent class="pt-6">
-                        <div class="relative pl-6 border-l border-slate-200 dark:border-slate-800 space-y-8 ml-3">
+                        <div
+                            class="relative ml-3 space-y-8 border-l border-slate-200 pl-6 dark:border-slate-800"
+                        >
                             <div
                                 v-for="log in auditLogs"
                                 :key="log.id"
                                 class="relative"
                             >
-                                <span class="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white dark:bg-slate-900 border-2" 
+                                <span
+                                    class="absolute top-1 -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white dark:bg-slate-900"
                                     :class="{
-                                        'border-blue-500': log.action === 'created',
-                                        'border-amber-500': log.action === 'updated',
-                                        'border-purple-500': log.action === 'assigned',
+                                        'border-blue-500':
+                                            log.action === 'created',
+                                        'border-amber-500':
+                                            log.action === 'updated',
+                                        'border-purple-500':
+                                            log.action === 'assigned',
                                     }"
                                 >
                                 </span>
                                 <div>
-                                    <div class="flex items-center justify-between gap-4">
-                                        <p class="text-sm font-semibold capitalize text-slate-900 dark:text-slate-100">
+                                    <div
+                                        class="flex items-center justify-between gap-4"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-slate-900 capitalize dark:text-slate-100"
+                                        >
                                             {{ log.action }}
                                         </p>
-                                        <time class="text-xs text-muted-foreground whitespace-nowrap">
+                                        <time
+                                            class="text-xs whitespace-nowrap text-muted-foreground"
+                                        >
                                             {{ formatDate(log.created_at) }}
                                         </time>
                                     </div>
-                                    <p class="mt-1 text-sm text-muted-foreground">
+                                    <p
+                                        class="mt-1 text-sm text-muted-foreground"
+                                    >
                                         {{ log.description }}
                                     </p>
-                                    <p class="mt-1.5 text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                    <p
+                                        class="mt-1.5 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500"
+                                    >
                                         <User class="h-3 w-3" />
                                         By: {{ log.user?.name ?? 'System' }}
                                     </p>

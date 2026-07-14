@@ -90,6 +90,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:quotations.view')
         ->name('quotations.pdf');
 
+    Route::get('quotations/{quotation}/print', [QuotationController::class, 'print'])
+        ->middleware('permission:quotations.view')
+        ->name('quotations.print');
+
+    Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])
+        ->middleware('permission:quotations.update')
+        ->name('quotations.status');
+
+    Route::post('quotations/{quotation}/email', [QuotationController::class, 'email'])
+        ->middleware('permission:quotations.send')
+        ->name('quotations.email');
+
+    Route::post('quotations/{quotation}/revise', [QuotationController::class, 'revise'])
+        ->middleware('permission:quotations.create')
+        ->name('quotations.revise');
+
+    Route::get('quotations/analytics', [QuotationController::class, 'analytics'])
+        ->middleware('permission:quotations.view')
+        ->name('quotations.analytics');
+
     Route::get('quotations/export', [QuotationController::class, 'export'])
         ->middleware('permission:quotations.view')
         ->name('quotations.export');
@@ -105,3 +125,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:reports.view')
         ->name('reports.index');
 });
+
+// Public, signed share link for a quotation PDF (no authentication required).
+Route::get('quotations/{quotation}/shared', [QuotationController::class, 'shared'])
+    ->middleware('signed')
+    ->name('quotations.shared');

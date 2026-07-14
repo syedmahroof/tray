@@ -10,11 +10,13 @@ import {
     UserRound,
     Building,
     Package,
+    ReceiptText,
 } from '@lucide/vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import NotesPanel from '@/components/NotesPanel.vue';
+import QuotationsCard from '@/components/QuotationsCard.vue';
 import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,13 +26,15 @@ import { edit, index, show } from '@/routes/enquiries';
 import { store as storeNote } from '@/routes/enquiries/notes';
 import { store as storeReminder } from '@/routes/enquiries/reminders';
 import { destroy as destroyNote } from '@/routes/notes';
+import { create as createQuotation } from '@/routes/quotations';
 import { destroy as destroyReminder } from '@/routes/reminders';
-import type { EnquiryDetail, Note, Reminder } from '@/types';
+import type { EnquiryDetail, Note, QuotationSummary, Reminder } from '@/types';
 
 const props = defineProps<{
     enquiry: EnquiryDetail;
     notes: Note[];
     reminders: Reminder[];
+    quotations: QuotationSummary[];
 }>();
 
 defineOptions({
@@ -90,6 +94,18 @@ const statusVariant = computed(() => {
                 <TabsTrigger value="details" class="flex items-center gap-1.5">
                     <Info class="h-4 w-4 text-[#d97706]" />
                     Details
+                </TabsTrigger>
+                <TabsTrigger
+                    value="quotations"
+                    class="flex items-center gap-1.5"
+                >
+                    <ReceiptText class="h-4 w-4 text-indigo-500" />
+                    Quotations
+                    <span
+                        v-if="quotations.length"
+                        class="rounded-full bg-muted px-1.5 text-xs text-muted-foreground"
+                        >{{ quotations.length }}</span
+                    >
                 </TabsTrigger>
                 <TabsTrigger value="notes" class="flex items-center gap-1.5">
                     <FileText class="h-4 w-4 text-emerald-500" />
@@ -180,6 +196,18 @@ const statusVariant = computed(() => {
                         </div>
                     </CardContent>
                 </Card>
+            </TabsContent>
+
+            <TabsContent value="quotations">
+                <QuotationsCard
+                    :quotations="quotations"
+                    :create-href="
+                        createQuotation.url({
+                            query: { enquiry_id: enquiry.id },
+                        })
+                    "
+                    :can-create="permissions.includes('quotations.create')"
+                />
             </TabsContent>
 
             <TabsContent value="notes">

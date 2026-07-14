@@ -164,4 +164,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectContact::class);
     }
+
+    /**
+     * @return HasMany<Quotation, $this>
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
 }

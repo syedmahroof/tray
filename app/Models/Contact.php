@@ -105,6 +105,14 @@ class Contact extends Model
     }
 
     /**
+     * @return HasMany<Quotation, $this>
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    /**
      * @return BelongsToMany<VisitReport, $this>
      */
     public function visitReports(): BelongsToMany

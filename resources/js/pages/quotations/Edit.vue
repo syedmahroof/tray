@@ -16,6 +16,8 @@ defineProps<{
     quotation: QuotationDetail;
     contacts: ContactOption[];
     projects: NamedOption[];
+    enquiries: NamedOption[];
+    builders: NamedOption[];
     products: ProductOption[];
     statuses: string[];
     branches: Branch[];
@@ -58,6 +60,8 @@ defineOptions({
             :quotation="quotation"
             :contacts="contacts"
             :projects="projects"
+            :enquiries="enquiries"
+            :builders="builders"
             :products="products"
             :statuses="statuses"
             :branches="branches"

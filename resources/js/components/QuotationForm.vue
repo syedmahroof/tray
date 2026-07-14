@@ -25,13 +25,23 @@ type ContactOption = NamedOption & {
     email: string | null;
 };
 
+type QuotationDefaults = {
+    contact_id: number | null;
+    project_id: number | null;
+    enquiry_id: number | null;
+    builder_id: number | null;
+};
+
 const props = defineProps<{
     quotation?: QuotationDetail | null;
     contacts: ContactOption[];
     projects: NamedOption[];
+    enquiries: NamedOption[];
+    builders: NamedOption[];
     products: ProductOption[];
     statuses: string[];
     branches: Branch[];
+    defaults?: QuotationDefaults | null;
 }>();
 
 const emptyItem = () => ({
@@ -41,13 +51,21 @@ const emptyItem = () => ({
     unit_price: '0',
 });
 
+const idString = (value?: number | null) => (value ? String(value) : undefined);
+
 const form = useForm({
-    contact_id: props.quotation?.contact_id
-        ? String(props.quotation.contact_id)
-        : undefined,
-    project_id: props.quotation?.project_id
-        ? String(props.quotation.project_id)
-        : undefined,
+    contact_id: idString(
+        props.quotation?.contact_id ?? props.defaults?.contact_id,
+    ),
+    project_id: idString(
+        props.quotation?.project_id ?? props.defaults?.project_id,
+    ),
+    enquiry_id: idString(
+        props.quotation?.enquiry_id ?? props.defaults?.enquiry_id,
+    ),
+    builder_id: idString(
+        props.quotation?.builder_id ?? props.defaults?.builder_id,
+    ),
     quotation_date:
         props.quotation?.quotation_date ??
         new Date().toISOString().slice(0, 10),
@@ -78,6 +96,12 @@ const contactOptions = computed(() =>
 );
 const projectOptions = computed(() =>
     props.projects.map((p) => ({ value: String(p.id), label: p.name })),
+);
+const enquiryOptions = computed(() =>
+    props.enquiries.map((e) => ({ value: String(e.id), label: e.name })),
+);
+const builderOptions = computed(() =>
+    props.builders.map((b) => ({ value: String(b.id), label: b.name })),
 );
 const productOptions = computed(() =>
     props.products.map((p) => ({ value: String(p.id), label: p.name })),
@@ -161,6 +185,26 @@ const submit = () => {
                                 :options="projectOptions"
                             />
                             <InputError :message="form.errors.project_id" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Enquiry</Label>
+                            <Combobox
+                                v-model="form.enquiry_id"
+                                placeholder="Link an enquiry (optional)"
+                                :options="enquiryOptions"
+                            />
+                            <InputError :message="form.errors.enquiry_id" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Builder</Label>
+                            <Combobox
+                                v-model="form.builder_id"
+                                placeholder="Link a builder (optional)"
+                                :options="builderOptions"
+                            />
+                            <InputError :message="form.errors.builder_id" />
                         </div>
 
                         <div class="grid gap-2">

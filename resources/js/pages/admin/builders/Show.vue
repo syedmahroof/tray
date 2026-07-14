@@ -22,9 +22,18 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import QuotationsCard from '@/components/QuotationsCard.vue';
 import { edit, index, show } from '@/routes/builders';
 import { show as showProject } from '@/routes/projects';
-import type { Builder, Country, State, District, Project } from '@/types';
+import { create as createQuotation } from '@/routes/quotations';
+import type {
+    Builder,
+    Country,
+    State,
+    District,
+    Project,
+    QuotationSummary,
+} from '@/types';
 
 type BuilderDetail = Builder & {
     country: Country | null;
@@ -35,6 +44,7 @@ type BuilderDetail = Builder & {
 
 const props = defineProps<{
     builder: BuilderDetail;
+    quotations: QuotationSummary[];
 }>();
 
 defineOptions({
@@ -264,6 +274,18 @@ const permissions = computed(() => usePage().props.auth.permissions);
                     </div>
                 </CardContent>
             </Card>
+
+            <div class="md:col-span-2">
+                <QuotationsCard
+                    :quotations="quotations"
+                    :create-href="
+                        createQuotation.url({
+                            query: { builder_id: builder.id },
+                        })
+                    "
+                    :can-create="permissions.includes('quotations.create')"
+                />
+            </div>
         </div>
     </div>
 </template>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
+    ChartColumn,
     CircleCheckBig,
     Download,
     Eye,
     FileText,
+    Mail,
     Pencil,
     Plus,
+    Printer,
     Search,
     Send,
     Trash2,
@@ -23,6 +26,14 @@ import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -41,12 +52,15 @@ import {
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 import {
+    analytics,
     create,
     destroy,
     edit,
+    email as emailRoute,
     exportMethod,
     index,
     pdf,
+    print,
     show,
 } from '@/routes/quotations';
 import type {
@@ -179,6 +193,38 @@ const confirmDelete = (quotation: QuotationListItem) => {
     quotationToDelete.value = quotation;
     deleteDialogOpen.value = true;
 };
+
+const permissions = computed(() => usePage().props.auth.permissions);
+const canSend = computed(() => permissions.value.includes('quotations.send'));
+
+const emailDialogOpen = ref(false);
+const emailing = ref(false);
+const quotationToEmail = ref<QuotationListItem | null>(null);
+
+const confirmEmail = (quotation: QuotationListItem) => {
+    quotationToEmail.value = quotation;
+    emailDialogOpen.value = true;
+};
+
+const sendEmail = () => {
+    if (!quotationToEmail.value) {
+        return;
+    }
+
+    emailing.value = true;
+
+    router.post(
+        emailRoute.url(quotationToEmail.value.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                emailing.value = false;
+                emailDialogOpen.value = false;
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -193,6 +239,9 @@ const confirmDelete = (quotation: QuotationListItem) => {
             />
 
             <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <Link :href="analytics()"><ChartColumn /> Analytics</Link>
+                </Button>
                 <Button variant="outline" as-child>
                     <a :href="exportUrl"><Download /> Export</a>
                 </Button>
@@ -352,11 +401,35 @@ const confirmDelete = (quotation: QuotationListItem) => {
                                     variant="ghost"
                                     size="sm"
                                     as-child
+                                    :aria-label="`Print ${quotation.number}`"
+                                >
+                                    <a
+                                        :href="print.url(quotation.id)"
+                                        target="_blank"
+                                        rel="noopener"
+                                    >
+                                        <Printer class="h-4 w-4" />
+                                    </a>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    as-child
                                     :aria-label="`Download ${quotation.number}`"
                                 >
                                     <a :href="pdf.url(quotation.id)">
                                         <Download class="h-4 w-4" />
                                     </a>
+                                </Button>
+                                <Button
+                                    v-if="canSend"
+                                    variant="ghost"
+                                    size="sm"
+                                    :aria-label="`Email ${quotation.number}`"
+                                    :data-test="`email-quotation-${quotation.id}`"
+                                    @click="confirmEmail(quotation)"
+                                >
+                                    <Mail class="h-4 w-4" />
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -405,4 +478,30 @@ const confirmDelete = (quotation: QuotationListItem) => {
         "
         @update:open="deleteDialogOpen = $event"
     />
+
+    <Dialog v-model:open="emailDialogOpen">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Email quotation</DialogTitle>
+                <DialogDescription>
+                    Send {{ quotationToEmail?.number }} with the PDF attached to
+                    {{ quotationToEmail?.contact?.name ?? 'the contact' }}. If
+                    the contact has no email address you'll be notified.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button
+                    variant="outline"
+                    :disabled="emailing"
+                    @click="emailDialogOpen = false"
+                >
+                    Cancel
+                </Button>
+                <Button :disabled="emailing" @click="sendEmail">
+                    <Mail class="h-4 w-4" />
+                    {{ emailing ? 'Sending…' : 'Send email' }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

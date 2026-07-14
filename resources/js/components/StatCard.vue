@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 defineProps<{
     label: string;
-    value: number;
+    value: number | string;
     icon: Component;
     color: string;
 }>();

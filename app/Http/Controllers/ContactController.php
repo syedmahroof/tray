@@ -159,6 +159,8 @@ class ContactController extends Controller
             'reminders' => $contact->reminders()->with('user')->orderBy('remind_at')->get(),
             'visitReports' => $contact->visitReports()->with('user')->orderByDesc('visit_date')->get(),
             'enquiries' => $contact->enquiries()->with(['project', 'product'])->latest()->get(),
+            'quotations' => $contact->quotations()->latest()
+                ->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
             'auditLogs' => $contact->auditLogs()->with('user')->latest()->get(),
         ]);
     }

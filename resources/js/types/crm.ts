@@ -168,8 +168,12 @@ export type Quotation = {
     id: number;
     branch_id: number;
     number: string;
+    version: number;
+    parent_id: number | null;
     contact_id: number | null;
     project_id: number | null;
+    enquiry_id: number | null;
+    builder_id: number | null;
     quotation_date: string;
     valid_until: string | null;
     status: QuotationStatus;
@@ -195,7 +199,30 @@ export type QuotationDetail = Quotation & {
         | (NamedOption & { phone: string | null; email: string | null })
         | null;
     project: NamedOption | null;
+    enquiry: { id: number; contact: NamedOption | null } | null;
+    builder: NamedOption | null;
     creator: NamedOption | null;
     branch: NamedOption;
     items: QuotationItem[];
 };
+
+/**
+ * A compact quotation row for listing on related profile pages
+ * (contact, project, enquiry, builder).
+ */
+export type QuotationSummary = Pick<
+    Quotation,
+    | 'id'
+    | 'number'
+    | 'version'
+    | 'status'
+    | 'total'
+    | 'quotation_date'
+    | 'created_at'
+>;
+
+/** A single entry in a quotation's revision history. */
+export type QuotationVersion = Pick<
+    Quotation,
+    'id' | 'number' | 'version' | 'status' | 'total' | 'created_at'
+>;

@@ -20,6 +20,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { formatDate } from '@/lib/utils';
 import { show as showContact } from '@/routes/contacts';
 import { show as showProduct } from '@/routes/products';
 import { edit, index, show } from '@/routes/projects';
+import { create as createQuotation } from '@/routes/quotations';
 import {
     show as showVisitReport,
     create as createVisitReport,
@@ -40,6 +42,7 @@ import type {
     District,
     VisitReport,
     ProjectContact,
+    QuotationSummary,
     Branch,
 } from '@/types';
 
@@ -75,6 +78,7 @@ type ProjectDetail = Project & {
 
 defineProps<{
     project: ProjectDetail;
+    quotations: QuotationSummary[];
 }>();
 
 defineOptions({
@@ -455,6 +459,16 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         </CardContent>
                     </Card>
                 </div>
+
+                <QuotationsCard
+                    :quotations="quotations"
+                    :create-href="
+                        createQuotation.url({
+                            query: { project_id: project.id },
+                        })
+                    "
+                    :can-create="permissions.includes('quotations.create')"
+                />
             </TabsContent>
 
             <!-- Internal Contacts Tab -->

@@ -310,6 +310,8 @@ class ProjectController extends Controller
 
         return Inertia::render('admin/projects/Show', [
             'project' => $project,
+            'quotations' => $project->quotations()->latest()
+                ->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
         ]);
     }
 

@@ -134,6 +134,8 @@ class BuilderController extends Controller
 
         return Inertia::render('admin/builders/Show', [
             'builder' => $builder,
+            'quotations' => $builder->quotations()->latest()
+                ->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
         ]);
     }
 
