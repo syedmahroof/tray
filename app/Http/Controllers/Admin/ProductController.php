@@ -103,6 +103,7 @@ class ProductController extends Controller
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
             'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
+            'gstSlabs' => Product::GST_SLABS,
         ]);
     }
 
@@ -143,6 +144,7 @@ class ProductController extends Controller
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
             'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
+            'gstSlabs' => Product::GST_SLABS,
         ]);
     }
 

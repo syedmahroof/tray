@@ -4,7 +4,6 @@ import { Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Combobox from '@/components/Combobox.vue';
-import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -124,6 +123,4 @@ const timezoneOptions = computed(() =>
             </div>
         </Form>
     </div>
-
-    <DeleteUser />
 </template>

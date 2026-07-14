@@ -21,6 +21,7 @@ import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTabQuery } from '@/composables/useTabQuery';
 import { show as showContact } from '@/routes/contacts';
 import { edit, index, show } from '@/routes/enquiries';
 import { store as storeNote } from '@/routes/enquiries/notes';
@@ -47,6 +48,11 @@ defineOptions({
 });
 
 const permissions = computed(() => usePage().props.auth.permissions);
+
+const activeTab = useTabQuery(
+    ['details', 'quotations', 'notes', 'reminders'],
+    'details',
+);
 
 const statusVariant = computed(() => {
     if (props.enquiry.status === 'converted') {
@@ -89,7 +95,7 @@ const statusVariant = computed(() => {
             </Button>
         </div>
 
-        <Tabs default-value="details">
+        <Tabs v-model="activeTab">
             <TabsList>
                 <TabsTrigger value="details" class="flex items-center gap-1.5">
                     <Info class="h-4 w-4 text-[#d97706]" />

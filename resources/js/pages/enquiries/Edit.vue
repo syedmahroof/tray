@@ -16,11 +16,17 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { edit, index, show, update } from '@/routes/enquiries';
-import type { Branch, Enquiry, NamedOption } from '@/types';
+import {
+    contactOptionLabel,
+    type Branch,
+    type ContactSelectOption,
+    type Enquiry,
+    type NamedOption,
+} from '@/types';
 
 const props = defineProps<{
     enquiry: Enquiry;
-    contacts: NamedOption[];
+    contacts: ContactSelectOption[];
     projects: NamedOption[];
     products: NamedOption[];
     users: NamedOption[];
@@ -41,7 +47,7 @@ defineOptions({
 const contactOptions = computed(() =>
     props.contacts.map((contact) => ({
         value: String(contact.id),
-        label: contact.name,
+        label: contactOptionLabel(contact),
     })),
 );
 const projectOptions = computed(() =>

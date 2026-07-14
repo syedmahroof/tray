@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\ContactType;
 use App\Models\Country;
 use App\Models\User;
+use App\Models\VisitReport;
 use App\Support\BranchAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class ContactController extends Controller
         $createdBy = $isSuperAdmin ? $request->input('created_by') : null;
         $createdFrom = $request->input('created_from');
         $createdTo = $request->input('created_to');
+        $noVisitWithin = $request->input('no_visit_within');
 
         return Inertia::render('contacts/Index', [
             'contacts' => Contact::query()
@@ -46,6 +48,9 @@ class ContactController extends Controller
                 ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
                 ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
                 ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
+                ->when(VisitReport::NO_VISIT_PERIODS[$noVisitWithin] ?? null, function ($query, $days) {
+                    $query->whereDoesntHave('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString()));
+                })
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
@@ -58,6 +63,7 @@ class ContactController extends Controller
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
                 'created_to' => $createdTo,
+                'no_visit_within' => $noVisitWithin,
             ],
             'stats' => [
                 'total' => Contact::count(),
@@ -96,6 +102,9 @@ class ContactController extends Controller
             ->when($request->user()->hasRole('Super Admin') && $request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->when(VisitReport::NO_VISIT_PERIODS[$request->input('no_visit_within')] ?? null, function ($query, $days) {
+                $query->whereDoesntHave('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString()));
+            })
             ->orderBy('name')
             ->get();
 

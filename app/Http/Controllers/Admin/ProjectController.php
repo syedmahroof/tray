@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\User;
+use App\Models\VisitReport;
 use App\Support\BranchAccess;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -70,6 +71,7 @@ class ProjectController extends Controller
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
                 'created_to' => $createdTo,
+                'no_visit_within' => $request->input('no_visit_within'),
             ],
         ]);
     }
@@ -128,7 +130,10 @@ class ProjectController extends Controller
             ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
-            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value));
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->when(VisitReport::NO_VISIT_PERIODS[$request->input('no_visit_within')] ?? null, function ($query, $days) {
+                $query->whereDoesntHave('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString()));
+            });
     }
 
     /**

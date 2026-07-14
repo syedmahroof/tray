@@ -8,6 +8,14 @@ import Heading from '@/components/Heading.vue';
 import StatCard from '@/components/StatCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { analytics, index } from '@/routes/visit-reports';
 import type { VisitReportMonthCount, VisitReportTypeCount } from '@/types';
 
@@ -19,6 +27,10 @@ const props = defineProps<{
     };
     visitReportsByType: VisitReportTypeCount[];
     visitReportsByMonth: VisitReportMonthCount[];
+    mostVisitedCustomers: Array<{ id: number; name: string; count: number }>;
+    leastVisitedCustomers: Array<{ id: number; name: string; count: number }>;
+    mostVisitedProjects: Array<{ id: number; name: string; count: number }>;
+    leastVisitedProjects: Array<{ id: number; name: string; count: number }>;
 }>();
 
 defineOptions({
@@ -107,6 +119,111 @@ const monthlyData = computed(() =>
                 </CardHeader>
                 <CardContent>
                     <DashboardBarChart :data="monthlyData" color="#0ea5e9" />
+                </CardContent>
+            </Card>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+            <!-- Most Visited Customers -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>Most Visited Customers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Customer</TableHead>
+                                <TableHead class="text-right">Visits</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="customer in mostVisitedCustomers" :key="customer.id">
+                                <TableCell>{{ customer.name }}</TableCell>
+                                <TableCell class="text-right font-medium tabular-nums">{{ customer.count }}</TableCell>
+                            </TableRow>
+                            <TableRow v-if="!mostVisitedCustomers.length">
+                                <TableCell :colspan="2" class="text-center text-muted-foreground">No data yet.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <!-- Least Visited Customers -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>Least Visited Customers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Customer</TableHead>
+                                <TableHead class="text-right">Visits</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="customer in leastVisitedCustomers" :key="customer.id">
+                                <TableCell>{{ customer.name }}</TableCell>
+                                <TableCell class="text-right font-medium tabular-nums">{{ customer.count }}</TableCell>
+                            </TableRow>
+                            <TableRow v-if="!leastVisitedCustomers.length">
+                                <TableCell :colspan="2" class="text-center text-muted-foreground">No data yet.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <!-- Most Visited Projects -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>Most Visited Projects</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Project</TableHead>
+                                <TableHead class="text-right">Visits</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="project in mostVisitedProjects" :key="project.id">
+                                <TableCell>{{ project.name }}</TableCell>
+                                <TableCell class="text-right font-medium tabular-nums">{{ project.count }}</TableCell>
+                            </TableRow>
+                            <TableRow v-if="!mostVisitedProjects.length">
+                                <TableCell :colspan="2" class="text-center text-muted-foreground">No data yet.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <!-- Least Visited Projects -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>Least Visited Projects</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Project</TableHead>
+                                <TableHead class="text-right">Visits</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="project in leastVisitedProjects" :key="project.id">
+                                <TableCell>{{ project.name }}</TableCell>
+                                <TableCell class="text-right font-medium tabular-nums">{{ project.count }}</TableCell>
+                            </TableRow>
+                            <TableRow v-if="!leastVisitedProjects.length">
+                                <TableCell :colspan="2" class="text-center text-muted-foreground">No data yet.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         </div>

@@ -69,6 +69,31 @@ test('managers can create, update, and delete a product', function () {
     $this->assertModelMissing($product);
 });
 
+test('a product can be created with HSN code and GST tax fields', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'name' => 'Taxed Unit',
+            'hsn_code' => '9403',
+            'price' => 118000,
+            'taxable_amount' => 100000,
+            'tax_type' => 'GST 18%',
+            'tax_percentage' => 18,
+        ])
+        ->assertRedirect(route('products.index'));
+
+    $product = Product::where('name', 'Taxed Unit')->first();
+    expect($product->hsn_code)->toBe('9403');
+    expect($product->tax_type)->toBe('GST 18%');
+    expect((float) $product->tax_percentage)->toBe(18.0);
+    expect((float) $product->taxable_amount)->toBe(100000.0);
+});
+
 test('a product can be created with a brand', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

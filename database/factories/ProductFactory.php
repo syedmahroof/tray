@@ -23,7 +23,11 @@ class ProductFactory extends Factory
             'branch_id' => Branch::factory(),
             'product_category_id' => ProductCategory::factory(),
             'name' => fake()->unique()->bothify('Unit ##??'),
-            'price' => fake()->randomFloat(2, 500000, 20000000),
+            'hsn_code' => (string) fake()->numberBetween(1000, 9999),
+            'price' => $price = fake()->randomFloat(2, 500000, 20000000),
+            'taxable_amount' => round($price / 1.18, 2),
+            'tax_type' => 'GST 18%',
+            'tax_percentage' => 18,
             'area_sqft' => fake()->randomFloat(2, 400, 4000),
             'description' => fake()->sentence(),
         ];

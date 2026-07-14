@@ -10,6 +10,8 @@ use App\Models\Enquiry;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\User;
+use App\Models\VisitReport;
+use App\Support\ReminderNotifications;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -35,6 +37,9 @@ class DashboardController extends Controller
             'enquiriesByStatus' => $user->can('enquiries.view') ? $this->enquiriesByStatus() : null,
             'enquiriesByMonth' => $user->can('enquiries.view') ? $this->enquiriesByMonth() : null,
             'contactsByType' => $user->can('contacts.view') ? $this->contactsByType() : null,
+            'todayFollowups' => $this->todayFollowups($user),
+            'upcomingFollowups' => $this->upcomingFollowups($user),
+            'reminders' => $this->reminders($user),
         ]);
     }
 
@@ -95,5 +100,47 @@ class DashboardController extends Controller
                 'count' => $contactType->contacts_count,
             ])
             ->all();
+    }
+
+    private function todayFollowups(User $user)
+    {
+        return VisitReport::query()
+            ->with(['projects', 'customers', 'contacts'])
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereDate('next_meeting_date', now()->toDateString())
+                    ->orWhereDate('next_call_date', now()->toDateString());
+            })
+            ->orderBy('next_meeting_date')
+            ->get();
+    }
+
+    private function upcomingFollowups(User $user)
+    {
+        return VisitReport::query()
+            ->with(['projects', 'customers', 'contacts'])
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereDate('next_meeting_date', '>', now()->toDateString())
+                    ->orWhereDate('next_call_date', '>', now()->toDateString());
+            })
+            ->orderBy('next_meeting_date')
+            ->limit(5)
+            ->get();
+    }
+
+    private function reminders(User $user)
+    {
+        return ReminderNotifications::dueQuery($user)
+            ->with('remindable')
+            ->limit(5)
+            ->get()
+            ->map(fn ($reminder) => [
+                'id' => $reminder->id,
+                'title' => $reminder->title,
+                'remind_at' => $reminder->remind_at->toIso8601String(),
+                'url' => ReminderNotifications::remindableUrl($reminder),
+                'subject' => ReminderNotifications::remindableSubject($reminder),
+            ]);
     }
 }

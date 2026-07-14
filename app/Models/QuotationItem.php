@@ -13,12 +13,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $quotation_id
  * @property int|null $product_id
  * @property string $description
+ * @property string|null $hsn_code
  * @property string $quantity
  * @property string $unit_price
+ * @property string $tax_percentage
+ * @property string $tax_amount
  * @property-read Quotation $quotation
  * @property-read Product|null $product
  */
-#[Fillable(['quotation_id', 'product_id', 'description', 'quantity', 'unit_price'])]
+#[Fillable(['quotation_id', 'product_id', 'description', 'hsn_code', 'quantity', 'unit_price', 'tax_percentage', 'tax_amount'])]
 class QuotationItem extends Model
 {
     /** @use HasFactory<QuotationItemFactory> */
@@ -32,6 +35,8 @@ class QuotationItem extends Model
         return [
             'quantity' => 'decimal:2',
             'unit_price' => 'decimal:2',
+            'tax_percentage' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
         ];
     }
 

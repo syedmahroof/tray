@@ -42,13 +42,12 @@ test('the top bar theme toggle switches between light and dark mode', function (
     $page = visit('/dashboard');
     $page->assertNoJavaScriptErrors();
 
+    // The toggle now switches light/dark directly on click (no dropdown).
     $page->click('@theme-toggle');
-    $page->click('Dark');
     $page->wait(0.5);
     $page->assertPresent('html.dark');
 
     $page->click('@theme-toggle');
-    $page->click('Light');
     $page->wait(0.5);
     $page->assertMissing('html.dark');
 });

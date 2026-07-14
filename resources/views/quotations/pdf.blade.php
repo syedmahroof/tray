@@ -54,6 +54,9 @@
                 @if ($quotation->contact?->email)
                     <div class="muted">{{ $quotation->contact->email }}</div>
                 @endif
+                @if ($quotation->gstin)
+                    <div class="muted">GSTIN: {{ $quotation->gstin }}</div>
+                @endif
             </td>
             <td style="width: 50%;">
                 @if ($quotation->project)
@@ -67,11 +70,13 @@
     <table class="items">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 45%;">Description</th>
-                <th class="right" style="width: 15%;">Qty</th>
-                <th class="right" style="width: 17%;">Unit Price</th>
-                <th class="right" style="width: 18%;">Amount</th>
+                <th style="width: 4%;">#</th>
+                <th style="width: 36%;">Description</th>
+                <th style="width: 12%;">HSN</th>
+                <th class="right" style="width: 10%;">Qty</th>
+                <th class="right" style="width: 15%;">Unit Price</th>
+                <th class="right" style="width: 8%;">GST %</th>
+                <th class="right" style="width: 15%;">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -84,8 +89,10 @@
                             <div class="muted">{{ $item->product->name }}</div>
                         @endif
                     </td>
+                    <td>{{ $item->hsn_code ?? '—' }}</td>
                     <td class="right">{{ rtrim(rtrim(number_format((float) $item->quantity, 2), '0'), '.') }}</td>
                     <td class="right">{{ number_format((float) $item->unit_price, 2) }}</td>
+                    <td class="right">{{ rtrim(rtrim(number_format((float) $item->tax_percentage, 2), '0'), '.') }}%</td>
                     <td class="right">{{ number_format((float) $item->quantity * (float) $item->unit_price, 2) }}</td>
                 </tr>
             @endforeach
@@ -104,11 +111,24 @@
                     <td class="right">- {{ number_format((float) $quotation->discount, 2) }}</td>
                 </tr>
             @endif
-            @if ((float) $quotation->tax_percent > 0)
-                <tr>
-                    <td>Tax ({{ rtrim(rtrim(number_format((float) $quotation->tax_percent, 2), '0'), '.') }}%)</td>
-                    <td class="right">{{ number_format((float) $quotation->tax_amount, 2) }}</td>
-                </tr>
+            @if ($quotation->supply_type === 'inter')
+                @if ((float) $quotation->igst_amount > 0)
+                    <tr>
+                        <td>IGST</td>
+                        <td class="right">{{ number_format((float) $quotation->igst_amount, 2) }}</td>
+                    </tr>
+                @endif
+            @else
+                @if ((float) $quotation->cgst_amount > 0)
+                    <tr>
+                        <td>CGST</td>
+                        <td class="right">{{ number_format((float) $quotation->cgst_amount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>SGST</td>
+                        <td class="right">{{ number_format((float) $quotation->sgst_amount, 2) }}</td>
+                    </tr>
+                @endif
             @endif
             <tr class="grand">
                 <td>Total</td>

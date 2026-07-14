@@ -103,6 +103,23 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         </p>
                     </div>
                     <div>
+                        <p class="text-sm text-muted-foreground">HSN Code</p>
+                        <p class="text-sm font-medium">
+                            {{ product.hsn_code ?? '—' }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">GST</p>
+                        <p class="text-sm font-medium">
+                            {{ product.tax_type ?? '—'
+                            }}{{
+                                Number(product.tax_percentage)
+                                    ? ` (${Number(product.tax_percentage)}%)`
+                                    : ''
+                            }}
+                        </p>
+                    </div>
+                    <div>
                         <p class="text-sm text-muted-foreground">Area (Sqft)</p>
                         <p class="text-sm font-medium">
                             {{

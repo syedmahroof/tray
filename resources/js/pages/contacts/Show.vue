@@ -22,6 +22,7 @@ import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTabQuery } from '@/composables/useTabQuery';
 import { formatDate } from '@/lib/utils';
 import { edit, index, show } from '@/routes/contacts';
 import { store as storeNote } from '@/routes/contacts/notes';
@@ -83,6 +84,11 @@ defineOptions({
 });
 
 const permissions = computed(() => usePage().props.auth.permissions);
+
+const activeTab = useTabQuery(
+    ['details', 'notes', 'reminders', 'visit-reports', 'history'],
+    'details',
+);
 </script>
 
 <template>
@@ -124,7 +130,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
             </div>
         </div>
 
-        <Tabs default-value="details">
+        <Tabs v-model="activeTab">
             <TabsList>
                 <TabsTrigger value="details" class="flex items-center gap-1.5">
                     <Info class="h-4 w-4 text-[#2563eb]" />

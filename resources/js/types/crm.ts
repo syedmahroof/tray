@@ -22,6 +22,18 @@ export type ContactListItem = Contact & {
     creator: NamedOption | null;
 };
 
+/** A contact shaped for a select box, carrying its type for the label. */
+export type ContactSelectOption = NamedOption & {
+    contact_type: NamedOption | null;
+};
+
+/** Build a "Name (Type)" label for a contact select option. */
+export function contactOptionLabel(contact: ContactSelectOption): string {
+    return contact.contact_type
+        ? `${contact.name} (${contact.contact_type.name})`
+        : contact.name;
+}
+
 export type ContactDetail = Contact & {
     contact_type: NamedOption;
     country: Country | null;
@@ -38,6 +50,7 @@ export type Customer = {
     name: string;
     phone: string | null;
     email: string | null;
+    gst_number: string | null;
     address: string | null;
     country_id: number | null;
     state_id: number | null;
@@ -143,6 +156,27 @@ export type VisitReportDetail = VisitReport & {
     contacts: NamedOption[];
 };
 
+/** A past visit report sharing a linked entity with the current one. */
+export type VisitReportHistoryItem = {
+    id: number;
+    visit_date: string;
+    visit_type: VisitType;
+    objective: string;
+    user: ActivityAuthor | null;
+    contacts: NamedOption[];
+    customers: NamedOption[];
+    projects: NamedOption[];
+};
+
+/** A single audit-log timeline entry. */
+export type AuditLogEntry = {
+    id: number;
+    action: string;
+    description: string;
+    user: ActivityAuthor | null;
+    created_at: string;
+};
+
 export type VisitReportTypeCount = { type: VisitType; count: number };
 
 export type VisitReportMonthCount = { month: string; count: number };
@@ -159,10 +193,15 @@ export type QuotationItem = {
     quotation_id: number;
     product_id: number | null;
     description: string;
+    hsn_code: string | null;
     quantity: string;
     unit_price: string;
+    tax_percentage: string;
+    tax_amount: string;
     product?: NamedOption | null;
 };
+
+export type QuotationSupplyType = 'intra' | 'inter';
 
 export type Quotation = {
     id: number;
@@ -174,6 +213,8 @@ export type Quotation = {
     project_id: number | null;
     enquiry_id: number | null;
     builder_id: number | null;
+    gstin: string | null;
+    supply_type: QuotationSupplyType;
     quotation_date: string;
     valid_until: string | null;
     status: QuotationStatus;
@@ -181,6 +222,9 @@ export type Quotation = {
     discount: string;
     tax_percent: string;
     tax_amount: string;
+    cgst_amount: string;
+    sgst_amount: string;
+    igst_amount: string;
     total: string;
     notes: string | null;
     terms: string | null;

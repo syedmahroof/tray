@@ -5,6 +5,7 @@ use App\Models\Contact;
 use App\Models\ContactType;
 use App\Models\Enquiry;
 use App\Models\User;
+use App\Models\VisitReport;
 use Database\Seeders\RolePermissionSeeder;
 
 beforeEach(function () {
@@ -97,6 +98,33 @@ test('the contact index can be filtered by a search term', function () {
             ->has('contacts.data', 1)
             ->where('contacts.data.0.name', 'Findable Fred')
             ->where('filters.search', 'fred@example'));
+});
+
+test('the contact index can be filtered to those without a recent visit report', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+
+    $recentlyVisited = Contact::factory()->create(['name' => 'Recently Visited']);
+    $recentReport = VisitReport::factory()->create(['visit_date' => now()->subDays(2)->toDateString()]);
+    $recentReport->contacts()->attach($recentlyVisited);
+
+    $staleContact = Contact::factory()->create(['name' => 'Not Visited Lately']);
+    $oldReport = VisitReport::factory()->create(['visit_date' => now()->subDays(40)->toDateString()]);
+    $oldReport->contacts()->attach($staleContact);
+
+    $neverVisited = Contact::factory()->create(['name' => 'Never Visited']);
+
+    $this->actingAs($admin)
+        ->get(route('contacts.index', ['no_visit_within' => '7d']))
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.no_visit_within', '7d')
+            ->where('contacts.data', function ($contacts) use ($recentlyVisited, $staleContact, $neverVisited) {
+                $ids = collect($contacts)->pluck('id');
+
+                return ! $ids->contains($recentlyVisited->id)
+                    && $ids->contains($staleContact->id)
+                    && $ids->contains($neverVisited->id);
+            }));
 });
 
 test('the contact index can be filtered by creator (super admin only) and created date range', function () {

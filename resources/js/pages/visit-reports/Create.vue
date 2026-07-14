@@ -24,12 +24,18 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { create, index, store } from '@/routes/visit-reports';
-import type { Branch, NamedOption, VisitType } from '@/types';
+import {
+    contactOptionLabel,
+    type Branch,
+    type ContactSelectOption,
+    type NamedOption,
+    type VisitType,
+} from '@/types';
 
 const props = defineProps<{
     projects: NamedOption[];
     customers: NamedOption[];
-    contacts: NamedOption[];
+    contacts: ContactSelectOption[];
     visitTypes: VisitType[];
     branches: Branch[];
     preselectedProjectId: number | null;
@@ -61,7 +67,7 @@ const customerOptions = computed(() =>
 const contactOptions = computed(() =>
     props.contacts.map((contact) => ({
         value: String(contact.id),
-        label: contact.name,
+        label: contactOptionLabel(contact),
     })),
 );
 
@@ -107,7 +113,7 @@ const initialContactIds = computed(() =>
                         Select at least one project, customer, or contact
                     </CardDescription>
                 </CardHeader>
-                <CardContent class="grid gap-4 grid-cols-1 md:grid-cols-3">
+                <CardContent class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="grid gap-2">
                         <Label for="project_ids">Projects</Label>
                         <MultiCombobox
@@ -146,10 +152,15 @@ const initialContactIds = computed(() =>
             <Card>
                 <CardHeader>
                     <CardTitle>Visit Details</CardTitle>
-                    <CardDescription>Enter the visit information</CardDescription>
+                    <CardDescription
+                        >Enter the visit information</CardDescription
+                    >
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2" :class="{ 'md:grid-cols-3': branches.length > 0 }">
+                    <div
+                        class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                        :class="{ 'md:grid-cols-3': branches.length > 0 }"
+                    >
                         <div class="grid gap-2">
                             <Label for="visit_date">Visit Date *</Label>
                             <Input
@@ -184,7 +195,9 @@ const initialContactIds = computed(() =>
                             <Label for="branch_id">Branch</Label>
                             <Select name="branch_id">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Select a branch…" />
+                                    <SelectValue
+                                        placeholder="Select a branch…"
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
@@ -212,7 +225,9 @@ const initialContactIds = computed(() =>
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="report">Daily/Visiting Time Report Update</Label>
+                        <Label for="report"
+                            >Daily/Visiting Time Report Update</Label
+                        >
                         <Textarea
                             id="report"
                             name="report"
@@ -222,9 +237,11 @@ const initialContactIds = computed(() =>
                         <InputError :message="errors.report" />
                     </div>
 
-                    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div class="grid gap-2">
-                            <Label for="next_meeting_date">Next Meeting Date</Label>
+                            <Label for="next_meeting_date"
+                                >Next Meeting Date</Label
+                            >
                             <Input
                                 id="next_meeting_date"
                                 name="next_meeting_date"

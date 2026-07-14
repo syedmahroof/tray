@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $name
  * @property string|null $phone
  * @property string|null $email
+ * @property string|null $gst_number
  * @property string|null $address
  * @property int|null $country_id
  * @property int|null $state_id
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property-read District|null $district
  * @property-read User|null $assignee
  */
-#[Fillable(['branch_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to'])]
+#[Fillable(['branch_id', 'name', 'phone', 'email', 'gst_number', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to'])]
 class Customer extends Model
 {
     use BelongsToBranch;

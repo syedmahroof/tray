@@ -8,6 +8,7 @@ import {
     Search,
     User,
     CalendarDays,
+    CalendarX,
     X,
     Download,
 } from '@lucide/vue';
@@ -36,6 +37,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { noVisitPeriodOptions } from '@/lib/visitFilters';
 import {
     create,
     destroy,
@@ -53,6 +55,7 @@ const props = defineProps<{
         created_by?: string | number;
         created_from?: string;
         created_to?: string;
+        no_visit_within?: string;
     };
 }>();
 
@@ -68,6 +71,7 @@ const createdBy = ref(
 );
 const createdFrom = ref(props.filters.created_from ?? '');
 const createdTo = ref(props.filters.created_to ?? '');
+const noVisitWithin = ref(props.filters.no_visit_within ?? 'all');
 
 const updateFilters = () => {
     router.get(
@@ -77,6 +81,8 @@ const updateFilters = () => {
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
+            no_visit_within:
+                noVisitWithin.value !== 'all' ? noVisitWithin.value : undefined,
         },
         {
             preserveState: true,
@@ -91,7 +97,8 @@ const hasActiveFilters = computed(
         search.value !== '' ||
         createdBy.value !== 'all' ||
         createdFrom.value !== '' ||
-        createdTo.value !== '',
+        createdTo.value !== '' ||
+        noVisitWithin.value !== 'all',
 );
 
 const clearFilters = () => {
@@ -99,6 +106,7 @@ const clearFilters = () => {
     createdBy.value = 'all';
     createdFrom.value = '';
     createdTo.value = '';
+    noVisitWithin.value = 'all';
     updateFilters();
 };
 
@@ -111,6 +119,8 @@ const exportUrl = computed(() =>
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
+            no_visit_within:
+                noVisitWithin.value !== 'all' ? noVisitWithin.value : undefined,
         },
     }),
 );
@@ -182,6 +192,31 @@ const confirmDelete = (builder: BuilderListItem) => {
                                 :value="String(user.id)"
                             >
                                 {{ user.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <!-- No visit report within -->
+                    <Select
+                        v-model="noVisitWithin"
+                        @update:model-value="updateFilters"
+                    >
+                        <SelectTrigger
+                            class="flex w-full items-center gap-1.5 sm:w-[200px]"
+                        >
+                            <CalendarX class="h-4 w-4 text-rose-500" />
+                            <SelectValue placeholder="No visit report" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all"
+                                >Any visit status</SelectItem
+                            >
+                            <SelectItem
+                                v-for="option in noVisitPeriodOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                No visit · {{ option.label }}
                             </SelectItem>
                         </SelectContent>
                     </Select>

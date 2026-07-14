@@ -147,7 +147,11 @@ export type Product = {
     product_category_id: number;
     brand_id: number | null;
     name: string;
+    hsn_code: string | null;
     price: string | null;
+    taxable_amount: string | null;
+    tax_type: string | null;
+    tax_percentage: string;
     area_sqft: string | null;
     description: string | null;
     created_by: number | null;

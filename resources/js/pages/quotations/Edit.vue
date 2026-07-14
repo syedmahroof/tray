@@ -6,10 +6,16 @@ import QuotationForm from '@/components/QuotationForm.vue';
 import { edit, index, show } from '@/routes/quotations';
 import type { Branch, NamedOption, QuotationDetail } from '@/types';
 
-type ProductOption = NamedOption & { price: string | null };
+type ProductOption = NamedOption & {
+    price: string | null;
+    taxable_amount: string | null;
+    hsn_code: string | null;
+    tax_percentage: string;
+};
 type ContactOption = NamedOption & {
     phone: string | null;
     email: string | null;
+    contact_type: NamedOption | null;
 };
 
 defineProps<{
@@ -20,6 +26,7 @@ defineProps<{
     builders: NamedOption[];
     products: ProductOption[];
     statuses: string[];
+    gstSlabs: Record<string, number>;
     branches: Branch[];
 }>();
 
@@ -64,6 +71,7 @@ defineOptions({
             :builders="builders"
             :products="products"
             :statuses="statuses"
+            :gst-slabs="gstSlabs"
             :branches="branches"
         />
     </div>

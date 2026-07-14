@@ -50,6 +50,21 @@ test('sales executives can create, update, and delete a customer within their ow
     $this->assertModelMissing($customer);
 });
 
+test('a customer can be created with a GST number', function () {
+    $branch = Branch::factory()->create();
+    $salesExecutive = User::factory()->create(['branch_id' => $branch->id]);
+    $salesExecutive->assignRole('Sales Executive');
+
+    $this->actingAs($salesExecutive)
+        ->post(route('customers.store'), [
+            'name' => 'GST Customer',
+            'gst_number' => '29ABCDE1234F1Z5',
+        ])
+        ->assertRedirect();
+
+    expect(Customer::where('name', 'GST Customer')->first()->gst_number)->toBe('29ABCDE1234F1Z5');
+});
+
 test('sales executives only see customers belonging to their own branch', function () {
     $branchA = Branch::factory()->create();
     $branchB = Branch::factory()->create();

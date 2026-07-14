@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTabQuery } from '@/composables/useTabQuery';
 import { formatDate } from '@/lib/utils';
 import { show as showContact } from '@/routes/contacts';
 import { show as showProduct } from '@/routes/products';
@@ -103,6 +104,11 @@ const statusVariant = (status: string) => {
 };
 
 const permissions = computed(() => usePage().props.auth.permissions);
+
+const activeTab = useTabQuery(
+    ['details', 'internal-contacts', 'associated-contacts', 'visit-reports'],
+    'details',
+);
 </script>
 
 <template>
@@ -146,7 +152,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
             </div>
         </div>
 
-        <Tabs default-value="details">
+        <Tabs v-model="activeTab">
             <TabsList>
                 <TabsTrigger value="details" class="flex items-center gap-1.5">
                     <Info class="h-4 w-4 text-[#4f46e5]" />

@@ -8,8 +8,14 @@ import {
     IdCard,
     Package,
     Users,
+    Bell,
+    CalendarDays,
+    Phone,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { formatDate } from '@/lib/utils';
+import { show as showVisitReport } from '@/routes/visit-reports';
 import DashboardBarChart from '@/components/charts/DashboardBarChart.vue';
 import DashboardDonutChart from '@/components/charts/DashboardDonutChart.vue';
 import Heading from '@/components/Heading.vue';
@@ -30,6 +36,9 @@ const props = defineProps<{
     enquiriesByStatus: { status: string; count: number }[] | null;
     enquiriesByMonth: { month: string; count: number }[] | null;
     contactsByType: { type: string; count: number }[] | null;
+    todayFollowups: any[];
+    upcomingFollowups: any[];
+    reminders: any[];
 }>();
 
 defineOptions({
@@ -123,6 +132,76 @@ const contactsByTypeData = computed(
             title="Dashboard"
             description="An overview of your CRM activity"
         />
+
+        <div class="grid gap-4 lg:grid-cols-3">
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <CalendarDays class="h-5 w-5 text-emerald-600" />
+                        Today's Follow-ups
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul class="space-y-3">
+                        <li v-for="visit in todayFollowups" :key="visit.id" class="flex flex-col gap-1 border-b pb-2 last:border-0 last:pb-0">
+                            <Link :href="showVisitReport(visit.id)" class="font-medium hover:underline">
+                                {{ visit.objective }}
+                            </Link>
+                            <span class="text-sm text-muted-foreground flex items-center gap-2">
+                                <span v-if="visit.next_meeting_date === new Date().toISOString().split('T')[0]"><CalendarDays class="h-3 w-3 inline" /> Meet</span>
+                                <span v-else><Phone class="h-3 w-3 inline" /> Call</span>
+                            </span>
+                        </li>
+                        <li v-if="!todayFollowups.length" class="text-sm text-muted-foreground italic">No follow-ups for today.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <CalendarDays class="h-5 w-5 text-amber-600" />
+                        Upcoming Follow-ups
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul class="space-y-3">
+                        <li v-for="visit in upcomingFollowups" :key="visit.id" class="flex flex-col gap-1 border-b pb-2 last:border-0 last:pb-0">
+                            <Link :href="showVisitReport(visit.id)" class="font-medium hover:underline">
+                                {{ visit.objective }}
+                            </Link>
+                            <span class="text-sm text-muted-foreground flex items-center gap-2">
+                                <span v-if="visit.next_meeting_date"><CalendarDays class="h-3 w-3 inline" /> Meet on {{ formatDate(visit.next_meeting_date) }}</span>
+                                <span v-else-if="visit.next_call_date"><Phone class="h-3 w-3 inline" /> Call on {{ formatDate(visit.next_call_date) }}</span>
+                            </span>
+                        </li>
+                        <li v-if="!upcomingFollowups.length" class="text-sm text-muted-foreground italic">No upcoming follow-ups.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Bell class="h-5 w-5 text-blue-600" />
+                        Reminders / Notifications
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul class="space-y-3">
+                        <li v-for="reminder in reminders" :key="reminder.id" class="flex flex-col gap-1 border-b pb-2 last:border-0 last:pb-0">
+                            <Link :href="reminder.url" class="font-medium hover:underline">
+                                {{ reminder.title }}
+                            </Link>
+                            <span class="text-sm text-muted-foreground">
+                                {{ reminder.subject }} &bull; {{ formatDate(reminder.remind_at) }}
+                            </span>
+                        </li>
+                        <li v-if="!reminders.length" class="text-sm text-muted-foreground italic">No upcoming reminders.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+        </div>
 
         <div
             class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6"

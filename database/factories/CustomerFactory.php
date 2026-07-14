@@ -23,6 +23,7 @@ class CustomerFactory extends Factory
             'name' => fake()->name(),
             'phone' => fake()->phoneNumber(),
             'email' => fake()->unique()->safeEmail(),
+            'gst_number' => fake()->optional()->bothify('##???####??#Z#'),
             'address' => fake()->streetAddress(),
         ];
     }

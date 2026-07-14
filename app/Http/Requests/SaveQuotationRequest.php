@@ -30,11 +30,12 @@ class SaveQuotationRequest extends FormRequest
             'project_id' => ['nullable', Rule::exists('projects', 'id')],
             'enquiry_id' => ['nullable', Rule::exists('enquiries', 'id')],
             'builder_id' => ['nullable', Rule::exists('builders', 'id')],
+            'gstin' => ['nullable', 'string', 'max:20'],
+            'supply_type' => ['required', Rule::in(Quotation::SUPPLY_TYPES)],
             'quotation_date' => ['required', 'date'],
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],
             'discount' => ['nullable', 'numeric', 'min:0'],
-            'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
             'branch_id' => [
@@ -44,8 +45,10 @@ class SaveQuotationRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['nullable', Rule::exists('products', 'id')],
             'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.hsn_code' => ['nullable', 'string', 'max:20'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

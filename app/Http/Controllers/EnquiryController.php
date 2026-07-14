@@ -83,7 +83,7 @@ class EnquiryController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('enquiries/Create', [
-            'contacts' => Contact::query()->orderBy('name')->get(['id', 'name']),
+            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
@@ -128,7 +128,7 @@ class EnquiryController extends Controller
     {
         return Inertia::render('enquiries/Edit', [
             'enquiry' => $enquiry,
-            'contacts' => Contact::query()->orderBy('name')->get(['id', 'name']),
+            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),

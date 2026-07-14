@@ -1,17 +1,25 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     ClipboardList,
     CircleCheckBig,
     FileText,
     IndianRupee,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import DashboardBarChart from '@/components/charts/DashboardBarChart.vue';
 import DashboardDonutChart from '@/components/charts/DashboardDonutChart.vue';
 import Heading from '@/components/Heading.vue';
 import StatCard from '@/components/StatCard.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -46,6 +54,11 @@ const props = defineProps<{
         quotations: number;
         quotedValue: number;
     }>;
+    filters: {
+        date_filter: string;
+        start_date: string | null;
+        end_date: string | null;
+    };
 }>();
 
 defineOptions({
@@ -112,17 +125,65 @@ const enquiryDonut = computed(() =>
 const builderBars = computed(() =>
     props.topBuilders.map((b) => ({ label: b.builder, value: b.count })),
 );
+
+const filterDate = ref(props.filters.date_filter || 'all');
+const filterStartDate = ref(props.filters.start_date || '');
+const filterEndDate = ref(props.filters.end_date || '');
+
+const applyFilters = () => {
+    router.get(
+        index(),
+        {
+            date_filter: filterDate.value,
+            start_date: filterStartDate.value || undefined,
+            end_date: filterEndDate.value || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
+    );
+};
+
+watch(filterDate, (newVal) => {
+    if (newVal !== 'custom') {
+        applyFilters();
+    }
+});
 </script>
 
 <template>
     <Head title="Reports" />
 
     <div class="flex flex-col space-y-6">
-        <Heading
-            variant="small"
-            title="Reports"
-            description="Sales performance, product demand, and staff activity"
-        />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <Heading
+                variant="small"
+                title="Reports"
+                description="Sales performance, product demand, and staff activity"
+            />
+
+            <div class="flex items-center gap-2">
+                <Select v-model="filterDate">
+                    <SelectTrigger class="w-[180px]">
+                        <SelectValue placeholder="Select Date Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="last_7_days">Last 7 days</SelectItem>
+                        <SelectItem value="last_30_days">Last 30 days</SelectItem>
+                        <SelectItem value="this_month">This month</SelectItem>
+                        <SelectItem value="last_3_months">Last 3 months</SelectItem>
+                        <SelectItem value="last_6_months">Last 6 months</SelectItem>
+                        <SelectItem value="last_year">Last year</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <div v-if="filterDate === 'custom'" class="flex items-center gap-2">
+                    <Input type="date" v-model="filterStartDate" @change="applyFilters" class="w-[150px]" />
+                    <span class="text-sm text-muted-foreground">to</span>
+                    <Input type="date" v-model="filterEndDate" @change="applyFilters" class="w-[150px]" />
+                </div>
+            </div>
+        </div>
 
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -32,6 +33,20 @@ class VisitReport extends Model
     use HasFactory;
 
     public const array VISIT_TYPES = ['Site Visit', 'Client Meeting', 'Follow-up', 'Inspection', 'Other'];
+
+    /**
+     * Windows for the "no visit report within" filter, mapping key to days.
+     *
+     * @var array<string, int>
+     */
+    public const array NO_VISIT_PERIODS = [
+        '7d' => 7,
+        '30d' => 30,
+        '60d' => 60,
+        '3m' => 90,
+        '6m' => 180,
+        '1y' => 365,
+    ];
 
     /**
      * @return array<string, string>
@@ -75,5 +90,51 @@ class VisitReport extends Model
     public function contacts(): BelongsToMany
     {
         return $this->belongsToMany(Contact::class, 'visit_report_contact');
+    }
+
+    /**
+     * @return MorphMany<AuditLog, $this>
+     */
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(AuditLog::class, 'auditable');
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (VisitReport $visitReport) {
+            $visitReport->auditLogs()->create([
+                'user_id' => auth()->id(),
+                'action' => 'created',
+                'description' => 'Visit report created.',
+            ]);
+        });
+
+        static::updating(function (VisitReport $visitReport) {
+            $dirty = $visitReport->getDirty();
+            unset($dirty['updated_at']);
+
+            if ($dirty === []) {
+                return;
+            }
+
+            $descriptions = [];
+            $changes = ['old' => [], 'new' => []];
+
+            foreach ($dirty as $key => $newValue) {
+                $oldValue = $visitReport->getOriginal($key);
+                $label = ucwords(str_replace('_', ' ', $key));
+                $descriptions[] = "{$label} changed";
+                $changes['old'][$key] = $oldValue;
+                $changes['new'][$key] = $newValue;
+            }
+
+            $visitReport->auditLogs()->create([
+                'user_id' => auth()->id(),
+                'action' => 'updated',
+                'description' => implode(', ', $descriptions).'.',
+                'changes' => $changes,
+            ]);
+        });
     }
 }

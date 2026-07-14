@@ -230,19 +230,17 @@ class QuotationController extends Controller
     public function store(SaveQuotationRequest $request): RedirectResponse
     {
         $quotation = DB::transaction(function () use ($request) {
-            $totals = $this->calculateTotals($request);
+            $computed = $this->computeQuotation($request);
 
             $quotation = Quotation::create([
                 ...$request->safe()->except(['items']),
                 'number' => 'TEMP',
-                'subtotal' => $totals['subtotal'],
-                'tax_amount' => $totals['tax_amount'],
-                'total' => $totals['total'],
+                ...$computed['totals'],
                 'created_by' => $request->user()->id,
             ]);
 
             $quotation->update(['number' => $this->generateNumber($quotation->id)]);
-            $quotation->items()->createMany($this->itemRows($request));
+            $quotation->items()->createMany($computed['rows']);
 
             return $quotation;
         });
@@ -291,17 +289,15 @@ class QuotationController extends Controller
     public function update(SaveQuotationRequest $request, Quotation $quotation): RedirectResponse
     {
         DB::transaction(function () use ($request, $quotation) {
-            $totals = $this->calculateTotals($request);
+            $computed = $this->computeQuotation($request);
 
             $quotation->update([
                 ...$request->safe()->except(['items']),
-                'subtotal' => $totals['subtotal'],
-                'tax_amount' => $totals['tax_amount'],
-                'total' => $totals['total'],
+                ...$computed['totals'],
             ]);
 
             $quotation->items()->delete();
-            $quotation->items()->createMany($this->itemRows($request));
+            $quotation->items()->createMany($computed['rows']);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation updated.')]);
@@ -421,8 +417,9 @@ class QuotationController extends Controller
             $revision = Quotation::create([
                 ...$quotation->only([
                     'branch_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
-                    'valid_until', 'subtotal', 'discount', 'tax_percent', 'tax_amount',
-                    'total', 'notes', 'terms',
+                    'gstin', 'supply_type', 'valid_until', 'subtotal', 'discount',
+                    'tax_percent', 'tax_amount', 'cgst_amount', 'sgst_amount',
+                    'igst_amount', 'total', 'notes', 'terms',
                 ]),
                 'number' => "{$rootNumber}-R{$nextVersion}",
                 'version' => $nextVersion,
@@ -436,8 +433,11 @@ class QuotationController extends Controller
                 $quotation->items->map(fn (QuotationItem $item): array => [
                     'product_id' => $item->product_id,
                     'description' => $item->description,
+                    'hsn_code' => $item->hsn_code,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
+                    'tax_percentage' => $item->tax_percentage,
+                    'tax_amount' => $item->tax_amount,
                 ])->all(),
             );
 
@@ -483,7 +483,7 @@ class QuotationController extends Controller
     private function formData(): array
     {
         return [
-            'contacts' => Contact::query()->orderBy('name')->get(['id', 'name', 'phone', 'email']),
+            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
                 ->map(fn (Enquiry $enquiry): array => [
@@ -491,8 +491,9 @@ class QuotationController extends Controller
                     'name' => "#{$enquiry->id} — ".($enquiry->contact?->name ?? __('Enquiry')),
                 ]),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
-            'products' => Product::query()->orderBy('name')->get(['id', 'name', 'price']),
+            'products' => Product::query()->orderBy('name')->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
             'statuses' => Quotation::STATUSES,
+            'gstSlabs' => Product::GST_SLABS,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ];
     }
@@ -527,42 +528,72 @@ class QuotationController extends Controller
     }
 
     /**
-     * Build the persisted item rows from the validated request.
+     * Compute the persisted line items and GST totals from the request.
      *
-     * @return array<int, array<string, mixed>>
+     * Tax is calculated per line on the discount-adjusted taxable value, then
+     * split into CGST + SGST for intra-state supply, or IGST for inter-state.
+     *
+     * @return array{
+     *     rows: array<int, array<string, mixed>>,
+     *     totals: array{subtotal: float, discount: float, tax_amount: float, cgst_amount: float, sgst_amount: float, igst_amount: float, total: float}
+     * }
      */
-    private function itemRows(SaveQuotationRequest $request): array
+    private function computeQuotation(SaveQuotationRequest $request): array
     {
-        return array_map(fn (array $item): array => [
-            'product_id' => $item['product_id'] ?? null,
-            'description' => $item['description'],
-            'quantity' => $item['quantity'],
-            'unit_price' => $item['unit_price'],
-        ], $request->validated('items', []));
-    }
+        $items = $request->validated('items', []);
+        $supplyType = $request->validated('supply_type', 'intra');
 
-    /**
-     * Calculate subtotal, tax, and total from the request items.
-     *
-     * @return array{subtotal: float, tax_amount: float, total: float}
-     */
-    private function calculateTotals(SaveQuotationRequest $request): array
-    {
         $subtotal = array_reduce(
-            $request->validated('items', []),
+            $items,
             fn (float $carry, array $item): float => $carry + ((float) $item['quantity'] * (float) $item['unit_price']),
             0.0,
         );
 
-        $discount = (float) $request->validated('discount', 0);
-        $taxPercent = (float) $request->validated('tax_percent', 0);
-        $taxable = max($subtotal - $discount, 0);
-        $taxAmount = round($taxable * $taxPercent / 100, 2);
+        $discount = min((float) $request->validated('discount', 0), $subtotal);
+
+        $rows = [];
+        $totalTax = 0.0;
+
+        foreach ($items as $item) {
+            $base = (float) $item['quantity'] * (float) $item['unit_price'];
+            $allocatedDiscount = $subtotal > 0 ? $discount * ($base / $subtotal) : 0.0;
+            $taxable = max($base - $allocatedDiscount, 0);
+            $rate = (float) ($item['tax_percentage'] ?? 0);
+            $taxAmount = round($taxable * $rate / 100, 2);
+            $totalTax += $taxAmount;
+
+            $rows[] = [
+                'product_id' => $item['product_id'] ?? null,
+                'description' => $item['description'],
+                'hsn_code' => $item['hsn_code'] ?? null,
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'tax_percentage' => $rate,
+                'tax_amount' => $taxAmount,
+            ];
+        }
+
+        $totalTax = round($totalTax, 2);
+        $cgst = $sgst = $igst = 0.0;
+
+        if ($supplyType === 'inter') {
+            $igst = $totalTax;
+        } else {
+            $cgst = round($totalTax / 2, 2);
+            $sgst = round($totalTax - $cgst, 2);
+        }
 
         return [
-            'subtotal' => round($subtotal, 2),
-            'tax_amount' => $taxAmount,
-            'total' => round($taxable + $taxAmount, 2),
+            'rows' => $rows,
+            'totals' => [
+                'subtotal' => round($subtotal, 2),
+                'discount' => round($discount, 2),
+                'tax_amount' => $totalTax,
+                'cgst_amount' => $cgst,
+                'sgst_amount' => $sgst,
+                'igst_amount' => $igst,
+                'total' => round($subtotal - $discount + $totalTax, 2),
+            ],
         ];
     }
 

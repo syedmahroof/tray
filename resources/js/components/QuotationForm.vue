@@ -19,10 +19,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { store, update } from '@/routes/quotations';
 import type { Branch, NamedOption, QuotationDetail } from '@/types';
 
-type ProductOption = NamedOption & { price: string | null };
+type ProductOption = NamedOption & {
+    price: string | null;
+    taxable_amount: string | null;
+    hsn_code: string | null;
+    tax_percentage: string;
+};
 type ContactOption = NamedOption & {
     phone: string | null;
     email: string | null;
+    contact_type: NamedOption | null;
 };
 
 type QuotationDefaults = {
@@ -40,15 +46,23 @@ const props = defineProps<{
     builders: NamedOption[];
     products: ProductOption[];
     statuses: string[];
+    gstSlabs: Record<string, number>;
     branches: Branch[];
     defaults?: QuotationDefaults | null;
 }>();
 
+// Distinct GST rates for the per-line tax select box (e.g. 0, 5, 12, 18, 28).
+const gstRateOptions = computed(() =>
+    [...new Set(Object.values(props.gstSlabs))].sort((a, b) => a - b),
+);
+
 const emptyItem = () => ({
     product_id: undefined as string | undefined,
     description: '',
+    hsn_code: '',
     quantity: '1',
     unit_price: '0',
+    tax_percentage: '0',
 });
 
 const idString = (value?: number | null) => (value ? String(value) : undefined);
@@ -66,6 +80,8 @@ const form = useForm({
     builder_id: idString(
         props.quotation?.builder_id ?? props.defaults?.builder_id,
     ),
+    gstin: props.quotation?.gstin ?? '',
+    supply_type: props.quotation?.supply_type ?? 'intra',
     quotation_date:
         props.quotation?.quotation_date ??
         new Date().toISOString().slice(0, 10),
@@ -75,7 +91,6 @@ const form = useForm({
         ? String(props.quotation.branch_id)
         : undefined,
     discount: props.quotation?.discount ?? '0',
-    tax_percent: props.quotation?.tax_percent ?? '0',
     notes: props.quotation?.notes ?? '',
     terms: props.quotation?.terms ?? '',
     items:
@@ -85,14 +100,19 @@ const form = useForm({
                       ? String(item.product_id)
                       : undefined,
                   description: item.description,
+                  hsn_code: item.hsn_code ?? '',
                   quantity: item.quantity,
                   unit_price: item.unit_price,
+                  tax_percentage: String(Number(item.tax_percentage ?? 0)),
               }))
             : [emptyItem()],
 });
 
 const contactOptions = computed(() =>
-    props.contacts.map((c) => ({ value: String(c.id), label: c.name })),
+    props.contacts.map((c) => ({
+        value: String(c.id),
+        label: c.contact_type ? `${c.name} (${c.contact_type.name})` : c.name,
+    })),
 );
 const projectOptions = computed(() =>
     props.projects.map((p) => ({ value: String(p.id), label: p.name })),
@@ -125,9 +145,18 @@ const onProductSelect = (index: number) => {
             item.description = product.name;
         }
 
-        if (product.price && (!item.unit_price || item.unit_price === '0')) {
-            item.unit_price = product.price;
+        // The line's unit price is the taxable (pre-GST) value; fall back to the
+        // gross price when a product has no taxable amount recorded.
+        const base = product.taxable_amount ?? product.price;
+        if (base && (!item.unit_price || item.unit_price === '0')) {
+            item.unit_price = base;
         }
+
+        if (product.hsn_code && !item.hsn_code) {
+            item.hsn_code = product.hsn_code;
+        }
+
+        item.tax_percentage = String(Number(product.tax_percentage ?? 0));
     }
 };
 
@@ -137,12 +166,36 @@ const lineTotal = (item: { quantity: string; unit_price: string }) =>
 const subtotal = computed(() =>
     form.items.reduce((sum, item) => sum + lineTotal(item), 0),
 );
+const discountValue = computed(() =>
+    Math.min(parseFloat(form.discount) || 0, subtotal.value),
+);
 const taxable = computed(() =>
-    Math.max(subtotal.value - (parseFloat(form.discount) || 0), 0),
+    Math.max(subtotal.value - discountValue.value, 0),
 );
-const taxAmount = computed(
-    () => (taxable.value * (parseFloat(form.tax_percent) || 0)) / 100,
+
+// Per-line GST on the discount-adjusted taxable value.
+const taxAmount = computed(() =>
+    form.items.reduce((sum, item) => {
+        const base = lineTotal(item);
+        const allocatedDiscount =
+            subtotal.value > 0
+                ? discountValue.value * (base / subtotal.value)
+                : 0;
+        const lineTaxable = Math.max(base - allocatedDiscount, 0);
+        return (
+            sum + (lineTaxable * (parseFloat(item.tax_percentage) || 0)) / 100
+        );
+    }, 0),
 );
+
+const isInterState = computed(() => form.supply_type === 'inter');
+const cgstAmount = computed(() =>
+    isInterState.value ? 0 : taxAmount.value / 2,
+);
+const sgstAmount = computed(() =>
+    isInterState.value ? 0 : taxAmount.value / 2,
+);
+const igstAmount = computed(() => (isInterState.value ? taxAmount.value : 0));
 const total = computed(() => taxable.value + taxAmount.value);
 
 const money = (value: number) =>
@@ -228,6 +281,34 @@ const submit = () => {
                         </div>
 
                         <div class="grid gap-2">
+                            <Label for="gstin">Buyer GSTIN</Label>
+                            <Input
+                                id="gstin"
+                                v-model="form.gstin"
+                                placeholder="e.g. 29ABCDE1234F1Z5"
+                            />
+                            <InputError :message="form.errors.gstin" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Supply Type *</Label>
+                            <Select v-model="form.supply_type">
+                                <SelectTrigger class="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="intra"
+                                        >Intra-state (CGST + SGST)</SelectItem
+                                    >
+                                    <SelectItem value="inter"
+                                        >Inter-state (IGST)</SelectItem
+                                    >
+                                </SelectContent>
+                            </Select>
+                            <InputError :message="form.errors.supply_type" />
+                        </div>
+
+                        <div class="grid gap-2">
                             <Label>Status</Label>
                             <Select v-model="form.status">
                                 <SelectTrigger class="w-full">
@@ -289,54 +370,92 @@ const submit = () => {
                         <div
                             v-for="(item, index) in form.items"
                             :key="index"
-                            class="grid items-end gap-3 rounded-lg border p-3 sm:grid-cols-12"
+                            class="space-y-2 rounded-lg border p-3"
                         >
-                            <div class="grid gap-1.5 sm:col-span-3">
-                                <Label class="text-xs">Product</Label>
-                                <Combobox
-                                    v-model="item.product_id"
-                                    placeholder="Optional"
-                                    :options="productOptions"
-                                    @update:model-value="onProductSelect(index)"
-                                />
-                            </div>
-                            <div class="grid gap-1.5 sm:col-span-4">
-                                <Label class="text-xs">Description *</Label>
-                                <Input
-                                    v-model="item.description"
-                                    placeholder="Item description"
-                                />
-                                <InputError
-                                    :message="
-                                        form.errors[
-                                            `items.${index}.description`
-                                        ]
-                                    "
-                                />
-                            </div>
-                            <div class="grid gap-1.5 sm:col-span-1">
-                                <Label class="text-xs">Qty</Label>
-                                <Input
-                                    v-model="item.quantity"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                />
-                            </div>
-                            <div class="grid gap-1.5 sm:col-span-2">
-                                <Label class="text-xs">Unit Price</Label>
-                                <Input
-                                    v-model="item.unit_price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                />
+                            <div class="grid items-end gap-3 sm:grid-cols-12">
+                                <div class="grid gap-1.5 sm:col-span-3">
+                                    <Label class="text-xs">Product</Label>
+                                    <Combobox
+                                        v-model="item.product_id"
+                                        placeholder="Optional"
+                                        :options="productOptions"
+                                        @update:model-value="
+                                            onProductSelect(index)
+                                        "
+                                    />
+                                </div>
+                                <div class="grid gap-1.5 sm:col-span-3">
+                                    <Label class="text-xs">Description *</Label>
+                                    <Input
+                                        v-model="item.description"
+                                        placeholder="Item description"
+                                    />
+                                    <InputError
+                                        :message="
+                                            form.errors[
+                                                `items.${index}.description`
+                                            ]
+                                        "
+                                    />
+                                </div>
+                                <div class="grid gap-1.5 sm:col-span-2">
+                                    <Label class="text-xs">HSN</Label>
+                                    <Input
+                                        v-model="item.hsn_code"
+                                        placeholder="Code"
+                                    />
+                                </div>
+                                <div class="grid gap-1.5 sm:col-span-1">
+                                    <Label class="text-xs">Qty</Label>
+                                    <Input
+                                        v-model="item.quantity"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div class="grid gap-1.5 sm:col-span-2">
+                                    <Label class="text-xs">Unit Price</Label>
+                                    <Input
+                                        v-model="item.unit_price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div class="grid gap-1.5 sm:col-span-1">
+                                    <Label class="text-xs">GST %</Label>
+                                    <Select v-model="item.tax_percentage">
+                                        <SelectTrigger class="w-full">
+                                            <SelectValue placeholder="%" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                v-for="rate in gstRateOptions"
+                                                :key="rate"
+                                                :value="String(rate)"
+                                            >
+                                                {{ rate }}%
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             <div
-                                class="flex items-center justify-between gap-2 sm:col-span-2"
+                                class="flex items-center justify-between border-t pt-2"
                             >
-                                <span class="text-sm font-medium tabular-nums">
-                                    {{ money(lineTotal(item)) }}
+                                <span class="text-sm text-muted-foreground">
+                                    Amount
+                                    <span
+                                        class="font-medium text-foreground tabular-nums"
+                                        >{{ money(lineTotal(item)) }}</span
+                                    >
+                                    <span class="text-xs"
+                                        >+ GST
+                                        {{
+                                            Number(item.tax_percentage) || 0
+                                        }}%</span
+                                    >
                                 </span>
                                 <Button
                                     type="button"
@@ -402,20 +521,41 @@ const submit = () => {
                             />
                             <InputError :message="form.errors.discount" />
                         </div>
-                        <div class="grid gap-2">
-                            <Label for="tax_percent">Tax (%)</Label>
-                            <Input
-                                id="tax_percent"
-                                v-model="form.tax_percent"
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                            />
-                            <InputError :message="form.errors.tax_percent" />
+                        <div
+                            v-if="discountValue > 0"
+                            class="flex justify-between text-sm"
+                        >
+                            <span class="text-muted-foreground"
+                                >Taxable value</span
+                            >
+                            <span class="font-medium tabular-nums">{{
+                                money(taxable)
+                            }}</span>
                         </div>
+                        <template v-if="isInterState">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">IGST</span>
+                                <span class="font-medium tabular-nums">{{
+                                    money(igstAmount)
+                                }}</span>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">CGST</span>
+                                <span class="font-medium tabular-nums">{{
+                                    money(cgstAmount)
+                                }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">SGST</span>
+                                <span class="font-medium tabular-nums">{{
+                                    money(sgstAmount)
+                                }}</span>
+                            </div>
+                        </template>
                         <div class="flex justify-between text-sm">
-                            <span class="text-muted-foreground">Tax</span>
+                            <span class="text-muted-foreground">Total Tax</span>
                             <span class="font-medium tabular-nums">{{
                                 money(taxAmount)
                             }}</span>

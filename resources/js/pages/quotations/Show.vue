@@ -413,6 +413,18 @@ const createRevision = () => {
                             {{ quotation.builder.name }}
                         </Link>
                     </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Supply type</span>
+                        <span class="font-medium">{{
+                            quotation.supply_type === 'inter'
+                                ? 'Inter-state (IGST)'
+                                : 'Intra-state (CGST + SGST)'
+                        }}</span>
+                    </div>
+                    <div v-if="quotation.gstin" class="flex justify-between">
+                        <span class="text-muted-foreground">Buyer GSTIN</span>
+                        <span class="font-medium">{{ quotation.gstin }}</span>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -435,14 +447,28 @@ const createRevision = () => {
                             >- {{ money(quotation.discount) }}</span
                         >
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground"
-                            >Tax ({{ Number(quotation.tax_percent) }}%)</span
-                        >
-                        <span class="tabular-nums">{{
-                            money(quotation.tax_amount)
-                        }}</span>
-                    </div>
+                    <template v-if="quotation.supply_type === 'inter'">
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">IGST</span>
+                            <span class="tabular-nums">{{
+                                money(quotation.igst_amount)
+                            }}</span>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">CGST</span>
+                            <span class="tabular-nums">{{
+                                money(quotation.cgst_amount)
+                            }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">SGST</span>
+                            <span class="tabular-nums">{{
+                                money(quotation.sgst_amount)
+                            }}</span>
+                        </div>
+                    </template>
                     <div
                         class="flex justify-between border-t pt-2 text-base font-semibold"
                     >
@@ -465,8 +491,10 @@ const createRevision = () => {
                         <TableRow>
                             <TableHead class="w-12">#</TableHead>
                             <TableHead>Description</TableHead>
+                            <TableHead>HSN</TableHead>
                             <TableHead class="text-right">Qty</TableHead>
                             <TableHead class="text-right">Unit Price</TableHead>
+                            <TableHead class="text-right">GST %</TableHead>
                             <TableHead class="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -489,12 +517,18 @@ const createRevision = () => {
                                     {{ item.product.name }}
                                 </div>
                             </TableCell>
+                            <TableCell class="text-muted-foreground">{{
+                                item.hsn_code ?? '—'
+                            }}</TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 Number(item.quantity)
                             }}</TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 money(item.unit_price)
                             }}</TableCell>
+                            <TableCell class="text-right tabular-nums"
+                                >{{ Number(item.tax_percentage) }}%</TableCell
+                            >
                             <TableCell class="text-right tabular-nums">{{
                                 money(lineTotal(item))
                             }}</TableCell>

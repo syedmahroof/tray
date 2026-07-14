@@ -18,7 +18,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $product_category_id
  * @property int|null $brand_id
  * @property string $name
+ * @property string|null $hsn_code
  * @property string|null $price
+ * @property string|null $taxable_amount
+ * @property string|null $tax_type
+ * @property string $tax_percentage
  * @property string|null $area_sqft
  * @property string|null $description
  * @property int|null $created_by
@@ -27,13 +31,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property-read User|null $creator
  * @property-read Collection<int, Project> $projects
  */
-#[Fillable(['branch_id', 'product_category_id', 'brand_id', 'name', 'price', 'area_sqft', 'description', 'created_by'])]
+#[Fillable(['branch_id', 'product_category_id', 'brand_id', 'name', 'hsn_code', 'price', 'taxable_amount', 'tax_type', 'tax_percentage', 'area_sqft', 'description', 'created_by'])]
 class Product extends Model
 {
     use BelongsToBranch;
 
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
+
+    /**
+     * GST rate slabs, mapping the human label to its percentage.
+     *
+     * @var array<string, int>
+     */
+    public const array GST_SLABS = [
+        'GST 0%' => 0,
+        'GST 5%' => 5,
+        'GST 12%' => 12,
+        'GST 18%' => 18,
+        'GST 28%' => 28,
+        'Exempt' => 0,
+    ];
 
     /**
      * Boot the model and restrict queries to the user's accessible brands.
@@ -50,6 +68,8 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
+            'taxable_amount' => 'decimal:2',
+            'tax_percentage' => 'decimal:2',
             'area_sqft' => 'decimal:2',
         ];
     }

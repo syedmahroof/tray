@@ -18,9 +18,11 @@ import {
     IdCard,
     AlertCircle,
     AlertTriangle,
+    CheckSquare,
+    Square,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import StatCard from '@/components/StatCard.vue';
@@ -73,8 +75,10 @@ const props = defineProps<{
         visit_type?: string;
         user_id?: string | number;
         project_id?: string | number;
-        created_from?: string;
-        created_to?: string;
+        date_filter?: string;
+        start_date?: string | null;
+        end_date?: string | null;
+        upcoming_followup?: boolean;
     };
 }>();
 
@@ -92,8 +96,10 @@ const userId = ref(
 const projectId = ref(
     props.filters.project_id ? String(props.filters.project_id) : 'all',
 );
-const createdFrom = ref(props.filters.created_from ?? '');
-const createdTo = ref(props.filters.created_to ?? '');
+const dateFilter = ref(props.filters.date_filter ?? 'all');
+const startDate = ref(props.filters.start_date ?? '');
+const endDate = ref(props.filters.end_date ?? '');
+const upcomingFollowUp = ref(props.filters.upcoming_followup ?? false);
 
 const updateFilters = () => {
     router.get(
@@ -103,8 +109,10 @@ const updateFilters = () => {
             visit_type: visitType.value !== 'all' ? visitType.value : undefined,
             user_id: userId.value !== 'all' ? userId.value : undefined,
             project_id: projectId.value !== 'all' ? projectId.value : undefined,
-            created_from: createdFrom.value || undefined,
-            created_to: createdTo.value || undefined,
+            date_filter: dateFilter.value,
+            start_date: startDate.value || undefined,
+            end_date: endDate.value || undefined,
+            upcoming_followup: upcomingFollowUp.value ? true : undefined,
         },
         {
             preserveState: true,
@@ -120,8 +128,8 @@ const hasActiveFilters = computed(
         visitType.value !== 'all' ||
         userId.value !== 'all' ||
         projectId.value !== 'all' ||
-        createdFrom.value !== '' ||
-        createdTo.value !== '',
+        dateFilter.value !== 'all' ||
+        upcomingFollowUp.value === true,
 );
 
 const clearFilters = () => {
@@ -129,12 +137,20 @@ const clearFilters = () => {
     visitType.value = 'all';
     userId.value = 'all';
     projectId.value = 'all';
-    createdFrom.value = '';
-    createdTo.value = '';
+    dateFilter.value = 'all';
+    startDate.value = '';
+    endDate.value = '';
+    upcomingFollowUp.value = false;
     updateFilters();
 };
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
+
+watch(dateFilter, (newVal) => {
+    if (newVal !== 'custom') {
+        updateFilters();
+    }
+});
 
 const exportUrl = computed(() =>
     exportMethod.url({
@@ -143,8 +159,10 @@ const exportUrl = computed(() =>
             visit_type: visitType.value !== 'all' ? visitType.value : undefined,
             user_id: userId.value !== 'all' ? userId.value : undefined,
             project_id: projectId.value !== 'all' ? projectId.value : undefined,
-            created_from: createdFrom.value || undefined,
-            created_to: createdTo.value || undefined,
+            date_filter: dateFilter.value,
+            start_date: startDate.value || undefined,
+            end_date: endDate.value || undefined,
+            upcoming_followup: upcomingFollowUp.value ? true : undefined,
         },
     }),
 );
@@ -428,11 +446,28 @@ const getDateStatus = (dateStr: string) => {
                         </SelectContent>
                     </Select>
 
-                    <!-- Created Date Range -->
-                    <div class="flex items-center gap-1.5">
+                    <!-- Date Filter -->
+                    <Select v-model="dateFilter">
+                        <SelectTrigger class="w-full sm:w-[160px]">
+                            <SelectValue placeholder="Select Date Range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="last_7_days">Last 7 days</SelectItem>
+                            <SelectItem value="last_30_days">Last 30 days</SelectItem>
+                            <SelectItem value="this_month">This month</SelectItem>
+                            <SelectItem value="last_3_months">Last 3 months</SelectItem>
+                            <SelectItem value="last_6_months">Last 6 months</SelectItem>
+                            <SelectItem value="last_year">Last year</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <!-- Custom Date Range -->
+                    <div v-if="dateFilter === 'custom'" class="flex items-center gap-1.5">
                         <CalendarDays class="h-4 w-4 text-[#16a34a]" />
                         <Input
-                            v-model="createdFrom"
+                            v-model="startDate"
                             type="date"
                             class="w-[150px]"
                             aria-label="Created from"
@@ -440,13 +475,25 @@ const getDateStatus = (dateStr: string) => {
                         />
                         <span class="text-sm text-muted-foreground">to</span>
                         <Input
-                            v-model="createdTo"
+                            v-model="endDate"
                             type="date"
                             class="w-[150px]"
                             aria-label="Created to"
                             @change="updateFilters"
                         />
                     </div>
+
+                    <!-- Upcoming Followup Filter -->
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="gap-2"
+                        @click="upcomingFollowUp = !upcomingFollowUp; updateFilters()"
+                    >
+                        <CheckSquare v-if="upcomingFollowUp" class="h-4 w-4 text-emerald-600" />
+                        <Square v-else class="h-4 w-4" />
+                        Upcoming Follow-up
+                    </Button>
 
                     <!-- Clear Filters -->
                     <Button

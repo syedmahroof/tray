@@ -35,11 +35,11 @@ test('a quotation is created with computed totals, generated number, and items',
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
+            'supply_type' => 'intra',
             'discount' => 100,
-            'tax_percent' => 10,
             'items' => [
-                ['product_id' => $product->id, 'description' => 'Item A', 'quantity' => 2, 'unit_price' => 500],
-                ['product_id' => null, 'description' => 'Item B', 'quantity' => 1, 'unit_price' => 200],
+                ['product_id' => $product->id, 'description' => 'Item A', 'quantity' => 2, 'unit_price' => 500, 'tax_percentage' => 18],
+                ['product_id' => null, 'description' => 'Item B', 'quantity' => 1, 'unit_price' => 200, 'tax_percentage' => 18],
             ],
         ])
         ->assertRedirect();
@@ -50,11 +50,41 @@ test('a quotation is created with computed totals, generated number, and items',
     expect($quotation->created_by)->toBe($manager->id);
     // subtotal = 2*500 + 1*200 = 1200
     expect((float) $quotation->subtotal)->toBe(1200.0);
-    // taxable = 1200 - 100 = 1100; tax = 10% = 110
-    expect((float) $quotation->tax_amount)->toBe(110.0);
-    // total = 1100 + 110 = 1210
-    expect((float) $quotation->total)->toBe(1210.0);
+    // discount 100 allocated proportionally; 18% GST on the taxable 1100 = 198
+    expect((float) $quotation->tax_amount)->toBe(198.0);
+    // intra-state splits into CGST + SGST
+    expect((float) $quotation->cgst_amount)->toBe(99.0);
+    expect((float) $quotation->sgst_amount)->toBe(99.0);
+    expect((float) $quotation->igst_amount)->toBe(0.0);
+    // total = 1200 - 100 + 198 = 1298
+    expect((float) $quotation->total)->toBe(1298.0);
     expect($quotation->items)->toHaveCount(2);
+    expect((float) $quotation->items->firstWhere('description', 'Item A')->tax_amount)->toBe(165.0);
+});
+
+test('an inter-state quotation applies IGST instead of CGST and SGST', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $contact = Contact::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'contact_id' => $contact->id,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'inter',
+            'items' => [
+                ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 1000, 'tax_percentage' => 18],
+            ],
+        ])
+        ->assertRedirect();
+
+    $quotation = Quotation::first();
+    expect((float) $quotation->igst_amount)->toBe(180.0);
+    expect((float) $quotation->cgst_amount)->toBe(0.0);
+    expect((float) $quotation->sgst_amount)->toBe(0.0);
+    expect((float) $quotation->total)->toBe(1180.0);
 });
 
 test('a quotation requires at least one item', function () {
@@ -68,6 +98,7 @@ test('a quotation requires at least one item', function () {
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
+            'supply_type' => 'intra',
             'items' => [],
         ])
         ->assertSessionHasErrors('items');
@@ -86,8 +117,9 @@ test('updating a quotation re-syncs items and recomputes totals', function () {
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'sent',
+            'supply_type' => 'intra',
             'items' => [
-                ['product_id' => null, 'description' => 'New', 'quantity' => 3, 'unit_price' => 100],
+                ['product_id' => null, 'description' => 'New', 'quantity' => 3, 'unit_price' => 100, 'tax_percentage' => 0],
             ],
         ])
         ->assertRedirect(route('quotations.show', $quotation));
@@ -235,8 +267,9 @@ test('a quotation can be linked to an enquiry and a builder', function () {
             'builder_id' => $builder->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
+            'supply_type' => 'intra',
             'items' => [
-                ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 500],
+                ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 500, 'tax_percentage' => 0],
             ],
         ])
         ->assertRedirect();
