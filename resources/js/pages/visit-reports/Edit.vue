@@ -38,6 +38,7 @@ const props = defineProps<{
     projects: NamedOption[];
     customers: NamedOption[];
     contacts: ContactSelectOption[];
+    builders: NamedOption[];
     visitTypes: VisitType[];
     branches: Branch[];
 }>();
@@ -73,6 +74,12 @@ const contactOptions = computed(() =>
         label: contactOptionLabel(contact),
     })),
 );
+const builderOptions = computed(() =>
+    props.builders.map((builder) => ({
+        value: String(builder.id),
+        label: builder.name,
+    })),
+);
 
 const selectedProjectIds = computed(() =>
     props.visitReport.projects.map((project) => String(project.id)),
@@ -82,6 +89,9 @@ const selectedCustomerIds = computed(() =>
 );
 const selectedContactIds = computed(() =>
     props.visitReport.contacts.map((contact) => String(contact.id)),
+);
+const selectedBuilderIds = computed(() =>
+    props.visitReport.builders?.map((builder) => String(builder.id)) ?? [],
 );
 </script>
 
@@ -113,10 +123,10 @@ const selectedContactIds = computed(() =>
                 <CardHeader>
                     <CardTitle>Link Entities</CardTitle>
                     <CardDescription>
-                        Select at least one project, customer, or contact
+                        Select at least one project, customer, contact, or builder
                     </CardDescription>
                 </CardHeader>
-                <CardContent class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <CardContent class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="grid gap-2">
                         <Label for="project_ids">Projects</Label>
                         <MultiCombobox
@@ -148,6 +158,17 @@ const selectedContactIds = computed(() =>
                             :model-value="selectedContactIds"
                         />
                         <InputError :message="errors.contact_ids" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="builder_ids">Builders</Label>
+                        <MultiCombobox
+                            name="builder_ids"
+                            placeholder="Search builders"
+                            :options="builderOptions"
+                            :model-value="selectedBuilderIds"
+                        />
+                        <InputError :message="errors.builder_ids" />
                     </div>
                 </CardContent>
             </Card>

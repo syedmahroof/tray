@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Branch;
 use App\Models\Contact;
+use App\Models\Customer;
 use App\Models\Quotation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,6 +22,7 @@ class QuotationFactory extends Factory
     {
         return [
             'branch_id' => Branch::factory(),
+            'customer_id' => Customer::factory(),
             'number' => 'QT-'.fake()->unique()->numerify('######'),
             'contact_id' => Contact::factory(),
             'project_id' => null,

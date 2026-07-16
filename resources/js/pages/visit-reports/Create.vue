@@ -36,11 +36,13 @@ const props = defineProps<{
     projects: NamedOption[];
     customers: NamedOption[];
     contacts: ContactSelectOption[];
+    builders: NamedOption[];
     visitTypes: VisitType[];
     branches: Branch[];
     preselectedProjectId: number | null;
     preselectedCustomerId: number | null;
     preselectedContactId: number | null;
+    preselectedBuilderId: number | null;
 }>();
 
 defineOptions({
@@ -70,6 +72,12 @@ const contactOptions = computed(() =>
         label: contactOptionLabel(contact),
     })),
 );
+const builderOptions = computed(() =>
+    props.builders.map((builder) => ({
+        value: String(builder.id),
+        label: builder.name,
+    })),
+);
 
 const initialProjectIds = computed(() =>
     props.preselectedProjectId ? [String(props.preselectedProjectId)] : [],
@@ -80,10 +88,15 @@ const initialCustomerIds = computed(() =>
 const initialContactIds = computed(() =>
     props.preselectedContactId ? [String(props.preselectedContactId)] : [],
 );
+const initialBuilderIds = computed(() =>
+    props.preselectedBuilderId ? [String(props.preselectedBuilderId)] : [],
+);
 </script>
 
 <template>
     <Head title="New visit report" />
+
+    <pre class="bg-black text-green-400 p-4 rounded text-xs">{{ contacts }}</pre>
 
     <div class="flex flex-col space-y-6">
         <div>
@@ -110,10 +123,10 @@ const initialContactIds = computed(() =>
                 <CardHeader>
                     <CardTitle>Link Entities</CardTitle>
                     <CardDescription>
-                        Select at least one project, customer, or contact
+                        Select at least one project, customer, contact, or builder
                     </CardDescription>
                 </CardHeader>
-                <CardContent class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <CardContent class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="grid gap-2">
                         <Label for="project_ids">Projects</Label>
                         <MultiCombobox
@@ -145,6 +158,17 @@ const initialContactIds = computed(() =>
                             :model-value="initialContactIds"
                         />
                         <InputError :message="errors.contact_ids" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="builder_ids">Builders</Label>
+                        <MultiCombobox
+                            name="builder_ids"
+                            placeholder="Search builders"
+                            :options="builderOptions"
+                            :model-value="initialBuilderIds"
+                        />
+                        <InputError :message="errors.builder_ids" />
                     </div>
                 </CardContent>
             </Card>

@@ -140,7 +140,7 @@ class BuilderController extends Controller
      */
     public function show(Builder $builder): Response
     {
-        $builder->load(['country', 'state', 'district', 'projects']);
+        $builder->load(['country', 'state', 'district', 'projects', 'visitReports.user']);
 
         return Inertia::render('admin/builders/Show', [
             'builder' => $builder,

@@ -149,6 +149,7 @@ export type VisitReportListItem = VisitReport & {
     projects: NamedOption[];
     customers: NamedOption[];
     contacts: NamedOption[];
+    builders: NamedOption[];
 };
 
 export type VisitReportDetail = VisitReport & {
@@ -157,6 +158,7 @@ export type VisitReportDetail = VisitReport & {
     projects: NamedOption[];
     customers: NamedOption[];
     contacts: NamedOption[];
+    builders: NamedOption[];
 };
 
 /** A past visit report sharing a linked entity with the current one. */
@@ -169,6 +171,7 @@ export type VisitReportHistoryItem = {
     contacts: NamedOption[];
     customers: NamedOption[];
     projects: NamedOption[];
+    builders: NamedOption[];
 };
 
 /** A single audit-log timeline entry. */

@@ -93,6 +93,14 @@ class VisitReport extends Model
     }
 
     /**
+     * @return BelongsToMany<Builder, $this>
+     */
+    public function builders(): BelongsToMany
+    {
+        return $this->belongsToMany(Builder::class, 'visit_report_builder');
+    }
+
+    /**
      * @return MorphMany<AuditLog, $this>
      */
     public function auditLogs(): MorphMany

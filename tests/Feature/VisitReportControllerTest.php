@@ -74,15 +74,19 @@ test('the visit report index can be filtered by a created date range', function 
     $admin->assignRole('Admin');
     VisitReport::factory()->create([
         'objective' => 'Recent visit',
-        'created_at' => '2026-06-15 12:00:00',
+        'visit_date' => '2026-06-15',
     ]);
     VisitReport::factory()->create([
         'objective' => 'Old visit',
-        'created_at' => '2026-01-10 12:00:00',
+        'visit_date' => '2026-01-10',
     ]);
 
     $this->actingAs($admin)
-        ->get(route('visit-reports.index', ['created_from' => '2026-06-01', 'created_to' => '2026-06-30']))
+        ->get(route('visit-reports.index', [
+            'date_filter' => 'custom',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]))
         ->assertInertia(fn ($page) => $page
             ->has('visitReports.data', 1)
             ->where('visitReports.data.0.objective', 'Recent visit'));

@@ -19,6 +19,7 @@ import {
     User,
     UserRound,
     Users,
+    HardHat,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
@@ -160,7 +161,7 @@ const visitTypeIcon = computed(() => {
                             >Linked Entities</CardTitle
                         >
                     </CardHeader>
-                    <CardContent class="grid gap-4 pt-6 sm:grid-cols-3">
+                    <CardContent class="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                             <p
                                 class="flex items-center gap-1.5 text-sm text-muted-foreground"
@@ -236,6 +237,29 @@ const visitTypeIcon = computed(() => {
                                 </Link>
                                 <span
                                     v-if="visitReport.contacts.length === 0"
+                                    class="text-sm text-muted-foreground"
+                                    >—</span
+                                >
+                            </div>
+                        </div>
+
+                        <div>
+                            <p
+                                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+                            >
+                                <HardHat class="h-4 w-4 text-[#eab308]" />
+                                Builders
+                            </p>
+                            <div class="mt-1.5 flex flex-wrap gap-2">
+                                <Badge
+                                    v-for="builder in visitReport.builders"
+                                    :key="builder.id"
+                                    variant="secondary"
+                                    class="hover:bg-secondary/80"
+                                    >{{ builder.name }}</Badge
+                                >
+                                <span
+                                    v-if="visitReport.builders.length === 0"
                                     class="text-sm text-muted-foreground"
                                     >—</span
                                 >
@@ -423,6 +447,12 @@ const visitTypeIcon = computed(() => {
                                         variant="outline"
                                         >{{ p.name }}</Badge
                                     >
+                                    <Badge
+                                        v-for="b in item.builders"
+                                        :key="`b-${b.id}`"
+                                        variant="outline"
+                                        >{{ b.name }}</Badge
+                                    >
                                     <span
                                         class="ml-auto flex items-center gap-1 text-xs text-muted-foreground"
                                     >
@@ -436,7 +466,7 @@ const visitTypeIcon = computed(() => {
                                 class="py-8 text-center text-sm text-muted-foreground"
                             >
                                 No previous visits found for the linked
-                                contacts, customers, or projects.
+                                contacts, customers, projects, or builders.
                             </p>
                         </div>
                     </CardContent>

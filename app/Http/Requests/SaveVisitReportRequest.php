@@ -31,6 +31,8 @@ class SaveVisitReportRequest extends FormRequest
             'customer_ids.*' => [Rule::exists('customers', 'id')],
             'contact_ids' => ['array'],
             'contact_ids.*' => [Rule::exists('contacts', 'id')],
+            'builder_ids' => ['array'],
+            'builder_ids.*' => [Rule::exists('builders', 'id')],
             'branch_id' => [
                 Rule::requiredIf(BranchAccess::canChooseBranch()), 'nullable',
                 Rule::exists('branches', 'id'),
@@ -43,13 +45,15 @@ class SaveVisitReportRequest extends FormRequest
      */
     public function withValidator(Validator $validator): void
     {
+        logger()->info('SaveVisitReportRequest payload:', $this->all());
         $validator->after(function (Validator $validator) {
             $hasAnyEntity = filled($this->input('project_ids'))
                 || filled($this->input('customer_ids'))
-                || filled($this->input('contact_ids'));
+                || filled($this->input('contact_ids'))
+                || filled($this->input('builder_ids'));
 
             if (! $hasAnyEntity) {
-                $validator->errors()->add('project_ids', __('Select at least one project, customer, or contact.'));
+                $validator->errors()->add('project_ids', __('Select at least one project, customer, contact, or builder.'));
             }
         });
     }

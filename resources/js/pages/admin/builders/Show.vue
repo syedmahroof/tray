@@ -8,9 +8,13 @@ import {
     Phone,
     Mail,
     User,
+    ClipboardList,
+    Plus,
+    FileText,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +30,7 @@ import QuotationsCard from '@/components/QuotationsCard.vue';
 import { edit, index, show } from '@/routes/builders';
 import { show as showProject } from '@/routes/projects';
 import { create as createQuotation } from '@/routes/quotations';
+import { show as showVisitReport, create as createVisitReport } from '@/routes/visit-reports';
 import type {
     Builder,
     Country,
@@ -33,7 +38,13 @@ import type {
     District,
     Project,
     QuotationSummary,
+    VisitReport,
+    ActivityAuthor,
 } from '@/types';
+
+type BuilderVisitReport = VisitReport & {
+    user: ActivityAuthor;
+};
 
 type BuilderDetail = Builder & {
     country: Country | null;
@@ -45,6 +56,7 @@ type BuilderDetail = Builder & {
 const props = defineProps<{
     builder: BuilderDetail;
     quotations: QuotationSummary[];
+    visitReports: BuilderVisitReport[];
 }>();
 
 defineOptions({
@@ -285,6 +297,64 @@ const permissions = computed(() => usePage().props.auth.permissions);
                     "
                     :can-create="permissions.includes('quotations.create')"
                 />
+            </div>
+
+            <div class="md:col-span-2 space-y-4">
+                <Card>
+                    <CardHeader
+                        class="flex flex-row items-center justify-between border-b pb-3"
+                    >
+                        <div class="flex items-center gap-2">
+                            <ClipboardList class="h-5 w-5 text-[#0ea5e9]" />
+                            <CardTitle class="text-base font-semibold"
+                                >Visit Reports ({{
+                                    visitReports.length
+                                }})</CardTitle
+                            >
+                        </div>
+                        <Button
+                            v-if="permissions.includes('visit-reports.create')"
+                            size="sm"
+                            as-child
+                        >
+                            <Link
+                                :href="
+                                    createVisitReport({
+                                        query: { builder_id: builder.id },
+                                    })
+                                "
+                            >
+                                <Plus /> New visit report
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent class="divide-y p-0">
+                        <div
+                            v-for="visitReport in visitReports"
+                            :key="visitReport.id"
+                            class="p-6"
+                        >
+                            <Link
+                                :href="showVisitReport(visitReport.id)"
+                                class="flex items-center gap-1.5 text-sm font-semibold hover:underline"
+                            >
+                                <FileText class="h-4 w-4 text-[#0ea5e9]" />
+                                {{ visitReport.visit_type }} —
+                                {{ visitReport.objective }}
+                            </Link>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                Date: {{ formatDate(visitReport.visit_date) }} ·
+                                Reported by: {{ visitReport.user.name }}
+                            </p>
+                        </div>
+                        <div
+                            v-if="visitReports.length === 0"
+                            class="p-8 text-center text-sm text-muted-foreground"
+                        >
+                            No visit reports yet.
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     </div>

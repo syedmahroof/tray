@@ -4,6 +4,7 @@ use App\Mail\QuotationMail;
 use App\Models\Branch;
 use App\Models\Builder;
 use App\Models\Contact;
+use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
 use App\Models\Project;
@@ -27,11 +28,13 @@ test('a quotation is created with computed totals, generated number, and items',
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
     $product = Product::factory()->create(['branch_id' => $branch->id]);
 
     $this->actingAs($manager)
         ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
@@ -66,10 +69,12 @@ test('an inter-state quotation applies IGST instead of CGST and SGST', function 
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
 
     $this->actingAs($manager)
         ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
@@ -91,10 +96,12 @@ test('a quotation requires at least one item', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
 
     $this->actingAs($manager)
         ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'draft',
@@ -114,6 +121,7 @@ test('updating a quotation re-syncs items and recomputes totals', function () {
 
     $this->actingAs($manager)
         ->put(route('quotations.update', $quotation), [
+            'customer_id' => $quotation->customer_id,
             'contact_id' => $contact->id,
             'quotation_date' => '2026-06-22',
             'status' => 'sent',
@@ -220,9 +228,11 @@ test('a quotation is emailed to its contact and marked as sent', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
-    $contact = Contact::factory()->create(['branch_id' => $branch->id, 'email' => 'buyer@example.com']);
+    $customer = Customer::factory()->create(['branch_id' => $branch->id, 'email' => 'buyer@example.com']);
+    $contact = Contact::factory()->create(['branch_id' => $branch->id]);
     $quotation = Quotation::factory()->create([
         'branch_id' => $branch->id,
+        'customer_id' => $customer->id,
         'contact_id' => $contact->id,
         'status' => 'draft',
     ]);
@@ -236,14 +246,19 @@ test('a quotation is emailed to its contact and marked as sent', function () {
     expect($quotation->auditLogs()->where('action', 'emailed')->exists())->toBeTrue();
 });
 
-test('emailing a quotation without a contact email does not send', function () {
+test('emailing a quotation without a customer email does not send', function () {
     Mail::fake();
 
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
-    $contact = Contact::factory()->create(['branch_id' => $branch->id, 'email' => null]);
-    $quotation = Quotation::factory()->create(['branch_id' => $branch->id, 'contact_id' => $contact->id]);
+    $customer = Customer::factory()->create(['branch_id' => $branch->id, 'email' => null]);
+    $contact = Contact::factory()->create(['branch_id' => $branch->id]);
+    $quotation = Quotation::factory()->create([
+        'branch_id' => $branch->id,
+        'customer_id' => $customer->id,
+        'contact_id' => $contact->id,
+    ]);
 
     $this->actingAs($manager)
         ->post(route('quotations.email', $quotation))
@@ -256,12 +271,14 @@ test('a quotation can be linked to an enquiry and a builder', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
     $builder = Builder::factory()->create(['branch_id' => $branch->id]);
     $enquiry = Enquiry::factory()->create(['branch_id' => $branch->id, 'contact_id' => $contact->id]);
 
     $this->actingAs($manager)
         ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
             'contact_id' => $contact->id,
             'enquiry_id' => $enquiry->id,
             'builder_id' => $builder->id,
