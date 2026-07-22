@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Builder;
+use App\Models\VisitReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,10 +25,16 @@ class BuilderController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->when(VisitReport::NO_VISIT_PERIODS[$request->input('no_visit_within')] ?? null, function ($query, $days) {
+                $query->whereDoesntHave('projects', fn ($project) => $project->whereHas('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString())));
+            })
             ->orderBy('name')
-            ->get();
+            ->paginate(15);
 
-        return response()->json(['data' => $builders]);
+        return response()->json($builders);
     }
 
     public function show(Builder $builder): JsonResponse

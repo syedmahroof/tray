@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\VisitReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,16 @@ class ProjectController extends Controller
         $projects = Project::with(['builder', 'projectCategory', 'country', 'state', 'district', 'assignee'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($request->input('builder_id'), fn ($query, $value) => $query->where('builder_id', $value))
+            ->when($request->input('project_category_id'), fn ($query, $value) => $query->where('project_category_id', $value))
+            ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
+            ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
+            ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
+            ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
+            ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
+            ->when(VisitReport::NO_VISIT_PERIODS[$request->input('no_visit_within')] ?? null, function ($query, $days) {
+                $query->whereDoesntHave('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString()));
             })
             ->latest()
             ->paginate(15);

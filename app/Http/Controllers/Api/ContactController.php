@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
+use App\Models\VisitReport;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
@@ -11,6 +12,13 @@ class ContactController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
+        $contactTypeId = $request->input('contact_type_id');
+        $assignedTo = $request->input('assigned_to');
+        $isSuperAdmin = $request->user()->hasRole('Super Admin');
+        $createdBy = $isSuperAdmin ? $request->input('created_by') : null;
+        $createdFrom = $request->input('created_from');
+        $createdTo = $request->input('created_to');
+        $noVisitWithin = $request->input('no_visit_within');
 
         $contacts = Contact::query()
             ->with(['contactType', 'assignee', 'creator'])
@@ -20,6 +28,14 @@ class ContactController extends Controller
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
+            })
+            ->when($contactTypeId, fn ($query) => $query->where('contact_type_id', $contactTypeId))
+            ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
+            ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
+            ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
+            ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
+            ->when(VisitReport::NO_VISIT_PERIODS[$noVisitWithin] ?? null, function ($query, $days) {
+                $query->whereDoesntHave('visitReports', fn ($sub) => $sub->where('visit_date', '>=', now()->subDays($days)->toDateString()));
             })
             ->orderBy('name')
             ->paginate(15);

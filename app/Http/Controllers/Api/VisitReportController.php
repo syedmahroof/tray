@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\VisitReport;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class VisitReportController extends Controller
@@ -11,6 +12,13 @@ class VisitReportController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
+        $visitType = $request->input('visit_type');
+        $userId = $request->input('user_id');
+        $projectId = $request->input('project_id');
+        $dateFilter = $request->input('date_filter', 'all');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $upcomingFollowUp = $request->boolean('upcoming_followup');
 
         $visitReports = VisitReport::query()
             ->with(['user', 'projects', 'customers', 'contacts'])
@@ -21,10 +29,33 @@ class VisitReportController extends Controller
                         ->orWhere('report', 'like', "%{$search}%");
                 });
             })
+            ->when($visitType, fn ($query) => $query->where('visit_type', $visitType))
+            ->when($userId, fn ($query) => $query->where('user_id', $userId))
+            ->when($projectId, fn ($query) => $query->whereHas('projects', fn ($q) => $q->where('projects.id', $projectId)))
+            ->when($upcomingFollowUp, fn ($query) => $query->where(function ($q) {
+                $q->whereDate('next_meeting_date', '>=', now())
+                    ->orWhereDate('next_call_date', '>=', now());
+            }))
+            ->pipe(fn ($q) => $this->applyDateFilter($q, $dateFilter, $startDate, $endDate, 'visit_date'))
             ->orderByDesc('visit_date')
             ->paginate(15);
 
         return response()->json($visitReports);
+    }
+
+    private function applyDateFilter(Builder $query, string $dateFilter, ?string $startDate, ?string $endDate, string $column = 'visit_date'): Builder
+    {
+        return match ($dateFilter) {
+            'last_7_days' => $query->where($column, '>=', now()->subDays(7)->startOfDay()),
+            'last_30_days' => $query->where($column, '>=', now()->subDays(30)->startOfDay()),
+            'this_month' => $query->where($column, '>=', now()->startOfMonth()),
+            'last_3_months' => $query->where($column, '>=', now()->subMonths(3)->startOfDay()),
+            'last_6_months' => $query->where($column, '>=', now()->subMonths(6)->startOfDay()),
+            'last_year' => $query->where($column, '>=', now()->subYear()->startOfDay()),
+            'custom' => $query->when($startDate, fn ($q) => $q->where($column, '>=', $startDate))
+                ->when($endDate, fn ($q) => $q->where($column, '<=', $endDate)),
+            default => $query,
+        };
     }
 
     public function show(VisitReport $visitReport)
