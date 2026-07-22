@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthPayload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -28,8 +29,13 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $user,
+            ...AuthPayload::forUser($user),
         ]);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json(AuthPayload::forUser($request->user()));
     }
 
     public function logout(Request $request)

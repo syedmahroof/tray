@@ -9,13 +9,18 @@ use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $projects = Project::with(['builder', 'projectCategory', 'country', 'state', 'district', 'assignee'])
-            ->latest()
-            ->get();
+        $search = trim((string) $request->input('search', ''));
 
-        return response()->json(['data' => $projects]);
+        $projects = Project::with(['builder', 'projectCategory', 'country', 'state', 'district', 'assignee'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate(15);
+
+        return response()->json($projects);
     }
 
     public function store(Request $request): JsonResponse

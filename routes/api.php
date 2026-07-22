@@ -12,16 +12,13 @@ use App\Http\Controllers\Api\VisitReportController;
 use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\AnalyticsController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->name('api.')->group(function () {
     Route::get('/metadata', [MetadataController::class, 'index']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', [AuthController::class, 'me']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('customers', CustomerController::class);
