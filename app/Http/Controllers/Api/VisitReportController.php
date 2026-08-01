@@ -60,9 +60,28 @@ class VisitReportController extends Controller
 
     public function show(VisitReport $visitReport)
     {
-        $visitReport->load(['user', 'branch', 'projects', 'customers', 'contacts']);
+        $visitReport->load(['user', 'branch', 'projects', 'customers', 'contacts', 'builders']);
 
-        return response()->json($visitReport);
+        $contactIds = $visitReport->contacts->pluck('id');
+        $customerIds = $visitReport->customers->pluck('id');
+        $projectIds = $visitReport->projects->pluck('id');
+
+        $history = VisitReport::query()
+            ->where('id', '!=', $visitReport->id)
+            ->where(function ($query) use ($contactIds, $customerIds, $projectIds) {
+                $query->whereHas('contacts', fn ($sub) => $sub->whereIn('contacts.id', $contactIds))
+                    ->orWhereHas('customers', fn ($sub) => $sub->whereIn('customers.id', $customerIds))
+                    ->orWhereHas('projects', fn ($sub) => $sub->whereIn('projects.id', $projectIds));
+            })
+            ->with(['user:id,name'])
+            ->orderByDesc('visit_date')
+            ->limit(50)
+            ->get(['id', 'visit_date', 'visit_type', 'objective', 'user_id']);
+
+        return response()->json([
+            ...$visitReport->toArray(),
+            'history' => $history,
+        ]);
     }
 
     public function store(Request $request)
@@ -123,6 +142,7 @@ class VisitReportController extends Controller
     public function destroy(VisitReport $visitReport)
     {
         $visitReport->delete();
+
         return response()->json(['message' => 'Visit Report deleted successfully']);
     }
 }

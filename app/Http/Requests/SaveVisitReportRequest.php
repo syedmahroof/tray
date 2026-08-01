@@ -45,7 +45,6 @@ class SaveVisitReportRequest extends FormRequest
      */
     public function withValidator(Validator $validator): void
     {
-        logger()->info('SaveVisitReportRequest payload:', $this->all());
         $validator->after(function (Validator $validator) {
             $hasAnyEntity = filled($this->input('project_ids'))
                 || filled($this->input('customer_ids'))

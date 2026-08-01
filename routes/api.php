@@ -1,17 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BuilderController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EnquiryController;
+use App\Http\Controllers\Api\MetadataController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\QuotationController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\VisitReportController;
-use App\Http\Controllers\Api\MetadataController;
-use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -29,10 +30,10 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
     Route::apiResource('reminders', ReminderController::class);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('builders', BuilderController::class);
+    Route::apiResource('products', ProductController::class)->only(['index', 'show']);
     Route::get('dashboard', [DashboardController::class, '__invoke']);
 
     // Analytics
     Route::get('analytics', [AnalyticsController::class, 'index']);
     Route::get('analytics/{module}', [AnalyticsController::class, 'module']);
 });
-

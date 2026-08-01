@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Exports\GenericSheetExport;
+use App\Http\Controllers\Concerns\ComputesQuotationTotals;
 use App\Http\Requests\SaveQuotationRequest;
 use App\Mail\QuotationMail;
 use App\Models\Builder;
 use App\Models\Contact;
+use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
 use App\Models\Project;
@@ -30,6 +32,8 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class QuotationController extends Controller
 {
+    use ComputesQuotationTotals;
+
     /**
      * Display a listing of quotations.
      */
@@ -485,7 +489,7 @@ class QuotationController extends Controller
     private function formData(): array
     {
         return [
-            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
@@ -544,61 +548,11 @@ class QuotationController extends Controller
      */
     private function computeQuotation(SaveQuotationRequest $request): array
     {
-        $items = $request->validated('items', []);
-        $supplyType = $request->validated('supply_type', 'intra');
-
-        $subtotal = array_reduce(
-            $items,
-            fn (float $carry, array $item): float => $carry + ((float) $item['quantity'] * (float) $item['unit_price']),
-            0.0,
+        return $this->computeQuotationTotals(
+            $request->validated('items', []),
+            (float) $request->validated('discount', 0),
+            $request->validated('supply_type', 'intra'),
         );
-
-        $discount = min((float) $request->validated('discount', 0), $subtotal);
-
-        $rows = [];
-        $totalTax = 0.0;
-
-        foreach ($items as $item) {
-            $base = (float) $item['quantity'] * (float) $item['unit_price'];
-            $allocatedDiscount = $subtotal > 0 ? $discount * ($base / $subtotal) : 0.0;
-            $taxable = max($base - $allocatedDiscount, 0);
-            $rate = (float) ($item['tax_percentage'] ?? 0);
-            $taxAmount = round($taxable * $rate / 100, 2);
-            $totalTax += $taxAmount;
-
-            $rows[] = [
-                'product_id' => $item['product_id'] ?? null,
-                'description' => $item['description'],
-                'hsn_code' => $item['hsn_code'] ?? null,
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'tax_percentage' => $rate,
-                'tax_amount' => $taxAmount,
-            ];
-        }
-
-        $totalTax = round($totalTax, 2);
-        $cgst = $sgst = $igst = 0.0;
-
-        if ($supplyType === 'inter') {
-            $igst = $totalTax;
-        } else {
-            $cgst = round($totalTax / 2, 2);
-            $sgst = round($totalTax - $cgst, 2);
-        }
-
-        return [
-            'rows' => $rows,
-            'totals' => [
-                'subtotal' => round($subtotal, 2),
-                'discount' => round($discount, 2),
-                'tax_amount' => $totalTax,
-                'cgst_amount' => $cgst,
-                'sgst_amount' => $sgst,
-                'igst_amount' => $igst,
-                'total' => round($subtotal - $discount + $totalTax, 2),
-            ],
-        ];
     }
 
     /**
@@ -606,6 +560,6 @@ class QuotationController extends Controller
      */
     private function generateNumber(int $id): string
     {
-        return 'QT-'.now()->format('Y').'-'.str_pad((string) $id, 5, '0', STR_PAD_LEFT);
+        return $this->generateQuotationNumber($id);
     }
 }

@@ -39,7 +39,7 @@ class BuilderController extends Controller
 
     public function show(Builder $builder): JsonResponse
     {
-        $builder->load(['country', 'state', 'district', 'creator']);
+        $builder->load(['country', 'state', 'district', 'creator', 'visitReports']);
         $builder->loadCount('projects');
 
         return response()->json([
@@ -96,14 +96,14 @@ class BuilderController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'name'           => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'contact_person' => 'nullable|string|max:255',
-            'phone'          => 'nullable|string|max:30',
-            'email'          => 'nullable|email|max:255',
-            'address'        => 'nullable|string|max:255',
-            'country_id'     => 'nullable|exists:countries,id',
-            'state_id'       => 'nullable|exists:states,id',
-            'district_id'    => 'nullable|exists:districts,id',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
+            'country_id' => 'nullable|exists:countries,id',
+            'state_id' => 'nullable|exists:states,id',
+            'district_id' => 'nullable|exists:districts,id',
         ]);
     }
 }

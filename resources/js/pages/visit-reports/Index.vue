@@ -16,6 +16,7 @@ import {
     Building,
     UserRound,
     IdCard,
+    HardHat,
     AlertCircle,
     AlertTriangle,
     CheckSquare,
@@ -203,6 +204,7 @@ const getLinkedEntities = (visitReport: VisitReportListItem) => [
     ...visitReport.projects.map((p) => ({ name: p.name, icon: Building, colorClass: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50' })),
     ...visitReport.customers.map((c) => ({ name: c.name, icon: UserRound, colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50' })),
     ...visitReport.contacts.map((c) => ({ name: c.name, icon: IdCard, colorClass: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50' })),
+    ...visitReport.builders.map((b) => ({ name: b.name, icon: HardHat, colorClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50' })),
 ];
 
 const getDateStatus = (dateStr: string) => {

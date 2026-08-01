@@ -96,8 +96,6 @@ const initialBuilderIds = computed(() =>
 <template>
     <Head title="New visit report" />
 
-    <pre class="bg-black text-green-400 p-4 rounded text-xs">{{ contacts }}</pre>
-
     <div class="flex flex-col space-y-6">
         <div>
             <Link
