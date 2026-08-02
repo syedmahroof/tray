@@ -22,6 +22,7 @@ class ProjectController extends Controller
             ->when($request->input('project_category_id'), fn ($query, $value) => $query->where('project_category_id', $value))
             ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
             ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
+            ->when($request->input('assignee_id'), fn ($query, $value) => $query->where('assignee_id', $value))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))

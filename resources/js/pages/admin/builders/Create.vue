@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationSelect from '@/components/LocationSelect.vue';
@@ -15,10 +17,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { create, index, store } from '@/routes/builders';
-import type { Branch, Country } from '@/types';
+import type { Branch, Country, NamedOption } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     countries: Country[];
+    users: NamedOption[];
     branches: Branch[];
 }>();
 
@@ -30,6 +33,10 @@ defineOptions({
         ],
     },
 });
+
+const userOptions = computed(() =>
+    props.users.map((user) => ({ value: String(user.id), label: user.name })),
+);
 </script>
 
 <template>
@@ -80,6 +87,16 @@ defineOptions({
             </div>
 
             <LocationSelect :countries="countries" />
+
+            <div class="grid gap-2">
+                <Label for="assigned_to">Assigned to</Label>
+                <Combobox
+                    name="assigned_to"
+                    placeholder="Select a user"
+                    :options="userOptions"
+                />
+                <InputError :message="errors.assigned_to" />
+            </div>
 
             <div v-if="branches.length > 0" class="grid gap-2">
                 <Label for="branch_id">Branch</Label>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SaveEnquiryRequest;
 use App\Models\Contact;
+use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
 use App\Models\Project;
@@ -23,6 +24,7 @@ class EnquiryController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
+        $assignedTo = $request->input('assigned_to');
 
         return Inertia::render('enquiries/Index', [
             'enquiries' => Enquiry::query()
@@ -37,11 +39,16 @@ class EnquiryController extends Controller
                             ->orWhereHas('product', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
                     });
                 })
+                ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
                 ->latest()
                 ->paginate(15)
                 ->withQueryString(),
             'statusCounts' => $this->statusCounts(),
-            'filters' => ['search' => $search],
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'search' => $search,
+                'assigned_to' => $assignedTo,
+            ],
         ]);
     }
 
@@ -83,7 +90,7 @@ class EnquiryController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('enquiries/Create', [
-            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),
@@ -130,7 +137,7 @@ class EnquiryController extends Controller
     {
         return Inertia::render('enquiries/Edit', [
             'enquiry' => $enquiry,
-            'customers' => \App\Models\Customer::query()->orderBy('name')->get(['id', 'name']),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),

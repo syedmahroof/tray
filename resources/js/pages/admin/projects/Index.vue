@@ -74,6 +74,7 @@ const props = defineProps<{
         project_category_id?: string | number;
         status?: string;
         product_id?: string | number;
+        assignee_id?: string | number;
         created_by?: string | number;
         created_from?: string;
         created_to?: string;
@@ -100,6 +101,9 @@ const status = ref(props.filters.status ?? 'all');
 const productId = ref(
     props.filters.product_id ? String(props.filters.product_id) : 'all',
 );
+const assigneeId = ref(
+    props.filters.assignee_id ? String(props.filters.assignee_id) : 'all',
+);
 const createdBy = ref(
     props.filters.created_by ? String(props.filters.created_by) : 'all',
 );
@@ -117,6 +121,8 @@ const updateFilters = () => {
                 categoryId.value !== 'all' ? categoryId.value : undefined,
             status: status.value !== 'all' ? status.value : undefined,
             product_id: productId.value !== 'all' ? productId.value : undefined,
+            assignee_id:
+                assigneeId.value !== 'all' ? assigneeId.value : undefined,
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
@@ -138,6 +144,7 @@ const hasActiveFilters = computed(
         categoryId.value !== 'all' ||
         status.value !== 'all' ||
         productId.value !== 'all' ||
+        assigneeId.value !== 'all' ||
         createdBy.value !== 'all' ||
         createdFrom.value !== '' ||
         createdTo.value !== '' ||
@@ -150,6 +157,7 @@ const clearFilters = () => {
     categoryId.value = 'all';
     status.value = 'all';
     productId.value = 'all';
+    assigneeId.value = 'all';
     createdBy.value = 'all';
     createdFrom.value = '';
     createdTo.value = '';
@@ -168,6 +176,8 @@ const exportUrl = computed(() =>
                 categoryId.value !== 'all' ? categoryId.value : undefined,
             status: status.value !== 'all' ? status.value : undefined,
             product_id: productId.value !== 'all' ? productId.value : undefined,
+            assignee_id:
+                assigneeId.value !== 'all' ? assigneeId.value : undefined,
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
@@ -391,6 +401,26 @@ const confirmDelete = (project: ProjectListItem) => {
                         </SelectContent>
                     </Select>
 
+                    <!-- Assigned To Filter -->
+                    <Select
+                        v-model="assigneeId"
+                        @update:model-value="updateFilters"
+                    >
+                        <SelectTrigger class="w-full sm:w-[170px]">
+                            <SelectValue placeholder="Filter by Assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Assignees</SelectItem>
+                            <SelectItem
+                                v-for="user in users"
+                                :key="user.id"
+                                :value="String(user.id)"
+                            >
+                                {{ user.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <!-- Created By Filter -->
                     <Select
                         v-model="createdBy"
@@ -456,6 +486,7 @@ const confirmDelete = (project: ProjectListItem) => {
                             <TableHead>Builder</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Assigned to</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
@@ -490,6 +521,9 @@ const confirmDelete = (project: ProjectListItem) => {
                                     {{ project.status }}
                                 </Badge>
                             </TableCell>
+                            <TableCell>{{
+                                project.assignee?.name ?? '—'
+                            }}</TableCell>
                             <TableCell>
                                 <div class="text-sm">
                                     {{ formatDate(project.created_at) }}
@@ -537,7 +571,7 @@ const confirmDelete = (project: ProjectListItem) => {
                         </TableRow>
                         <TableRow v-if="projects.data.length === 0">
                             <TableCell
-                                :colspan="7"
+                                :colspan="8"
                                 class="text-center text-muted-foreground"
                             >
                                 No projects yet.

@@ -306,3 +306,18 @@ test('the project index can be filtered by a created date range', function () {
             ->has('projects.data', 1)
             ->where('projects.data.0.name', 'Recent Project'));
 });
+
+test('the project index can be filtered by assignee', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $assignee = User::factory()->create();
+    Project::factory()->create(['name' => 'Assigned Project', 'assignee_id' => $assignee->id]);
+    Project::factory()->create(['name' => 'Unassigned Project']);
+
+    $this->actingAs($admin)
+        ->get(route('projects.index', ['assignee_id' => $assignee->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.name', 'Assigned Project')
+            ->where('filters.assignee_id', (string) $assignee->id));
+});

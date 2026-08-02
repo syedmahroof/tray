@@ -36,6 +36,7 @@ class ProjectController extends Controller
         $categoryId = $request->input('project_category_id');
         $status = $request->input('status');
         $productId = $request->input('product_id');
+        $assigneeId = $request->input('assignee_id');
         $createdBy = $request->input('created_by');
         $createdFrom = $request->input('created_from');
         $createdTo = $request->input('created_to');
@@ -53,7 +54,7 @@ class ProjectController extends Controller
                 'completed' => (int) $statusCounts->get('completed', 0),
             ],
             'projects' => $this->filteredQuery($request)
-                ->with(['builder', 'projectCategory', 'creator'])
+                ->with(['builder', 'projectCategory', 'assignee', 'creator'])
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
@@ -68,6 +69,7 @@ class ProjectController extends Controller
                 'project_category_id' => $categoryId,
                 'status' => $status,
                 'product_id' => $productId,
+                'assignee_id' => $assigneeId,
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
                 'created_to' => $createdTo,
@@ -82,7 +84,7 @@ class ProjectController extends Controller
     public function export(Request $request): BinaryFileResponse
     {
         $projects = $this->filteredQuery($request)
-            ->with(['builder', 'projectCategory', 'creator'])
+            ->with(['builder', 'projectCategory', 'assignee', 'creator'])
             ->orderBy('name')
             ->get();
 
@@ -93,13 +95,14 @@ class ProjectController extends Controller
             ucfirst($project->status),
             $project->owner_name,
             $project->location,
+            $project->assignee?->name,
             $project->creator?->name,
             $project->created_at?->format('Y-m-d'),
         ])->all();
 
         return Excel::download(
             new GenericSheetExport(
-                ['Name', 'Builder', 'Category', 'Status', 'Owner', 'Location', 'Created By', 'Created At'],
+                ['Name', 'Builder', 'Category', 'Status', 'Owner', 'Location', 'Assigned To', 'Created By', 'Created At'],
                 $rows,
             ),
             'projects.xlsx',
@@ -128,6 +131,7 @@ class ProjectController extends Controller
             ->when($request->input('project_category_id'), fn ($query, $value) => $query->where('project_category_id', $value))
             ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
             ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
+            ->when($request->input('assignee_id'), fn ($query, $value) => $query->where('assignee_id', $value))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))

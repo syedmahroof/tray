@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationSelect from '@/components/LocationSelect.vue';
@@ -15,11 +17,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { edit, index, update } from '@/routes/builders';
-import type { Branch, Builder, Country } from '@/types';
+import type { Branch, Builder, Country, NamedOption } from '@/types';
 
 const props = defineProps<{
     builder: Builder;
     countries: Country[];
+    users: NamedOption[];
     branches: Branch[];
 }>();
 
@@ -31,6 +34,10 @@ defineOptions({
         ],
     }),
 });
+
+const userOptions = computed(() =>
+    props.users.map((user) => ({ value: String(user.id), label: user.name })),
+);
 </script>
 
 <template>
@@ -109,6 +116,21 @@ defineOptions({
                 :initial-state-id="builder.state_id"
                 :initial-district-id="builder.district_id"
             />
+
+            <div class="grid gap-2">
+                <Label for="assigned_to">Assigned to</Label>
+                <Combobox
+                    name="assigned_to"
+                    placeholder="Select a user"
+                    :options="userOptions"
+                    :model-value="
+                        builder.assigned_to
+                            ? String(builder.assigned_to)
+                            : undefined
+                    "
+                />
+                <InputError :message="errors.assigned_to" />
+            </div>
 
             <div v-if="branches.length > 0" class="grid gap-2">
                 <Label for="branch_id">Branch</Label>

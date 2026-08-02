@@ -20,6 +20,7 @@ class CustomerController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
+        $assignedTo = $request->input('assigned_to');
 
         return Inertia::render('customers/Index', [
             'customers' => Customer::query()
@@ -31,10 +32,15 @@ class CustomerController extends Controller
                             ->orWhere('email', 'like', "%{$search}%");
                     });
                 })
+                ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
-            'filters' => ['search' => $search],
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'search' => $search,
+                'assigned_to' => $assignedTo,
+            ],
         ]);
     }
 

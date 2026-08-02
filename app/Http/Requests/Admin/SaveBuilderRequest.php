@@ -25,6 +25,7 @@ class SaveBuilderRequest extends FormRequest
             'country_id' => ['nullable', Rule::exists('countries', 'id')],
             'state_id' => ['nullable', Rule::exists('states', 'id')],
             'district_id' => ['nullable', Rule::exists('districts', 'id')],
+            'assigned_to' => ['nullable', Rule::exists('users', 'id')],
             'branch_id' => [
                 Rule::requiredIf(BranchAccess::canChooseBranch()), 'nullable',
                 Rule::exists('branches', 'id'),

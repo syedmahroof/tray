@@ -123,3 +123,24 @@ test('builders analytics reports totals split by active status', function () {
     ]);
     expect($response->json('recent'))->toHaveCount(3);
 });
+
+test('assigns a builder to a user and filters the list by assignee', function () {
+    $assignee = User::factory()->create(['branch_id' => $this->branch->id]);
+
+    Sanctum::actingAs($this->user);
+
+    $this->postJson('/api/builders', [
+        'name' => 'Assigned Developers',
+        'assigned_to' => $assignee->id,
+    ])->assertCreated()
+        ->assertJsonPath('assigned_to', $assignee->id)
+        ->assertJsonPath('assignee.id', $assignee->id);
+
+    Builder::factory()->create(['branch_id' => $this->branch->id, 'name' => 'Unassigned Developers']);
+
+    $names = collect($this->getJson("/api/builders?assigned_to={$assignee->id}")->assertOk()->json('data'))
+        ->pluck('name');
+
+    expect($names)->toContain('Assigned Developers');
+    expect($names)->not->toContain('Unassigned Developers');
+});

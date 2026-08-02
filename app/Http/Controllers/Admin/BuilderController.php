@@ -25,6 +25,7 @@ class BuilderController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
+        $assignedTo = $request->input('assigned_to');
         $createdBy = $request->input('created_by');
         $createdFrom = $request->input('created_from');
         $createdTo = $request->input('created_to');
@@ -32,7 +33,7 @@ class BuilderController extends Controller
 
         return Inertia::render('admin/builders/Index', [
             'builders' => Builder::query()
-                ->with(['country', 'state', 'district', 'creator'])
+                ->with(['country', 'state', 'district', 'assignee', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -41,6 +42,7 @@ class BuilderController extends Controller
                             ->orWhere('email', 'like', "%{$search}%");
                     });
                 })
+                ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
                 ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
                 ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
                 ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
@@ -54,6 +56,7 @@ class BuilderController extends Controller
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'filters' => [
                 'search' => $search,
+                'assigned_to' => $assignedTo,
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
                 'created_to' => $createdTo,
@@ -70,7 +73,7 @@ class BuilderController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $builders = Builder::query()
-            ->with(['country', 'state', 'district', 'creator'])
+            ->with(['country', 'state', 'district', 'assignee', 'creator'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -79,6 +82,7 @@ class BuilderController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
@@ -95,13 +99,14 @@ class BuilderController extends Controller
             $builder->email,
             collect([$builder->district?->name, $builder->state?->name, $builder->country?->name])->filter()->join(', '),
             $builder->is_active ? 'Active' : 'Inactive',
+            $builder->assignee?->name,
             $builder->creator?->name,
             $builder->created_at?->format('Y-m-d'),
         ])->all();
 
         return Excel::download(
             new GenericSheetExport(
-                ['Name', 'Contact Person', 'Phone', 'Email', 'Location', 'Status', 'Created By', 'Created At'],
+                ['Name', 'Contact Person', 'Phone', 'Email', 'Location', 'Status', 'Assigned To', 'Created By', 'Created At'],
                 $rows,
             ),
             'builders.xlsx',
@@ -115,6 +120,7 @@ class BuilderController extends Controller
     {
         return Inertia::render('admin/builders/Create', [
             'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
     }
@@ -140,7 +146,7 @@ class BuilderController extends Controller
      */
     public function show(Builder $builder): Response
     {
-        $builder->load(['country', 'state', 'district', 'projects', 'visitReports.user']);
+        $builder->load(['country', 'state', 'district', 'assignee', 'projects', 'visitReports.user']);
 
         return Inertia::render('admin/builders/Show', [
             'builder' => $builder,
@@ -157,6 +163,7 @@ class BuilderController extends Controller
         return Inertia::render('admin/builders/Edit', [
             'builder' => $builder,
             'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
     }

@@ -137,3 +137,59 @@ test('the builder index can be filtered by creator and created date range', func
             ->has('builders.data', 1)
             ->where('builders.data.0.name', 'Creator Builds'));
 });
+
+test('a builder can be assigned to a user on create and update', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $assignee = User::factory()->create(['branch_id' => $branch->id]);
+    $newAssignee = User::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('builders.store'), [
+            'name' => 'Assigned Builds',
+            'assigned_to' => $assignee->id,
+        ])
+        ->assertRedirect(route('builders.index'));
+
+    $builder = Builder::where('name', 'Assigned Builds')->first();
+    expect($builder->assigned_to)->toBe($assignee->id);
+    expect($builder->assignee->is($assignee))->toBeTrue();
+
+    $this->actingAs($manager)
+        ->put(route('builders.update', $builder), [
+            'name' => 'Assigned Builds',
+            'assigned_to' => $newAssignee->id,
+        ])
+        ->assertRedirect(route('builders.index'));
+
+    expect($builder->refresh()->assigned_to)->toBe($newAssignee->id);
+});
+
+test('assigning a builder to a non-existent user fails validation', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->post(route('builders.store'), [
+            'name' => 'Bad Assignee',
+            'assigned_to' => 99999,
+        ])
+        ->assertInvalid(['assigned_to']);
+});
+
+test('the builder index can be filtered by assignee', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $assignee = User::factory()->create();
+    Builder::factory()->create(['name' => 'Assigned Builds', 'assigned_to' => $assignee->id]);
+    Builder::factory()->create(['name' => 'Unassigned Builds']);
+
+    $this->actingAs($admin)
+        ->get(route('builders.index', ['assigned_to' => $assignee->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('builders.data', 1)
+            ->where('builders.data.0.name', 'Assigned Builds')
+            ->where('filters.assigned_to', (string) $assignee->id));
+});

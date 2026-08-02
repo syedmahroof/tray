@@ -81,6 +81,7 @@ export type Builder = {
     state_id: number | null;
     district_id: number | null;
     is_active: boolean;
+    assigned_to: number | null;
     created_by: number | null;
     created_at: string;
 };
@@ -89,6 +90,7 @@ export type BuilderListItem = Builder & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    assignee: NamedOption | null;
     creator: NamedOption | null;
 };
 
@@ -138,6 +140,7 @@ export type Project = {
 export type ProjectListItem = Project & {
     builder: NamedOption | null;
     project_category: NamedOption;
+    assignee: NamedOption | null;
     creator: NamedOption | null;
 };
 

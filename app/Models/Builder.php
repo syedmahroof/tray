@@ -23,13 +23,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $state_id
  * @property int|null $district_id
  * @property bool $is_active
+ * @property int|null $assigned_to
  * @property int|null $created_by
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
+ * @property-read User|null $assignee
  * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'is_active', 'created_by'])]
+#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'is_active', 'assigned_to', 'created_by'])]
 class Builder extends Model
 {
     use BelongsToBranch;
@@ -85,6 +87,18 @@ class Builder extends Model
     public function quotations(): HasMany
     {
         return $this->hasMany(Quotation::class);
+    }
+
+    /**
+     * Named "assignee" rather than "assignedTo" because the latter would
+     * snake_case to "assigned_to" when serialized, colliding with the
+     * raw assigned_to foreign key column.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     /**

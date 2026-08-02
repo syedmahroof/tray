@@ -30,12 +30,16 @@ import QuotationsCard from '@/components/QuotationsCard.vue';
 import { edit, index, show } from '@/routes/builders';
 import { show as showProject } from '@/routes/projects';
 import { create as createQuotation } from '@/routes/quotations';
-import { show as showVisitReport, create as createVisitReport } from '@/routes/visit-reports';
+import {
+    show as showVisitReport,
+    create as createVisitReport,
+} from '@/routes/visit-reports';
 import type {
     Builder,
     Country,
     State,
     District,
+    NamedOption,
     Project,
     QuotationSummary,
     VisitReport,
@@ -50,6 +54,7 @@ type BuilderDetail = Builder & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    assignee: NamedOption | null;
     projects: Project[];
 };
 
@@ -149,6 +154,12 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                 class="h-3.5 w-3.5 text-blue-500"
                             />
                             {{ builder.email ?? '—' }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Assigned To</p>
+                        <p class="text-sm font-medium">
+                            {{ builder.assignee?.name ?? '—' }}
                         </p>
                     </div>
                     <div>
@@ -299,7 +310,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
                 />
             </div>
 
-            <div class="md:col-span-2 space-y-4">
+            <div class="space-y-4 md:col-span-2">
                 <Card>
                     <CardHeader
                         class="flex flex-row items-center justify-between border-b pb-3"

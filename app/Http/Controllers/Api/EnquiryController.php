@@ -24,6 +24,7 @@ class EnquiryController extends Controller
                         ->orWhereHas('product', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
                 });
             })
+            ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
             ->latest()
             ->paginate(15);
 
@@ -59,6 +60,7 @@ class EnquiryController extends Controller
         $validated['branch_id'] = $request->user()?->branch_id ?? 1;
 
         $enquiry = Enquiry::create($validated);
+
         return response()->json($enquiry->load(['customer', 'contact', 'assignee']), 201);
     }
 
@@ -76,12 +78,14 @@ class EnquiryController extends Controller
         ]);
 
         $enquiry->update($validated);
+
         return response()->json($enquiry->load(['customer', 'contact', 'assignee']));
     }
 
     public function destroy(Enquiry $enquiry)
     {
         $enquiry->delete();
+
         return response()->json(['message' => 'Enquiry deleted successfully']);
     }
 }

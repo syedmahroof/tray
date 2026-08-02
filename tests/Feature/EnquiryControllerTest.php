@@ -93,3 +93,18 @@ test('the enquiry index can be filtered by the related contact name', function (
             ->where('enquiries.data.0.contact.name', 'Findable Fiona')
             ->where('filters.search', 'Fiona'));
 });
+
+test('the enquiry index can be filtered by assignee', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $assignee = User::factory()->create();
+    $assigned = Enquiry::factory()->create(['assigned_to' => $assignee->id]);
+    Enquiry::factory()->create();
+
+    $this->actingAs($admin)
+        ->get(route('enquiries.index', ['assigned_to' => $assignee->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('enquiries.data', 1)
+            ->where('enquiries.data.0.id', $assigned->id)
+            ->where('filters.assigned_to', (string) $assignee->id));
+});

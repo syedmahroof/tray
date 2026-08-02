@@ -93,3 +93,18 @@ test('the customer index can be filtered by a search term', function () {
             ->where('customers.data.0.name', 'Searchable Sam')
             ->where('filters.search', 'Searchable'));
 });
+
+test('the customer index can be filtered by assignee', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $assignee = User::factory()->create();
+    Customer::factory()->create(['name' => 'Assigned Amy', 'assigned_to' => $assignee->id]);
+    Customer::factory()->create(['name' => 'Unassigned Ursula']);
+
+    $this->actingAs($admin)
+        ->get(route('customers.index', ['assigned_to' => $assignee->id]))
+        ->assertInertia(fn ($page) => $page
+            ->has('customers.data', 1)
+            ->where('customers.data.0.name', 'Assigned Amy')
+            ->where('filters.assigned_to', (string) $assignee->id));
+});

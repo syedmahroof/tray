@@ -52,6 +52,7 @@ const props = defineProps<{
     builders: Paginated<BuilderListItem>;
     users: NamedOption[];
     filters: Filters & {
+        assigned_to?: string | number;
         created_by?: string | number;
         created_from?: string;
         created_to?: string;
@@ -66,6 +67,9 @@ defineOptions({
 });
 
 const search = ref(props.filters.search ?? '');
+const assignedTo = ref(
+    props.filters.assigned_to ? String(props.filters.assigned_to) : 'all',
+);
 const createdBy = ref(
     props.filters.created_by ? String(props.filters.created_by) : 'all',
 );
@@ -78,6 +82,8 @@ const updateFilters = () => {
         window.location.pathname,
         {
             search: search.value || undefined,
+            assigned_to:
+                assignedTo.value !== 'all' ? assignedTo.value : undefined,
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
@@ -95,6 +101,7 @@ const updateFilters = () => {
 const hasActiveFilters = computed(
     () =>
         search.value !== '' ||
+        assignedTo.value !== 'all' ||
         createdBy.value !== 'all' ||
         createdFrom.value !== '' ||
         createdTo.value !== '' ||
@@ -103,6 +110,7 @@ const hasActiveFilters = computed(
 
 const clearFilters = () => {
     search.value = '';
+    assignedTo.value = 'all';
     createdBy.value = 'all';
     createdFrom.value = '';
     createdTo.value = '';
@@ -116,6 +124,8 @@ const exportUrl = computed(() =>
     exportMethod.url({
         query: {
             search: search.value || undefined,
+            assigned_to:
+                assignedTo.value !== 'all' ? assignedTo.value : undefined,
             created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
             created_from: createdFrom.value || undefined,
             created_to: createdTo.value || undefined,
@@ -172,6 +182,26 @@ const confirmDelete = (builder: BuilderListItem) => {
                             data-test="search-input"
                         />
                     </div>
+
+                    <!-- Assigned To Filter -->
+                    <Select
+                        v-model="assignedTo"
+                        @update:model-value="updateFilters"
+                    >
+                        <SelectTrigger class="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by Assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Assignees</SelectItem>
+                            <SelectItem
+                                v-for="user in users"
+                                :key="user.id"
+                                :value="String(user.id)"
+                            >
+                                {{ user.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
 
                     <!-- Created By Filter -->
                     <Select
@@ -263,6 +293,7 @@ const confirmDelete = (builder: BuilderListItem) => {
                             <TableHead>Contact</TableHead>
                             <TableHead>Location</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Assigned to</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
@@ -317,6 +348,9 @@ const confirmDelete = (builder: BuilderListItem) => {
                                     }}
                                 </Badge>
                             </TableCell>
+                            <TableCell>{{
+                                builder.assignee?.name ?? '—'
+                            }}</TableCell>
                             <TableCell>
                                 <div class="text-sm">
                                     {{ formatDate(builder.created_at) }}
@@ -364,7 +398,7 @@ const confirmDelete = (builder: BuilderListItem) => {
                         </TableRow>
                         <TableRow v-if="builders.data.length === 0">
                             <TableCell
-                                :colspan="7"
+                                :colspan="8"
                                 class="text-center text-muted-foreground"
                             >
                                 No builders yet.

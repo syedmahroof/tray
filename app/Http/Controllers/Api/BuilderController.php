@@ -15,7 +15,7 @@ class BuilderController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $builders = Builder::query()
-            ->with(['country', 'state', 'district'])
+            ->with(['country', 'state', 'district', 'assignee'])
             ->withCount('projects')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -25,6 +25,7 @@ class BuilderController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
@@ -39,7 +40,7 @@ class BuilderController extends Controller
 
     public function show(Builder $builder): JsonResponse
     {
-        $builder->load(['country', 'state', 'district', 'creator', 'visitReports']);
+        $builder->load(['country', 'state', 'district', 'assignee', 'creator', 'visitReports']);
         $builder->loadCount('projects');
 
         return response()->json([
@@ -59,7 +60,7 @@ class BuilderController extends Controller
 
         $builder = Builder::create($validated);
 
-        return response()->json($builder->load(['country', 'state', 'district']), 201);
+        return response()->json($builder->load(['country', 'state', 'district', 'assignee']), 201);
     }
 
     public function update(Request $request, Builder $builder): JsonResponse
@@ -72,7 +73,7 @@ class BuilderController extends Controller
 
         $builder->update($validated);
 
-        return response()->json($builder->load(['country', 'state', 'district']));
+        return response()->json($builder->load(['country', 'state', 'district', 'assignee']));
     }
 
     public function destroy(Builder $builder): JsonResponse
@@ -104,6 +105,7 @@ class BuilderController extends Controller
             'country_id' => 'nullable|exists:countries,id',
             'state_id' => 'nullable|exists:states,id',
             'district_id' => 'nullable|exists:districts,id',
+            'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
     }
 }

@@ -21,6 +21,7 @@ class CustomerController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
             ->orderBy('name')
             ->paginate(15);
 
@@ -55,6 +56,7 @@ class CustomerController extends Controller
         $validated['branch_id'] = $request->user()?->branch_id ?? 1;
 
         $customer = Customer::create($validated);
+
         return response()->json($customer->load(['assignee']), 201);
     }
 
@@ -73,12 +75,14 @@ class CustomerController extends Controller
         ]);
 
         $customer->update($validated);
+
         return response()->json($customer->load(['assignee']));
     }
 
     public function destroy(Customer $customer)
     {
         $customer->delete();
+
         return response()->json(['message' => 'Customer deleted successfully']);
     }
 }
