@@ -87,7 +87,6 @@ test('a sales executive can create an enquiry against a contact with a project a
         'name' => 'Skyline Residency',
     ]);
     Product::factory()->create([
-        'branch_id' => $branch->id,
         'product_category_id' => $productCategory->id,
         'name' => '2BHK Tower A',
     ]);

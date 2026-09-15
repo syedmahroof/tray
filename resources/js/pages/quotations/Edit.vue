@@ -4,14 +4,14 @@ import { ArrowLeft } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import QuotationForm from '@/components/QuotationForm.vue';
 import { edit, index, show } from '@/routes/quotations';
-import type { Branch, NamedOption, QuotationDetail } from '@/types';
+import type {
+    Branch,
+    NamedOption,
+    QuotationDetail,
+    QuotationProductOption,
+    RateTier,
+} from '@/types';
 
-type ProductOption = NamedOption & {
-    price: string | null;
-    taxable_amount: string | null;
-    hsn_code: string | null;
-    tax_percentage: string;
-};
 type ContactOption = NamedOption & {
     phone: string | null;
     email: string | null;
@@ -25,10 +25,12 @@ defineProps<{
     projects: NamedOption[];
     enquiries: NamedOption[];
     builders: NamedOption[];
-    products: ProductOption[];
+    products: QuotationProductOption[];
     statuses: string[];
+    rateTiers: Record<RateTier, string>;
     gstSlabs: Record<string, number>;
     branches: Branch[];
+    defaultBranchId: number | null;
 }>();
 
 defineOptions({
@@ -73,8 +75,10 @@ defineOptions({
             :builders="builders"
             :products="products"
             :statuses="statuses"
+            :rate-tiers="rateTiers"
             :gst-slabs="gstSlabs"
             :branches="branches"
+            :default-branch-id="defaultBranchId"
         />
     </div>
 </template>

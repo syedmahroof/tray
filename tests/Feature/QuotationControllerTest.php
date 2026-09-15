@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Products\SaveProductBranchPrice;
 use App\Mail\QuotationMail;
 use App\Models\Branch;
 use App\Models\Builder;
@@ -30,7 +31,7 @@ test('a quotation is created with computed totals, generated number, and items',
     $manager->assignRole('Manager');
     $customer = Customer::factory()->create(['branch_id' => $branch->id]);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
-    $product = Product::factory()->create(['branch_id' => $branch->id]);
+    $product = Product::factory()->create();
 
     $this->actingAs($manager)
         ->post(route('quotations.store'), [
@@ -90,6 +91,55 @@ test('an inter-state quotation applies IGST instead of CGST and SGST', function 
     expect((float) $quotation->cgst_amount)->toBe(0.0);
     expect((float) $quotation->sgst_amount)->toBe(0.0);
     expect((float) $quotation->total)->toBe(1180.0);
+});
+
+test('the quotation form carries each product\'s rate per tier for the user\'s branches', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $product = Product::factory()->create(['tax_percentage' => 18]);
+    Customer::factory()->create(['branch_id' => $branch->id, 'rate_tier' => 'CR']);
+
+    app(SaveProductBranchPrice::class)->handle($product, $branch, [
+        'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
+    ]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('quotations/Create')
+            ->where('customers.0.rate_tier', 'CR')
+            ->where('rateTiers.PR', 'Project Rate')
+            ->where('defaultBranchId', $branch->id)
+            ->where("products.0.rates.{$branch->id}.SR", '100.00')
+            ->where("products.0.rates.{$branch->id}.PR", '110.00')
+            ->where("products.0.rates.{$branch->id}.CR", '120.00'));
+});
+
+test('a quotation keeps the chosen rate tier and rejects an unknown one', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+
+    $payload = fn (string $tier): array => [
+        'customer_id' => $customer->id,
+        'quotation_date' => '2026-09-10',
+        'status' => 'draft',
+        'supply_type' => 'intra',
+        'rate_tier' => $tier,
+        'items' => [
+            ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 110, 'tax_percentage' => 18],
+        ],
+    ];
+
+    $this->actingAs($manager)->post(route('quotations.store'), $payload('PR'))->assertRedirect();
+
+    expect(Quotation::first()->rate_tier)->toBe('PR');
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), $payload('XX'))
+        ->assertSessionHasErrors('rate_tier');
 });
 
 test('a quotation requires at least one item', function () {
@@ -349,6 +399,7 @@ test('revising a quotation clones it as a new version and supersedes the source'
         'branch_id' => $branch->id,
         'number' => 'QT-2026-00007',
         'status' => 'sent',
+        'rate_tier' => 'PR',
         'total' => 1500,
     ]);
     $quotation->items()->create(['description' => 'Line', 'quantity' => 3, 'unit_price' => 500]);
@@ -362,6 +413,7 @@ test('revising a quotation clones it as a new version and supersedes the source'
     expect($revision->version)->toBe(2);
     expect($revision->number)->toBe('QT-2026-00007-R2');
     expect($revision->status)->toBe('draft');
+    expect($revision->rate_tier)->toBe('PR');
     expect($revision->items)->toHaveCount(1);
     expect($quotation->fresh()->status)->toBe('revised');
 });

@@ -1,4 +1,10 @@
-import type { Country, District, NamedOption, State } from '@/types/admin';
+import type {
+    Country,
+    District,
+    NamedOption,
+    RateTier,
+    State,
+} from '@/types/admin';
 
 export type Contact = {
     id: number;
@@ -56,6 +62,8 @@ export type Customer = {
     state_id: number | null;
     district_id: number | null;
     assigned_to: number | null;
+    /** The rate tier this customer's quotations are priced at by default. */
+    rate_tier: RateTier | null;
 };
 
 export type CustomerListItem = Customer & {
@@ -209,6 +217,15 @@ export type QuotationItem = {
 
 export type QuotationSupplyType = 'intra' | 'inter';
 
+/** A product in the quotation line picker, with its ex-tax rates per branch. */
+export type QuotationProductOption = NamedOption & {
+    price: string | null;
+    taxable_amount: string | null;
+    hsn_code: string | null;
+    tax_percentage: string;
+    rates: Record<number, Record<RateTier, string | null>>;
+};
+
 export type Quotation = {
     id: number;
     branch_id: number;
@@ -222,6 +239,7 @@ export type Quotation = {
     builder_id: number | null;
     gstin: string | null;
     supply_type: QuotationSupplyType;
+    rate_tier: RateTier | null;
     quotation_date: string;
     valid_until: string | null;
     status: QuotationStatus;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBrandRequest;
 use App\Models\Brand;
+use App\Support\StoredImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,8 +36,9 @@ class BrandController extends Controller
     public function store(SaveBrandRequest $request): RedirectResponse
     {
         Brand::create([
-            ...$request->validated(),
+            ...$request->safe()->except(['logo', 'remove_logo']),
             'is_active' => $request->boolean('is_active'),
+            'logo_path' => StoredImage::sync(null, $request->file('logo'), false, 'brands'),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Brand created.')]);
@@ -50,8 +52,14 @@ class BrandController extends Controller
     public function update(SaveBrandRequest $request, Brand $brand): RedirectResponse
     {
         $brand->update([
-            ...$request->validated(),
+            ...$request->safe()->except(['logo', 'remove_logo']),
             'is_active' => $request->boolean('is_active'),
+            'logo_path' => StoredImage::sync(
+                $brand->logo_path,
+                $request->file('logo'),
+                $request->boolean('remove_logo'),
+                'brands',
+            ),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Brand updated.')]);
@@ -71,6 +79,7 @@ class BrandController extends Controller
         }
 
         $brand->delete();
+        StoredImage::delete($brand->logo_path);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Brand deleted.')]);
 

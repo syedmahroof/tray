@@ -33,7 +33,7 @@ test('authenticated users can search projects, builders, contacts, products, cus
     $project = Project::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Residency', 'project_category_id' => $projectCategory->id]);
     $builder = Builder::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Developers']);
     $contact = Contact::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Buyer']);
-    $product = Product::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Product', 'product_category_id' => $productCategory->id]);
+    $product = Product::factory()->create(['name' => 'Skyline Product', 'product_category_id' => $productCategory->id]);
     $customer = Customer::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Customer']);
     $enquiry = Enquiry::factory()->create([
         'branch_id' => $branch->id,

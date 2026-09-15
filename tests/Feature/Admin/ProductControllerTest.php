@@ -7,6 +7,8 @@ use App\Models\ProductCategory;
 use App\Models\Project;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -49,7 +51,6 @@ test('managers can create, update, and delete a product', function () {
 
     $product = Product::where('name', 'Unit 12B')->first();
     expect($product)->not->toBeNull();
-    expect($product->branch_id)->toBe($manager->branch_id);
     expect($product->created_by)->toBe($manager->id);
     expect((float) $product->price)->toBe(4500000.0);
 
@@ -67,6 +68,60 @@ test('managers can create, update, and delete a product', function () {
         ->assertRedirect(route('products.index'));
 
     $this->assertModelMissing($product);
+});
+
+test('a product image can be uploaded, replaced and removed', function () {
+    Storage::fake('public');
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+    $fields = ['product_category_id' => $category->id, 'name' => 'Slotted Channel'];
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [...$fields, 'image' => UploadedFile::fake()->image('channel.jpg')])
+        ->assertRedirect(route('products.index'));
+
+    $product = Product::where('name', 'Slotted Channel')->first();
+    $first = $product->image_path;
+    expect($first)->toStartWith('products/');
+    expect($product->image_url)->toContain('/storage/products/');
+    Storage::disk('public')->assertExists($first);
+
+    $this->actingAs($manager)
+        ->get(route('products.index'))
+        ->assertInertia(fn ($page) => $page->where('products.data.0.image_url', $product->image_url));
+
+    // A new upload replaces the file rather than leaving the old one behind.
+    $this->actingAs($manager)
+        ->patch(route('products.update', $product), [...$fields, 'image' => UploadedFile::fake()->image('channel-v2.png')])
+        ->assertRedirect();
+
+    $second = $product->refresh()->image_path;
+    expect($second)->not->toBe($first);
+    Storage::disk('public')->assertMissing($first);
+    Storage::disk('public')->assertExists($second);
+
+    $this->actingAs($manager)
+        ->patch(route('products.update', $product), [...$fields, 'remove_image' => '1'])
+        ->assertRedirect();
+
+    expect($product->refresh()->image_path)->toBeNull();
+    Storage::disk('public')->assertMissing($second);
+});
+
+test('a product image must be a picture of a sensible size', function () {
+    Storage::fake('public');
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+    $fields = ['product_category_id' => ProductCategory::factory()->create()->id, 'name' => 'Channel'];
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [...$fields, 'image' => UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf')])
+        ->assertSessionHasErrors('image');
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [...$fields, 'image' => UploadedFile::fake()->image('huge.jpg')->size(3000)])
+        ->assertSessionHasErrors('image');
 });
 
 test('a product can be created with HSN code and GST tax fields', function () {
@@ -168,4 +223,57 @@ test('the product index can be filtered by creator and created date range', func
         ->assertInertia(fn ($page) => $page
             ->has('products.data', 1)
             ->where('products.data.0.name', 'Creator Unit'));
+});
+
+test('a product created without a code is given a generated one', function () {
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create(['name' => 'Supports']);
+    $brand = Brand::factory()->create(['name' => 'Leader']);
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'name' => 'Slotted Channel 1.2 MM',
+            'code' => '',
+        ])
+        ->assertRedirect(route('products.index'));
+
+    expect(Product::where('name', 'Slotted Channel 1.2 MM')->value('code'))->toBe('SUP-LEA-00001');
+});
+
+test('a product keeps the code the user supplies', function () {
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'name' => 'Threaded Rod 8 MM',
+            'code' => 'KAP-TR-008',
+            'unit' => 'Mtr',
+        ])
+        ->assertRedirect(route('products.index'));
+
+    $product = Product::where('name', 'Threaded Rod 8 MM')->first();
+
+    expect($product->code)->toBe('KAP-TR-008');
+    expect($product->unit)->toBe('Mtr');
+});
+
+test('a product code must be unique', function () {
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+    $category = ProductCategory::factory()->create();
+    Product::factory()->create(['code' => 'DUP-001']);
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'name' => 'Clashing Product',
+            'code' => 'DUP-001',
+        ])
+        ->assertSessionHasErrors('code');
 });

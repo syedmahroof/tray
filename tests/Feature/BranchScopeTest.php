@@ -2,6 +2,7 @@
 
 use App\Models\Branch;
 use App\Models\Product;
+use App\Models\ProductBranchPrice;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 
@@ -12,10 +13,33 @@ beforeEach(function () {
     $this->branchB = Branch::factory()->create();
     $this->branchC = Branch::factory()->create();
 
-    Product::factory()->create(['branch_id' => $this->branchA->id, 'name' => 'Product A']);
-    Product::factory()->create(['branch_id' => $this->branchB->id, 'name' => 'Product B']);
-    Product::factory()->create(['branch_id' => $this->branchC->id, 'name' => 'Product C']);
+    // Products themselves are global; the branch scope now guards their prices.
+    ProductBranchPrice::factory()->create([
+        'branch_id' => $this->branchA->id,
+        'product_id' => Product::factory()->create(['name' => 'Product A']),
+    ]);
+    ProductBranchPrice::factory()->create([
+        'branch_id' => $this->branchB->id,
+        'product_id' => Product::factory()->create(['name' => 'Product B']),
+    ]);
+    ProductBranchPrice::factory()->create([
+        'branch_id' => $this->branchC->id,
+        'product_id' => Product::factory()->create(['name' => 'Product C']),
+    ]);
 });
+
+/**
+ * Resolve the product names reachable through the scoped price rows.
+ *
+ * @return list<string>
+ */
+function visibleProductNames(): array
+{
+    return ProductBranchPrice::with('product')
+        ->get()
+        ->map(fn (ProductBranchPrice $price): string => $price->product->name)
+        ->all();
+}
 
 test('a user only sees records from the single branch they belong to', function () {
     $user = User::factory()->create(['branch_id' => $this->branchA->id]);
@@ -24,7 +48,7 @@ test('a user only sees records from the single branch they belong to', function 
 
     $this->actingAs($user);
 
-    expect(Product::pluck('name')->all())->toEqualCanonicalizing(['Product A']);
+    expect(visibleProductNames())->toEqualCanonicalizing(['Product A']);
 });
 
 test('a user sees records from every branch assigned to them', function () {
@@ -34,7 +58,7 @@ test('a user sees records from every branch assigned to them', function () {
 
     $this->actingAs($user);
 
-    expect(Product::pluck('name')->all())->toEqualCanonicalizing(['Product A', 'Product B']);
+    expect(visibleProductNames())->toEqualCanonicalizing(['Product A', 'Product B']);
 });
 
 test('a legacy user without pivot rows falls back to their primary branch', function () {
@@ -43,7 +67,7 @@ test('a legacy user without pivot rows falls back to their primary branch', func
 
     $this->actingAs($user);
 
-    expect(Product::pluck('name')->all())->toEqualCanonicalizing(['Product C']);
+    expect(visibleProductNames())->toEqualCanonicalizing(['Product C']);
 });
 
 test('admins see records across every branch', function () {
@@ -53,6 +77,6 @@ test('admins see records across every branch', function () {
 
     $this->actingAs($admin);
 
-    expect(Product::pluck('name')->all())
+    expect(visibleProductNames())
         ->toEqualCanonicalizing(['Product A', 'Product B', 'Product C']);
 });

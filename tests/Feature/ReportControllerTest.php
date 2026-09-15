@@ -23,8 +23,8 @@ test('the reports page surfaces the most enquired products', function () {
     $admin = User::factory()->create(['branch_id' => $branch->id]);
     $admin->assignRole('Admin');
 
-    $popular = Product::factory()->create(['branch_id' => $branch->id, 'name' => 'Popular Unit']);
-    $other = Product::factory()->create(['branch_id' => $branch->id, 'name' => 'Quiet Unit']);
+    $popular = Product::factory()->create(['name' => 'Popular Unit']);
+    $other = Product::factory()->create(['name' => 'Quiet Unit']);
     $contact = Contact::factory()->create(['branch_id' => $branch->id]);
 
     Enquiry::factory()->count(3)->create([

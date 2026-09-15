@@ -36,6 +36,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:products.view')
         ->name('products.export');
 
+    Route::get('products/price-list', [ProductController::class, 'priceList'])
+        ->middleware('permission:products.price.view')
+        ->name('products.price-list');
+
+    Route::get('products/price-list/export', [ProductController::class, 'exportPriceList'])
+        ->middleware('permission:products.price.view')
+        ->name('products.price-list.export');
+
+    Route::get('products/price-list/export-branches', [ProductController::class, 'exportPriceListByBranch'])
+        ->middleware('permission:products.price.view')
+        ->name('products.price-list.export-branches');
+
+    Route::patch('products/{product}/branch-prices/{branch}', [ProductController::class, 'updateBranchPrice'])
+        ->middleware('permission:products.price.update')
+        ->name('products.branch-prices.update');
+
     Route::resource('products', ProductController::class)
         ->middlewareFor(['index', 'show'], 'permission:products.view')
         ->middlewareFor(['create', 'store'], 'permission:products.create')

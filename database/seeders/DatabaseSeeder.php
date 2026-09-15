@@ -49,6 +49,9 @@ class DatabaseSeeder extends Seeder
         $superAdmin->assignRole('Super Admin');
         $superAdmin->branches()->sync([$branch->id]);
 
-        $this->call(GokulamAndThulaProjectSeeder::class);
+        $this->call([
+            ProductPriceSeeder::class,
+            GokulamAndThulaProjectSeeder::class,
+        ]);
     }
 }

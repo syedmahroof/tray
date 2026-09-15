@@ -44,6 +44,12 @@ export type CategoryItem = {
     id: number;
     name: string;
     is_active: boolean;
+    /** Set on product categories. */
+    image_url?: string | null;
+    /** Set on brands. */
+    logo_url?: string | null;
+    /** Optional count (e.g. product count on categories). */
+    products_count?: number;
 };
 
 export type Country = {
@@ -144,12 +150,49 @@ export type ProjectListItem = Project & {
     creator: NamedOption | null;
 };
 
+export type RateTier = 'SR' | 'PR' | 'CR';
+
+export type ProductBranchPrice = {
+    id: number;
+    product_id: number;
+    branch_id: number;
+    branch?: Branch;
+    cost: string | null;
+    mrp: string | null;
+    sr_discount: string | null;
+    sr_rate: string | null;
+    sr_rate_with_tax: string | null;
+    pr_discount: string | null;
+    pr_rate: string | null;
+    pr_rate_with_tax: string | null;
+    cr_discount: string | null;
+    cr_rate: string | null;
+    cr_rate_with_tax: string | null;
+    effective_from: string | null;
+    is_active: boolean;
+    notes: string | null;
+};
+
+export type ProductPriceHistory = {
+    id: number;
+    product_id: number;
+    branch_id: number;
+    branch?: Branch;
+    user: NamedOption | null;
+    field: string;
+    old_value: string | null;
+    new_value: string | null;
+    reason: string | null;
+    changed_at: string;
+};
+
 export type Product = {
     id: number;
-    branch_id: number;
     product_category_id: number;
     brand_id: number | null;
+    code: string | null;
     name: string;
+    unit: string | null;
     hsn_code: string | null;
     price: string | null;
     taxable_amount: string | null;
@@ -157,12 +200,55 @@ export type Product = {
     tax_percentage: string;
     area_sqft: string | null;
     description: string | null;
+    image_url: string | null;
     created_by: number | null;
     created_at: string;
+};
+
+/** One product's rates in one branch, as the price list renders them. */
+export type BranchPriceCells = {
+    cost: string | null;
+    mrp: string | null;
+    sr_discount: string | null;
+    sr_rate: string | null;
+    sr_rate_with_tax: string | null;
+    pr_discount: string | null;
+    pr_rate: string | null;
+    pr_rate_with_tax: string | null;
+    cr_discount: string | null;
+    cr_rate: string | null;
+    cr_rate_with_tax: string | null;
+};
+
+/** A row of the workbook-shaped price list. */
+export type PriceMatrixRow = {
+    id: number;
+    code: string | null;
+    name: string;
+    unit: string | null;
+    hsn_code: string | null;
+    tax_percentage: string;
+    category: string | null;
+    category_id: number;
+    brand: string | null;
+    prices: Record<number, BranchPriceCells | null>;
+};
+
+export type ProductFilters = {
+    search: string;
+    product_category_ids: number[] | null;
+    brand_ids: number[] | null;
+    branch_ids: number[] | null;
+    unit: string | null;
+    created_by?: string | number | null;
+    created_from?: string | null;
+    created_to?: string | null;
 };
 
 export type ProductListItem = Product & {
     product_category: NamedOption;
     brand: NamedOption | null;
     creator: NamedOption | null;
+    branch_prices_count?: number;
+    branch_prices?: ProductBranchPrice[];
 };

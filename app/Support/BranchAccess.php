@@ -44,6 +44,6 @@ class BranchAccess
             $query->whereIn('id', $user->accessibleBranchIds());
         }
 
-        return $query->get(['id', 'name']);
+        return $query->get(['id', 'name', 'code']);
     }
 }

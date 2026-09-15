@@ -48,8 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('destroy', 'permission:project-categories.delete');
 
     Route::resource('product-categories', ProductCategoryController::class)
-        ->only(['index', 'store', 'update', 'destroy'])
-        ->middlewareFor('index', 'permission:product-categories.view')
+        ->only(['index', 'show', 'store', 'update', 'destroy'])
+        ->middlewareFor(['index', 'show'], 'permission:product-categories.view')
         ->middlewareFor('store', 'permission:product-categories.create')
         ->middlewareFor('update', 'permission:product-categories.update')
         ->middlewareFor('destroy', 'permission:product-categories.delete');

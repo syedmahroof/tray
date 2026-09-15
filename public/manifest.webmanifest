@@ -1,0 +1,25 @@
+{
+    "id": "/",
+    "name": "Build Tech CRM",
+    "short_name": "Build Tech",
+    "description": "Build Tech CRM for managing customers, enquiries, quotations, and reports.",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1d4ed8",
+    "icons": [
+        {
+            "src": "/pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
+}

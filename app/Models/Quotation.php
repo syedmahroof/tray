@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $builder_id
  * @property string|null $gstin
  * @property string $supply_type
+ * @property string|null $rate_tier
  * @property Carbon $quotation_date
  * @property Carbon|null $valid_until
  * @property string $status
@@ -50,7 +51,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'branch_id', 'number', 'version', 'parent_id', 'customer_id', 'contact_id', 'project_id',
-    'enquiry_id', 'builder_id', 'gstin', 'supply_type', 'quotation_date',
+    'enquiry_id', 'builder_id', 'gstin', 'supply_type', 'rate_tier', 'quotation_date',
     'valid_until', 'status', 'subtotal', 'discount', 'tax_percent', 'tax_amount',
     'cgst_amount', 'sgst_amount', 'igst_amount', 'total', 'notes', 'terms',
     'created_by',

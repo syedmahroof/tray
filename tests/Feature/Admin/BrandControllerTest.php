@@ -4,6 +4,8 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -44,6 +46,51 @@ test('managers can create, update, and delete a brand', function () {
         ->assertRedirect(route('brands.index'));
 
     $this->assertModelMissing($brand);
+});
+
+test('a brand logo can be uploaded, replaced and removed', function () {
+    Storage::fake('public');
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->post(route('brands.store'), [
+            'name' => 'Fibrocast',
+            'is_active' => true,
+            'logo' => UploadedFile::fake()->image('fibrocast.png'),
+        ])
+        ->assertRedirect(route('brands.index'));
+
+    $brand = Brand::where('name', 'Fibrocast')->first();
+    $first = $brand->logo_path;
+    expect($first)->toStartWith('brands/');
+    expect($brand->logo_url)->toContain('/storage/brands/');
+
+    $this->actingAs($manager)
+        ->get(route('brands.index'))
+        ->assertInertia(fn ($page) => $page->where('brands.data.0.logo_url', $brand->logo_url));
+
+    $this->actingAs($manager)
+        ->post(route('brands.update', $brand), [
+            '_method' => 'put',
+            'name' => 'Fibrocast',
+            'is_active' => true,
+            'logo' => UploadedFile::fake()->image('fibrocast-2024.png'),
+        ])
+        ->assertRedirect(route('brands.index'));
+
+    Storage::disk('public')->assertMissing($first);
+    Storage::disk('public')->assertExists($brand->refresh()->logo_path);
+
+    $this->actingAs($manager)
+        ->post(route('brands.update', $brand), [
+            '_method' => 'put',
+            'name' => 'Fibrocast',
+            'remove_logo' => '1',
+        ])
+        ->assertRedirect(route('brands.index'));
+
+    expect($brand->refresh()->logo_path)->toBeNull();
 });
 
 test('brand names must be unique', function () {

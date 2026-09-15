@@ -50,6 +50,30 @@ test('sales executives can create, update, and delete a customer within their ow
     $this->assertModelMissing($customer);
 });
 
+test('a customer keeps a default price type, which can be cleared', function () {
+    $branch = Branch::factory()->create();
+    $salesExecutive = User::factory()->create(['branch_id' => $branch->id]);
+    $salesExecutive->assignRole('Sales Executive');
+
+    $this->actingAs($salesExecutive)
+        ->post(route('customers.store'), ['name' => 'Project Buyer', 'rate_tier' => 'PR'])
+        ->assertRedirect();
+
+    $customer = Customer::where('name', 'Project Buyer')->first();
+    expect($customer->rate_tier)->toBe('PR');
+
+    // "No default" is submitted as "none" because a select cannot be empty.
+    $this->actingAs($salesExecutive)
+        ->patch(route('customers.update', $customer), ['name' => 'Project Buyer', 'rate_tier' => 'none'])
+        ->assertRedirect(route('customers.show', $customer));
+
+    expect($customer->refresh()->rate_tier)->toBeNull();
+
+    $this->actingAs($salesExecutive)
+        ->patch(route('customers.update', $customer), ['name' => 'Project Buyer', 'rate_tier' => 'XX'])
+        ->assertSessionHasErrors('rate_tier');
+});
+
 test('a customer can be created with a GST number', function () {
     $branch = Branch::factory()->create();
     $salesExecutive = User::factory()->create(['branch_id' => $branch->id]);

@@ -28,6 +28,8 @@ const props = defineProps<{
     placeholder?: string;
     emptyText?: string;
     disabled?: boolean;
+    /** Extra classes for the dropdown, e.g. to widen it past a narrow trigger. */
+    contentClass?: string;
 }>();
 
 const modelValue = defineModel<string | undefined>();
@@ -57,6 +59,7 @@ const select = (value: string) => {
                 role="combobox"
                 :aria-expanded="open"
                 :disabled="disabled"
+                :title="selectedLabel"
                 class="w-full justify-between font-normal"
             >
                 <span
@@ -72,7 +75,9 @@ const select = (value: string) => {
                 <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
         </PopoverTrigger>
-        <PopoverContent class="w-(--reka-popover-trigger-width) p-0">
+        <PopoverContent
+            :class="cn('w-(--reka-popover-trigger-width) p-0', contentClass)"
+        >
             <Command>
                 <CommandInput :placeholder="placeholder ?? 'Search…'" />
                 <CommandList>

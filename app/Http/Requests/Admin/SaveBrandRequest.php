@@ -6,6 +6,7 @@ use App\Models\Brand;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 
 class SaveBrandRequest extends FormRequest
 {
@@ -23,6 +24,8 @@ class SaveBrandRequest extends FormRequest
                 'required', 'string', 'max:255',
                 Rule::unique('brands', 'name')->ignore($brand instanceof Brand ? $brand->id : null),
             ],
+            'logo' => ['nullable', File::image()->max(2 * 1024)],
+            'remove_logo' => ['nullable', 'boolean'],
         ];
     }
 }

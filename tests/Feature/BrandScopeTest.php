@@ -15,9 +15,9 @@ beforeEach(function () {
     $this->brandA = Brand::factory()->create(['name' => 'Brand A']);
     $this->brandB = Brand::factory()->create(['name' => 'Brand B']);
 
-    Product::factory()->create(['branch_id' => $this->branch->id, 'brand_id' => $this->brandA->id, 'name' => 'A Product']);
-    Product::factory()->create(['branch_id' => $this->branch->id, 'brand_id' => $this->brandB->id, 'name' => 'B Product']);
-    Product::factory()->create(['branch_id' => $this->branch->id, 'brand_id' => null, 'name' => 'Unbranded Product']);
+    Product::factory()->create(['brand_id' => $this->brandA->id, 'name' => 'A Product']);
+    Product::factory()->create(['brand_id' => $this->brandB->id, 'name' => 'B Product']);
+    Product::factory()->create(['brand_id' => null, 'name' => 'Unbranded Product']);
 });
 
 test('a user restricted to a brand only sees that brand and unbranded records', function () {

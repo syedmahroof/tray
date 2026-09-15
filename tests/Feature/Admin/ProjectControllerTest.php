@@ -100,8 +100,8 @@ test('a project can be created with linked products', function () {
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
     $category = ProjectCategory::factory()->create();
-    $productA = Product::factory()->create(['branch_id' => $branch->id]);
-    $productB = Product::factory()->create(['branch_id' => $branch->id]);
+    $productA = Product::factory()->create();
+    $productB = Product::factory()->create();
 
     $this->actingAs($manager)
         ->post(route('projects.store'), [
@@ -123,8 +123,8 @@ test('project products can be synced on update', function () {
     $manager->assignRole('Manager');
     $category = ProjectCategory::factory()->create();
     $project = Project::factory()->create(['branch_id' => $branch->id]);
-    $oldProduct = Product::factory()->create(['branch_id' => $branch->id]);
-    $newProduct = Product::factory()->create(['branch_id' => $branch->id]);
+    $oldProduct = Product::factory()->create();
+    $newProduct = Product::factory()->create();
     $project->products()->attach($oldProduct);
 
     $this->actingAs($manager)

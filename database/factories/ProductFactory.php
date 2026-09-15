@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Branch;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,9 +19,10 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'branch_id' => Branch::factory(),
             'product_category_id' => ProductCategory::factory(),
+            'code' => fake()->unique()->bothify('PRD-#####'),
             'name' => fake()->unique()->bothify('Unit ##??'),
+            'unit' => fake()->randomElement(['Mtr', 'Nos', 'Kg', 'Sqm']),
             'hsn_code' => (string) fake()->numberBetween(1000, 9999),
             'price' => $price = fake()->randomFloat(2, 500000, 20000000),
             'taxable_amount' => round($price / 1.18, 2),

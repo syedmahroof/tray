@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { RATE_TIERS, RATE_TIER_KEYS } from '@/lib/products';
 import { create, index, store } from '@/routes/customers';
 import type { Branch, Country, NamedOption } from '@/types';
 
@@ -70,6 +71,30 @@ const userOptions = computed(() =>
                     <Label for="email">Email</Label>
                     <Input id="email" name="email" type="email" />
                     <InputError :message="errors.email" />
+                </div>
+
+                <div class="grid content-start gap-2">
+                    <Label for="rate_tier">Price Type</Label>
+                    <Select name="rate_tier" default-value="none">
+                        <SelectTrigger id="rate_tier" class="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No default</SelectItem>
+                            <SelectItem
+                                v-for="tier in RATE_TIER_KEYS"
+                                :key="tier"
+                                :value="tier"
+                            >
+                                {{ tier }} — {{ RATE_TIERS[tier] }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p class="text-xs text-muted-foreground">
+                        New quotations for this customer are priced at this
+                        rate.
+                    </p>
+                    <InputError :message="errors.rate_tier" />
                 </div>
             </div>
 

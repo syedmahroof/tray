@@ -3,6 +3,8 @@
 use App\Models\ProductCategory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -43,6 +45,46 @@ test('managers can create, update, and delete a product category', function () {
         ->assertRedirect(route('product-categories.index'));
 
     $this->assertModelMissing($category);
+});
+
+test('a product category image can be uploaded and removed', function () {
+    Storage::fake('public');
+    $manager = User::factory()->create();
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->post(route('product-categories.store'), [
+            'name' => 'Cable Tray',
+            'is_active' => true,
+            'image' => UploadedFile::fake()->image('tray.jpg'),
+        ])
+        ->assertRedirect(route('product-categories.index'));
+
+    $category = ProductCategory::where('name', 'Cable Tray')->first();
+    $path = $category->image_path;
+    expect($path)->toStartWith('product-categories/');
+    Storage::disk('public')->assertExists($path);
+
+    $this->actingAs($manager)
+        ->get(route('product-categories.index'))
+        ->assertInertia(fn ($page) => $page->where('productCategories.data.0.image_url', $category->image_url));
+
+    $this->actingAs($manager)
+        ->get(route('product-categories.show', $category))
+        ->assertInertia(fn ($page) => $page->where('productCategory.image_url', $category->image_url));
+
+    // The edit dialog posts with a spoofed PUT so files survive the trip.
+    $this->actingAs($manager)
+        ->post(route('product-categories.update', $category), [
+            '_method' => 'put',
+            'name' => 'Cable Tray',
+            'is_active' => true,
+            'remove_image' => '1',
+        ])
+        ->assertRedirect(route('product-categories.index'));
+
+    expect($category->refresh()->image_path)->toBeNull();
+    Storage::disk('public')->assertMissing($path);
 });
 
 test('product category names must be unique', function () {

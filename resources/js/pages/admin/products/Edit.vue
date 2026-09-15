@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import BranchPriceEditor from '@/components/admin/BranchPriceEditor.vue';
 import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
+import ImageInput from '@/components/ImageInput.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,16 +17,22 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { UNIT_OPTIONS } from '@/lib/products';
 import { edit, index, update } from '@/routes/products';
-import type { Branch, NamedOption, Product } from '@/types';
+import type { Branch, NamedOption, Product, ProductBranchPrice } from '@/types';
 
 const props = defineProps<{
     product: Product;
     productCategories: NamedOption[];
     brands: NamedOption[];
     branches: Branch[];
+    branchPrices: ProductBranchPrice[];
     gstSlabs: Record<string, number>;
 }>();
+
+const canSetPrices = computed(() =>
+    usePage().props.auth.permissions.includes('products.price.update'),
+);
 
 const price = ref<number | undefined>(
     props.product.price ? Number(props.product.price) : undefined,
@@ -69,6 +77,7 @@ const onTaxableInput = (value: string | number) => {
 const onTaxTypeChange = (label: string) => {
     taxType.value = label;
     taxPercentage.value = props.gstSlabs[label] ?? 0;
+
     if (lastEdited.value === 'taxable') {
         recomputeFromTaxable();
     } else {
@@ -116,7 +125,7 @@ const brandOptions = computed(() =>
 
         <Form
             v-bind="update.form(props.product.id)"
-            class="max-w-3xl space-y-6"
+            class="space-y-6"
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
@@ -129,6 +138,41 @@ const brandOptions = computed(() =>
                     autofocus
                 />
                 <InputError :message="errors.name" />
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="code">Product Code</Label>
+                    <Input
+                        id="code"
+                        name="code"
+                        :default-value="product.code ?? undefined"
+                        placeholder="Leave blank to generate automatically"
+                    />
+                    <InputError :message="errors.code" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="unit">Unit</Label>
+                    <Select
+                        name="unit"
+                        :default-value="product.unit ?? undefined"
+                    >
+                        <SelectTrigger class="w-full">
+                            <SelectValue placeholder="Select a unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="option in UNIT_OPTIONS"
+                                :key="option"
+                                :value="option"
+                            >
+                                {{ option }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.unit" />
+                </div>
             </div>
 
             <div class="grid gap-2">
@@ -262,26 +306,30 @@ const brandOptions = computed(() =>
                 <InputError :message="errors.description" />
             </div>
 
-            <div v-if="branches.length > 0" class="grid gap-2">
-                <Label for="branch_id">Branch</Label>
-                <Select
-                    name="branch_id"
-                    :default-value="String(product.branch_id)"
-                >
-                    <SelectTrigger class="w-full">
-                        <SelectValue placeholder="Select a branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem
-                            v-for="branch in branches"
-                            :key="branch.id"
-                            :value="String(branch.id)"
-                        >
-                            {{ branch.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="errors.branch_id" />
+            <ImageInput
+                id="image"
+                name="image"
+                label="Image"
+                :current-url="product.image_url"
+                :error="errors.image"
+            />
+
+            <BranchPriceEditor
+                v-if="canSetPrices && branches.length > 0"
+                :branches="branches"
+                :existing="branchPrices"
+                :tax-percentage="taxPercentage"
+                :errors="errors"
+            />
+
+            <div v-if="canSetPrices" class="grid gap-2">
+                <Label for="price_reason">Reason for price change</Label>
+                <Input
+                    id="price_reason"
+                    name="price_reason"
+                    placeholder="Recorded against every rate that changes (optional)"
+                />
+                <InputError :message="errors.price_reason" />
             </div>
 
             <Button type="submit" :disabled="processing">Save</Button>

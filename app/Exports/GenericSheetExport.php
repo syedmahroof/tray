@@ -4,11 +4,11 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Events\AfterSheet;
 
-class GenericSheetExport implements FromArray, ShouldAutoSize, WithHeadings, WithStyles
+class GenericSheetExport implements FromArray, ShouldAutoSize, WithEvents, WithHeadings
 {
     /**
      * @param  list<string>  $headings
@@ -36,12 +36,15 @@ class GenericSheetExport implements FromArray, ShouldAutoSize, WithHeadings, Wit
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * Apply the house table style: filled caption row, bordered body, frozen
+     * caption and a filter on every column.
+     *
+     * @return array<string, callable>
      */
-    public function styles(Worksheet $sheet): array
+    public function registerEvents(): array
     {
         return [
-            1 => ['font' => ['bold' => true]],
+            AfterSheet::class => fn (AfterSheet $event) => SheetStyle::table($event->sheet->getDelegate()),
         ];
     }
 }

@@ -32,7 +32,12 @@
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="apple-touch-icon" href="/pwa-192x192.png">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#1d4ed8">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="Build Tech CRM">
 
         @fonts
 

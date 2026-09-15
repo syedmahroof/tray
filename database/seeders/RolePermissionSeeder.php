@@ -28,7 +28,12 @@ class RolePermissionSeeder extends Seeder
      *
      * @var list<string>
      */
-    private const EXTRA_PERMISSIONS = ['quotations.send'];
+    private const EXTRA_PERMISSIONS = [
+        'quotations.send',
+        'products.price.view',
+        'products.price.update',
+        'products.price.history',
+    ];
 
     /**
      * @var list<string>
@@ -62,6 +67,9 @@ class RolePermissionSeeder extends Seeder
             ], self::ACTIONS),
             ...$this->permissionNames(['reports'], ['view']),
             'quotations.send',
+            'products.price.view',
+            'products.price.update',
+            'products.price.history',
         ]);
 
         Role::findOrCreate('Sales Executive')->syncPermissions([
@@ -72,6 +80,7 @@ class RolePermissionSeeder extends Seeder
             ], ['view']),
             ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations'], self::ACTIONS),
             'quotations.send',
+            'products.price.view',
         ]);
 
         Role::findOrCreate('Telecaller')->syncPermissions([
@@ -81,6 +90,7 @@ class RolePermissionSeeder extends Seeder
                 'builders', 'projects', 'products', 'contacts', 'customers',
             ], ['view']),
             ...$this->permissionNames(['enquiries', 'notes', 'reminders', 'visit-reports'], ['view', 'create', 'update']),
+            'products.price.view',
         ]);
     }
 

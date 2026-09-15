@@ -48,7 +48,10 @@ import {
 } from '@/routes/enquiries';
 
 import { index as productCategoriesIndex } from '@/routes/product-categories';
-import { index as productsIndex } from '@/routes/products';
+import {
+    index as productsIndex,
+    priceList as productsPriceList,
+} from '@/routes/products';
 import { index as projectCategoriesIndex } from '@/routes/project-categories';
 import { index as projectsIndex } from '@/routes/projects';
 import { index as quotationsIndex } from '@/routes/quotations';
@@ -63,6 +66,10 @@ import type { NavItem } from '@/types';
 
 const dashboardUrl = dashboard().url;
 
+/** Drop the entries whose permission check failed. */
+const navItems = (items: Array<NavItem | false>): NavItem[] =>
+    items.filter((item): item is NavItem => Boolean(item));
+
 const permissions = computed(() => usePage().props.auth.permissions);
 
 const mainNavItems = computed<NavItem[]>(() => {
@@ -75,7 +82,7 @@ const mainNavItems = computed<NavItem[]>(() => {
         },
     ];
 
-    const masterSubItems = [
+    const masterSubItems = navItems([
         permissions.value.includes('countries.view') && {
             title: 'Countries',
             href: countriesIndex(),
@@ -106,7 +113,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             icon: Tag,
             color: '#e11d48',
         },
-    ].filter((item): item is NavItem => Boolean(item));
+    ]);
 
     if (masterSubItems.length > 0) {
         items.push({
@@ -143,7 +150,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         },
     ];
 
-    return items.filter((item): item is NavItem => Boolean(item));
+    return navItems(items);
 });
 
 const catalogNavItems = computed<NavItem[]>(() => {
@@ -165,10 +172,25 @@ const catalogNavItems = computed<NavItem[]>(() => {
             href: productsIndex(),
             icon: Package,
             color: '#059669',
+            items: navItems([
+                { title: 'All Products', href: productsIndex() },
+                permissions.value.includes('products.price.view') && {
+                    title: 'Price List',
+                    href: productsPriceList(),
+                },
+                permissions.value.includes('product-categories.view') && {
+                    title: 'Categories',
+                    href: productCategoriesIndex(),
+                },
+                permissions.value.includes('brands.view') && {
+                    title: 'Brands',
+                    href: brandsIndex(),
+                },
+            ]),
         },
     ];
 
-    return items.filter((item): item is NavItem => Boolean(item));
+    return navItems(items);
 });
 
 const crmNavItems = computed<NavItem[]>(() => {
@@ -219,10 +241,8 @@ const crmNavItems = computed<NavItem[]>(() => {
         },
     ];
 
-    return items.filter((item): item is NavItem => Boolean(item));
+    return navItems(items);
 });
-
-
 
 const combinedNavItems = computed<NavItem[]>(() => {
     return [...mainNavItems.value, ...catalogNavItems.value];

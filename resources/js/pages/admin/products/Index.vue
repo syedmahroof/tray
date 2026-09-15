@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
+    CalendarDays,
+    Download,
     Eye,
+    Package,
     Pencil,
     Plus,
-    Trash2,
     Search,
+    Table2,
+    Tag,
+    Trash2,
     User,
-    CalendarDays,
     X,
-    Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import MultiCombobox from '@/components/MultiCombobox.vue';
 import TablePagination from '@/components/TablePagination.vue';
+import Thumbnail from '@/components/Thumbnail.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,24 +40,30 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { show as showCategory } from '@/routes/product-categories';
 import {
     create,
     destroy,
     edit,
     exportMethod,
     index,
+    priceList,
     show,
 } from '@/routes/products';
-import type { Filters, NamedOption, Paginated, ProductListItem } from '@/types';
+import type {
+    NamedOption,
+    Paginated,
+    ProductFilters,
+    ProductListItem,
+} from '@/types';
 
 const props = defineProps<{
     products: Paginated<ProductListItem>;
     users: NamedOption[];
-    filters: Filters & {
-        created_by?: string | number;
-        created_from?: string;
-        created_to?: string;
-    };
+    productCategories: NamedOption[];
+    brands: NamedOption[];
+    units: string[];
+    filters: ProductFilters;
 }>();
 
 defineOptions({
@@ -61,33 +72,49 @@ defineOptions({
     },
 });
 
+const toStrings = (ids: number[] | null | undefined) => (ids ?? []).map(String);
+
 const search = ref(props.filters.search ?? '');
+const categoryIds = ref<string[]>(
+    toStrings(props.filters.product_category_ids),
+);
+const brandIds = ref<string[]>(toStrings(props.filters.brand_ids));
+const unit = ref(props.filters.unit ?? 'all');
 const createdBy = ref(
     props.filters.created_by ? String(props.filters.created_by) : 'all',
 );
 const createdFrom = ref(props.filters.created_from ?? '');
 const createdTo = ref(props.filters.created_to ?? '');
 
+const asOptions = (items: NamedOption[]) =>
+    items.map((item) => ({ value: String(item.id), label: item.name }));
+
+const query = computed(() => ({
+    search: search.value || undefined,
+    product_category_ids: categoryIds.value.length
+        ? categoryIds.value
+        : undefined,
+    brand_ids: brandIds.value.length ? brandIds.value : undefined,
+    unit: unit.value !== 'all' ? unit.value : undefined,
+    created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
+    created_from: createdFrom.value || undefined,
+    created_to: createdTo.value || undefined,
+}));
+
 const updateFilters = () => {
-    router.get(
-        window.location.pathname,
-        {
-            search: search.value || undefined,
-            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
-            created_from: createdFrom.value || undefined,
-            created_to: createdTo.value || undefined,
-        },
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        },
-    );
+    router.get(index().url, query.value, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
 };
 
 const hasActiveFilters = computed(
     () =>
         search.value !== '' ||
+        categoryIds.value.length > 0 ||
+        brandIds.value.length > 0 ||
+        unit.value !== 'all' ||
         createdBy.value !== 'all' ||
         createdFrom.value !== '' ||
         createdTo.value !== '',
@@ -95,6 +122,9 @@ const hasActiveFilters = computed(
 
 const clearFilters = () => {
     search.value = '';
+    categoryIds.value = [];
+    brandIds.value = [];
+    unit.value = 'all';
     createdBy.value = 'all';
     createdFrom.value = '';
     createdTo.value = '';
@@ -103,16 +133,7 @@ const clearFilters = () => {
 
 watchDebounced(search, () => updateFilters(), { debounce: 300 });
 
-const exportUrl = computed(() =>
-    exportMethod.url({
-        query: {
-            search: search.value || undefined,
-            created_by: createdBy.value !== 'all' ? createdBy.value : undefined,
-            created_from: createdFrom.value || undefined,
-            created_to: createdTo.value || undefined,
-        },
-    }),
-);
+const exportUrl = computed(() => exportMethod.url({ query: query.value }));
 
 const deleteDialogOpen = ref(false);
 const productToDelete = ref<ProductListItem | null>(null);
@@ -135,6 +156,9 @@ const confirmDelete = (product: ProductListItem) => {
             />
 
             <div class="flex items-center gap-2">
+                <Button variant="outline" as-child>
+                    <Link :href="priceList()"><Table2 /> Price list</Link>
+                </Button>
                 <Button variant="outline" as-child>
                     <a :href="exportUrl"><Download /> Export</a>
                 </Button>
@@ -161,6 +185,45 @@ const confirmDelete = (product: ProductListItem) => {
                             data-test="search-input"
                         />
                     </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <Package class="h-4 w-4 text-[#ca8a04]" />
+                        <MultiCombobox
+                            v-model="categoryIds"
+                            class="w-[200px]"
+                            placeholder="All categories"
+                            data-test="category-filter"
+                            :options="asOptions(productCategories)"
+                            @update:model-value="updateFilters"
+                        />
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <Tag class="h-4 w-4 text-[#e11d48]" />
+                        <MultiCombobox
+                            v-model="brandIds"
+                            class="w-[180px]"
+                            placeholder="All brands"
+                            :options="asOptions(brands)"
+                            @update:model-value="updateFilters"
+                        />
+                    </div>
+
+                    <Select v-model="unit" @update:model-value="updateFilters">
+                        <SelectTrigger class="w-[120px]">
+                            <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All units</SelectItem>
+                            <SelectItem
+                                v-for="option in units"
+                                :key="option"
+                                :value="option"
+                            >
+                                {{ option }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
 
                     <!-- Created By Filter -->
                     <Select
@@ -223,10 +286,12 @@ const confirmDelete = (product: ProductListItem) => {
                     <TableHeader>
                         <TableRow>
                             <TableHead class="w-12">S.No.</TableHead>
+                            <TableHead class="w-32">Code</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Brand</TableHead>
-                            <TableHead>Price</TableHead>
+                            <TableHead class="w-16">Unit</TableHead>
+                            <TableHead class="text-right">Priced in</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
@@ -241,19 +306,53 @@ const confirmDelete = (product: ProductListItem) => {
                             >
                                 {{ (products.from ?? 1) + index }}
                             </TableCell>
+                            <TableCell
+                                class="font-mono text-xs text-muted-foreground"
+                            >
+                                {{ product.code ?? '—' }}
+                            </TableCell>
                             <TableCell class="font-medium">
+                                <div class="flex items-center gap-3">
+                                    <Thumbnail
+                                        :src="product.image_url"
+                                        :name="product.name"
+                                    />
+                                    <Link
+                                        :href="show(product.id)"
+                                        class="font-semibold text-foreground hover:underline"
+                                    >
+                                        {{ product.name }}
+                                    </Link>
+                                </div>
+                            </TableCell>
+                            <TableCell>
                                 <Link
-                                    :href="show(product.id)"
-                                    class="font-semibold text-foreground hover:underline"
+                                    :href="
+                                        showCategory(
+                                            product.product_category.id,
+                                        )
+                                    "
+                                    class="hover:underline"
                                 >
-                                    {{ product.name }}
+                                    {{ product.product_category.name }}
                                 </Link>
                             </TableCell>
                             <TableCell>{{
-                                product.product_category.name
+                                product.brand?.name ?? '—'
                             }}</TableCell>
-                            <TableCell>{{ product.brand?.name ?? '—' }}</TableCell>
-                            <TableCell>{{ product.price ?? '—' }}</TableCell>
+                            <TableCell class="text-muted-foreground">
+                                {{ product.unit ?? '—' }}
+                            </TableCell>
+                            <TableCell class="text-right tabular-nums">
+                                {{ product.branch_prices_count ?? 0 }}
+                                <span class="text-xs text-muted-foreground">
+                                    {{
+                                        product.branch_prices_count === 1
+                                            ? 'branch'
+                                            : 'branches'
+                                    }}
+                                </span>
+                            </TableCell>
                             <TableCell>
                                 <div class="text-sm">
                                     {{ formatDate(product.created_at) }}
@@ -301,10 +400,10 @@ const confirmDelete = (product: ProductListItem) => {
                         </TableRow>
                         <TableRow v-if="products.data.length === 0">
                             <TableCell
-                                :colspan="7"
+                                :colspan="9"
                                 class="text-center text-muted-foreground"
                             >
-                                No products yet.
+                                No products match these filters.
                             </TableCell>
                         </TableRow>
                     </TableBody>

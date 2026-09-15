@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ProductBranchPrice;
 use App\Models\Quotation;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -33,6 +34,7 @@ class SaveQuotationRequest extends FormRequest
             'builder_id' => ['nullable', Rule::exists('builders', 'id')],
             'gstin' => ['nullable', 'string', 'max:20'],
             'supply_type' => ['required', Rule::in(Quotation::SUPPLY_TYPES)],
+            'rate_tier' => ['nullable', Rule::in(array_keys(ProductBranchPrice::RATE_TIERS))],
             'quotation_date' => ['required', 'date'],
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],

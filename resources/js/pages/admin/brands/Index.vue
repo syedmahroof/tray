@@ -25,5 +25,7 @@ defineOptions({
         :store-url="store().url"
         :update-url="(id: number) => update.url(id)"
         :destroy-url="(id: number) => destroy.url(id)"
+        image-field="logo"
+        image-label="Logo"
     />
 </template>

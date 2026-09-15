@@ -11,6 +11,7 @@ use App\Models\Contact;
 use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
+use App\Models\ProductBranchPrice;
 use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
@@ -423,7 +424,7 @@ class QuotationController extends Controller
             $revision = Quotation::create([
                 ...$quotation->only([
                     'branch_id', 'customer_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
-                    'gstin', 'supply_type', 'valid_until', 'subtotal', 'discount',
+                    'gstin', 'supply_type', 'rate_tier', 'valid_until', 'subtotal', 'discount',
                     'tax_percent', 'tax_amount', 'cgst_amount', 'sgst_amount',
                     'igst_amount', 'total', 'notes', 'terms',
                 ]),
@@ -489,7 +490,7 @@ class QuotationController extends Controller
     private function formData(): array
     {
         return [
-            'customers' => Customer::query()->orderBy('name')->get(['id', 'name']),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'rate_tier']),
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
@@ -498,11 +499,41 @@ class QuotationController extends Controller
                     'name' => "#{$enquiry->id} — ".($enquiry->contact?->name ?? __('Enquiry')),
                 ]),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
-            'products' => Product::query()->orderBy('name')->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+            'products' => $this->productOptions(),
             'statuses' => Quotation::STATUSES,
+            'rateTiers' => ProductBranchPrice::RATE_TIERS,
             'gstSlabs' => Product::GST_SLABS,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
+            // Users who cannot pick a branch quote from their own, so the form
+            // needs it to look up branch rates.
+            'defaultBranchId' => request()->user()?->branch_id,
         ];
+    }
+
+    /**
+     * Products for the line-item picker, each with its ex-tax SR / PR / CR rate
+     * per branch so the form can price lines by the chosen rate tier. Branch
+     * prices are branch-scoped, so a user only receives branches they can reach.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function productOptions(): array
+    {
+        return Product::query()
+            ->with('branchPrices:id,product_id,branch_id,sr_rate,pr_rate,cr_rate')
+            ->orderBy('name')
+            ->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage'])
+            ->map(fn (Product $product): array => [
+                ...$product->only(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+                'rates' => $product->branchPrices->mapWithKeys(fn (ProductBranchPrice $price): array => [
+                    $price->branch_id => [
+                        'SR' => $price->sr_rate,
+                        'PR' => $price->pr_rate,
+                        'CR' => $price->cr_rate,
+                    ],
+                ])->all(),
+            ])
+            ->all();
     }
 
     /**

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import CategoryManager from '@/components/admin/CategoryManager.vue';
-import { destroy, index, store, update } from '@/routes/product-categories';
+import {
+    destroy,
+    index,
+    show,
+    store,
+    update,
+} from '@/routes/product-categories';
 import type { CategoryItem, Filters, Paginated } from '@/types';
 
 defineProps<{
@@ -25,5 +31,10 @@ defineOptions({
         :store-url="store().url"
         :update-url="(id: number) => update.url(id)"
         :destroy-url="(id: number) => destroy.url(id)"
+        image-field="image"
+        image-label="Image"
+        :show-url="(id: number) => show.url(id)"
+        count-field="products_count"
+        count-label="Products"
     />
 </template>
