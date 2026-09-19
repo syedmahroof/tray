@@ -27,6 +27,7 @@ import type {
     Country,
     NamedOption,
     Project,
+    Route,
 } from '@/types';
 
 const props = defineProps<{
@@ -34,6 +35,7 @@ const props = defineProps<{
     builders: NamedOption[];
     projectCategories: NamedOption[];
     countries: Country[];
+    routes: Route[];
     statuses: string[];
     branches: Branch[];
     users: NamedOption[];
@@ -414,9 +416,12 @@ const removeProjectContact = (key: number) => {
                         <div class="lg:col-span-2">
                             <LocationSelect
                                 :countries="countries"
+                                :routes="routes"
                                 :initial-country-id="project.country_id"
                                 :initial-state-id="project.state_id"
                                 :initial-district-id="project.district_id"
+                                :initial-location-id="project.location_id"
+                                :initial-route-id="project.route_id"
                                 hide-country
                             />
                             <div class="mt-1 flex flex-col gap-1">

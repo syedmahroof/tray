@@ -2,22 +2,22 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
-    Building,
     Check,
     ChevronDown,
     Copy,
     Download,
     History,
+    Link2,
     Mail,
     MessageCircle,
     Pencil,
     Printer,
     Share2,
-    User,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import QuotationSheet from '@/components/QuotationSheet.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,8 +47,8 @@ import {
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 import { show as showBuilder } from '@/routes/builders';
-import { show as showCustomer } from '@/routes/customers';
 import { show as showContact } from '@/routes/contacts';
+import { show as showCustomer } from '@/routes/customers';
 import { show as showEnquiry } from '@/routes/enquiries';
 import { show as showProject } from '@/routes/projects';
 import {
@@ -61,10 +61,17 @@ import {
     show as showQuotation,
     status as statusRoute,
 } from '@/routes/quotations';
-import type { QuotationDetail, QuotationVersion } from '@/types';
+import type {
+    CompanyProfile,
+    QuotationDetail,
+    QuotationInvoice as QuotationInvoiceView,
+    QuotationVersion,
+} from '@/types';
 
 const props = defineProps<{
     quotation: QuotationDetail;
+    invoice: QuotationInvoiceView;
+    company: CompanyProfile;
     shareUrl: string;
     statuses: string[];
     versions: QuotationVersion[];
@@ -99,9 +106,6 @@ const statusVariant = (status: string) => {
 
 const money = (value: string | number) =>
     `₹${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const lineTotal = (item: { quantity: string; unit_price: string }) =>
-    Number(item.quantity) * Number(item.unit_price);
 
 const shareMessage = computed(
     () =>
@@ -321,27 +325,36 @@ const createRevision = () => {
             </div>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-3">
-            <Card>
-                <CardHeader
-                    class="flex flex-row items-center gap-2 border-b pb-3"
-                >
-                    <User class="h-5 w-5 text-[#2563eb]" />
-                    <CardTitle class="text-base font-semibold"
-                        >Quotation For</CardTitle
-                    >
-                </CardHeader>
-                <CardContent class="space-y-1 pt-6 text-sm">
+        <QuotationSheet
+            :quotation="quotation"
+            :invoice="invoice"
+            :company="company"
+        />
+
+        <Card>
+            <CardHeader class="flex flex-row items-center gap-2 border-b pb-3">
+                <Link2 class="h-5 w-5 text-[#4f46e5]" />
+                <CardTitle class="text-base font-semibold">
+                    Linked records
+                </CardTitle>
+            </CardHeader>
+            <CardContent
+                class="grid gap-x-8 gap-y-2 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-3"
+            >
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Customer</span>
                     <Link
                         v-if="quotation.customer"
                         :href="showCustomer(quotation.customer.id)"
-                        class="font-medium hover:underline text-base"
+                        class="font-medium hover:underline"
                     >
                         {{ quotation.customer.name }}
                     </Link>
-                    <p v-else class="text-muted-foreground">—</p>
+                    <span v-else class="text-muted-foreground">—</span>
+                </div>
 
-                    <p class="text-xs text-muted-foreground mt-3 mb-1 uppercase font-semibold tracking-wider">Contact Person</p>
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Contact</span>
                     <Link
                         v-if="quotation.contact"
                         :href="showContact(quotation.contact.id)"
@@ -349,203 +362,77 @@ const createRevision = () => {
                     >
                         {{ quotation.contact.name }}
                     </Link>
-                    <p v-else class="text-muted-foreground">—</p>
-                    <p
-                        v-if="quotation.contact?.phone"
-                        class="text-muted-foreground"
-                    >
-                        {{ quotation.contact.phone }}
-                    </p>
-                    <p
-                        v-if="quotation.contact?.email"
-                        class="text-muted-foreground"
-                    >
-                        {{ quotation.contact.email }}
-                    </p>
-                </CardContent>
-            </Card>
+                    <span v-else class="text-muted-foreground">—</span>
+                </div>
 
-            <Card>
-                <CardHeader
-                    class="flex flex-row items-center gap-2 border-b pb-3"
-                >
-                    <Building class="h-5 w-5 text-[#4f46e5]" />
-                    <CardTitle class="text-base font-semibold"
-                        >Details</CardTitle
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Project</span>
+                    <Link
+                        v-if="quotation.project"
+                        :href="showProject(quotation.project.id)"
+                        class="font-medium hover:underline"
                     >
-                </CardHeader>
-                <CardContent class="space-y-2 pt-6 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Status</span>
-                        <Badge
-                            :variant="statusVariant(quotation.status)"
-                            class="capitalize"
-                        >
-                            {{ quotation.status }}
-                        </Badge>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Date</span>
-                        <span>{{ formatDate(quotation.quotation_date) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Valid until</span>
-                        <span>{{ formatDate(quotation.valid_until) }}</span>
-                    </div>
-                    <div v-if="quotation.project" class="flex justify-between">
-                        <span class="text-muted-foreground">Project</span>
-                        <Link
-                            :href="showProject(quotation.project.id)"
-                            class="font-medium hover:underline"
-                        >
-                            {{ quotation.project.name }}
-                        </Link>
-                    </div>
-                    <div v-if="quotation.enquiry" class="flex justify-between">
-                        <span class="text-muted-foreground">Enquiry</span>
-                        <Link
-                            :href="showEnquiry(quotation.enquiry.id)"
-                            class="font-medium hover:underline"
-                        >
-                            #{{ quotation.enquiry.id
-                            }}{{
-                                quotation.enquiry.contact
-                                    ? ` — ${quotation.enquiry.contact.name}`
-                                    : ''
-                            }}
-                        </Link>
-                    </div>
-                    <div v-if="quotation.builder" class="flex justify-between">
-                        <span class="text-muted-foreground">Builder</span>
-                        <Link
-                            :href="showBuilder(quotation.builder.id)"
-                            class="font-medium hover:underline"
-                        >
-                            {{ quotation.builder.name }}
-                        </Link>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Supply type</span>
-                        <span class="font-medium">{{
+                        {{ quotation.project.name }}
+                    </Link>
+                    <span v-else class="text-muted-foreground">—</span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Enquiry</span>
+                    <Link
+                        v-if="quotation.enquiry"
+                        :href="showEnquiry(quotation.enquiry.id)"
+                        class="font-medium hover:underline"
+                    >
+                        #{{ quotation.enquiry.id }}
+                    </Link>
+                    <span v-else class="text-muted-foreground">—</span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Builder</span>
+                    <Link
+                        v-if="quotation.builder"
+                        :href="showBuilder(quotation.builder.id)"
+                        class="font-medium hover:underline"
+                    >
+                        {{ quotation.builder.name }}
+                    </Link>
+                    <span v-else class="text-muted-foreground">—</span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Branch</span>
+                    <span class="font-medium">{{ quotation.branch.name }}</span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Supply type</span>
+                    <span class="font-medium">
+                        {{
                             quotation.supply_type === 'inter'
                                 ? 'Inter-state (IGST)'
                                 : 'Intra-state (CGST + SGST)'
-                        }}</span>
-                    </div>
-                    <div v-if="quotation.gstin" class="flex justify-between">
-                        <span class="text-muted-foreground">Buyer GSTIN</span>
-                        <span class="font-medium">{{ quotation.gstin }}</span>
-                    </div>
-                </CardContent>
-            </Card>
+                        }}
+                    </span>
+                </div>
 
-            <Card>
-                <CardHeader
-                    class="flex flex-row items-center gap-2 border-b pb-3"
-                >
-                    <CardTitle class="text-base font-semibold">Total</CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-2 pt-6 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Subtotal</span>
-                        <span class="tabular-nums">{{
-                            money(quotation.subtotal)
-                        }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Discount</span>
-                        <span class="tabular-nums"
-                            >- {{ money(quotation.discount) }}</span
-                        >
-                    </div>
-                    <template v-if="quotation.supply_type === 'inter'">
-                        <div class="flex justify-between">
-                            <span class="text-muted-foreground">IGST</span>
-                            <span class="tabular-nums">{{
-                                money(quotation.igst_amount)
-                            }}</span>
-                        </div>
-                    </template>
-                    <template v-else>
-                        <div class="flex justify-between">
-                            <span class="text-muted-foreground">CGST</span>
-                            <span class="tabular-nums">{{
-                                money(quotation.cgst_amount)
-                            }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-muted-foreground">SGST</span>
-                            <span class="tabular-nums">{{
-                                money(quotation.sgst_amount)
-                            }}</span>
-                        </div>
-                    </template>
-                    <div
-                        class="flex justify-between border-t pt-2 text-base font-semibold"
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Created by</span>
+                    <span class="font-medium">
+                        {{ quotation.creator?.name ?? '—' }}
+                    </span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Status</span>
+                    <Badge
+                        :variant="statusVariant(quotation.status)"
+                        class="capitalize"
                     >
-                        <span>Total</span>
-                        <span class="tabular-nums">{{
-                            money(quotation.total)
-                        }}</span>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead class="w-12">#</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>HSN</TableHead>
-                            <TableHead class="text-right">Qty</TableHead>
-                            <TableHead class="text-right">Unit Price</TableHead>
-                            <TableHead class="text-right">GST %</TableHead>
-                            <TableHead class="text-right">Amount</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow
-                            v-for="(item, i) in quotation.items"
-                            :key="item.id"
-                        >
-                            <TableCell class="text-muted-foreground">{{
-                                i + 1
-                            }}</TableCell>
-                            <TableCell>
-                                <div class="font-medium">
-                                    {{ item.description }}
-                                </div>
-                                <div
-                                    v-if="item.product"
-                                    class="text-xs text-muted-foreground"
-                                >
-                                    {{ item.product.name }}
-                                </div>
-                            </TableCell>
-                            <TableCell class="text-muted-foreground">{{
-                                item.hsn_code ?? '—'
-                            }}</TableCell>
-                            <TableCell class="text-right tabular-nums">{{
-                                Number(item.quantity)
-                            }}</TableCell>
-                            <TableCell class="text-right tabular-nums">{{
-                                money(item.unit_price)
-                            }}</TableCell>
-                            <TableCell class="text-right tabular-nums"
-                                >{{ Number(item.tax_percentage) }}%</TableCell
-                            >
-                            <TableCell class="text-right tabular-nums">{{
-                                money(lineTotal(item))
-                            }}</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                        {{ quotation.status }}
+                    </Badge>
+                </div>
             </CardContent>
         </Card>
 
@@ -609,28 +496,6 @@ const createRevision = () => {
                 </Table>
             </CardContent>
         </Card>
-
-        <div
-            v-if="quotation.notes || quotation.terms"
-            class="grid gap-6 md:grid-cols-2"
-        >
-            <Card v-if="quotation.notes">
-                <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
-                <CardContent
-                    class="text-sm whitespace-pre-wrap text-muted-foreground"
-                    >{{ quotation.notes }}</CardContent
-                >
-            </Card>
-            <Card v-if="quotation.terms">
-                <CardHeader
-                    ><CardTitle>Terms &amp; Conditions</CardTitle></CardHeader
-                >
-                <CardContent
-                    class="text-sm whitespace-pre-wrap text-muted-foreground"
-                    >{{ quotation.terms }}</CardContent
-                >
-            </Card>
-        </div>
     </div>
 
     <Dialog v-model:open="emailDialogOpen">

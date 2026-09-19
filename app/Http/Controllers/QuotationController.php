@@ -17,7 +17,8 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\User;
 use App\Support\BranchAccess;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\QuotationDocument;
+use App\Support\QuotationInvoice;
 use Barryvdh\DomPDF\PDF as PdfDocument;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -260,12 +261,15 @@ class QuotationController extends Controller
      */
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['customer', 'contact', 'project', 'enquiry.contact:id,name', 'builder', 'creator', 'branch', 'items.product']);
+        $quotation->load(['customer.state', 'contact.state', 'project', 'enquiry.contact:id,name', 'builder', 'creator', 'branch', 'items.product']);
 
         $rootId = $quotation->rootId();
 
         return Inertia::render('quotations/Show', [
             'quotation' => $quotation,
+            // The screen shows the same document that prints.
+            'invoice' => (new QuotationInvoice($quotation))->toArray(),
+            'company' => QuotationDocument::company($quotation, request()->getHost()),
             'shareUrl' => URL::signedRoute('quotations.shared', $quotation),
             'statuses' => Quotation::STATUSES,
             'versions' => Quotation::query()
@@ -477,9 +481,7 @@ class QuotationController extends Controller
      */
     private function renderPdf(Quotation $quotation): PdfDocument
     {
-        $quotation->load(['contact', 'project', 'branch', 'items.product']);
-
-        return Pdf::loadView('quotations.pdf', ['quotation' => $quotation]);
+        return QuotationDocument::render($quotation, request()->getHost());
     }
 
     /**

@@ -196,6 +196,7 @@ const activeTab = useTabQuery(
                                 {{
                                     [
                                         contact.address,
+                                        contact.location?.name,
                                         contact.district?.name,
                                         contact.state?.name,
                                         contact.country?.name,
@@ -203,6 +204,12 @@ const activeTab = useTabQuery(
                                         .filter(Boolean)
                                         .join(', ') || '—'
                                 }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Route</p>
+                            <p class="text-sm font-medium">
+                                {{ contact.route?.name ?? '—' }}
                             </p>
                         </div>
                         <div>

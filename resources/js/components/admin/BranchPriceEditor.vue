@@ -13,9 +13,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
+    RATE_BASES,
+    RATE_BASIS_KEYS,
     RATE_TIERS,
     RATE_TIER_KEYS,
     basisFor,
+    basisOrInferred,
     impliedFreight,
     money,
     rateFor,
@@ -24,7 +27,7 @@ import {
     usesMrp,
     withTax,
 } from '@/lib/products';
-import type { Branch, ProductBranchPrice, RateTier } from '@/types';
+import type { Branch, ProductBranchPrice, RateBasis, RateTier } from '@/types';
 
 const props = withDefaults(
     defineProps<{
@@ -43,6 +46,10 @@ type Row = {
     removed: boolean;
     cost?: number;
     mrp?: number;
+    /** What this row's percentages are worked out from. */
+    rate_basis: RateBasis;
+    /** Until the basis is picked by hand, it follows the figures entered. */
+    basisTouched: boolean;
     /** Added to cost before a markup is applied. Worked out, never saved. */
     freight: number;
     discounts: Record<RateTier, number | undefined>;
@@ -60,6 +67,8 @@ const rowFor = (price: ProductBranchPrice): Row => ({
     removed: false,
     cost: toNumber(price.cost),
     mrp: toNumber(price.mrp),
+    rate_basis: basisOrInferred(price),
+    basisTouched: true,
     freight: impliedFreight(price),
     discounts: {
         SR: toNumber(price.sr_discount),
@@ -93,6 +102,8 @@ const blankRow = (branchId: string): Row => ({
     branchId,
     isNew: true,
     removed: false,
+    rate_basis: 'mrp',
+    basisTouched: false,
     freight: 0,
     discounts: { SR: undefined, PR: undefined, CR: undefined },
     rates: { SR: undefined, PR: undefined, CR: undefined },
@@ -129,6 +140,8 @@ const applyToAllBranches = (source: Row) => {
     const copyInto = (target: Row) => {
         target.cost = source.cost;
         target.mrp = source.mrp;
+        target.rate_basis = source.rate_basis;
+        target.basisTouched = source.basisTouched;
         target.freight = source.freight;
         target.discounts = { ...source.discounts };
         target.rates = { ...source.rates };
@@ -184,6 +197,19 @@ const onRateChange = (row: Row, tier: RateTier, value: string | number) => {
     row.discounts[tier] = percentage < 0 ? undefined : roundTo2(percentage);
 };
 
+/** Re-price every tier that carries a %, off the row's figures as given. */
+const reprice = (row: Row, basis: Row) => {
+    for (const tier of RATE_TIER_KEYS) {
+        const percentage = toNumber(row.discounts[tier]);
+        const rate =
+            percentage === undefined ? undefined : rateFor(basis, percentage);
+
+        if (rate !== undefined) {
+            row.rates[tier] = rate;
+        }
+    }
+};
+
 /** Re-price every tier that carries a % when the cost or MRP moves. */
 const onBasisChange = (
     row: Row,
@@ -198,15 +224,26 @@ const onBasisChange = (
 
     const next = { ...row, [field]: toNumber(value) };
 
-    for (const tier of RATE_TIER_KEYS) {
-        const percentage = toNumber(row.discounts[tier]);
-        const rate =
-            percentage === undefined ? undefined : rateFor(next, percentage);
-
-        if (rate !== undefined) {
-            row.rates[tier] = rate;
-        }
+    // Until the basis is chosen by hand it follows the figures, the way the
+    // price list has always read them.
+    if (!row.basisTouched) {
+        next.rate_basis = basisOrInferred(next);
+        row.rate_basis = next.rate_basis;
     }
+
+    reprice(row, next);
+};
+
+/** Switching the basis re-prices the tiers off the other figure. */
+const onBasisPicked = (row: Row, value: unknown) => {
+    row.rate_basis = (value as RateBasis | null) ?? 'mrp';
+    row.basisTouched = true;
+
+    // Freight is only ever recovered for a cost-based row, and a hand-picked
+    // basis means the figures on screen are the whole story.
+    row.freight = 0;
+
+    reprice(row, row);
 };
 
 /** Says what the % on this row is worked out from. */
@@ -349,7 +386,7 @@ const basisHint = (row: Row) => {
             </div>
 
             <template v-if="!row.removed">
-                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <div class="mt-4 grid gap-4 sm:grid-cols-3">
                     <div class="grid gap-2">
                         <Label :for="`cost-${row.key}`">Cost</Label>
                         <Input
@@ -379,6 +416,34 @@ const basisHint = (row: Row) => {
                             "
                         />
                         <InputError :message="error(index, 'mrp')" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label :for="`basis-${row.key}`">Rates from</Label>
+                        <Select
+                            v-model="row.rate_basis"
+                            :name="`prices[${index}][rate_basis]`"
+                            :disabled="row.removed"
+                            @update:model-value="onBasisPicked(row, $event)"
+                        >
+                            <SelectTrigger
+                                :id="`basis-${row.key}`"
+                                class="w-full"
+                                :data-test="`rate-basis-${index}`"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="basis in RATE_BASIS_KEYS"
+                                    :key="basis"
+                                    :value="basis"
+                                    :data-test="`rate-basis-${index}-${basis}`"
+                                >
+                                    {{ RATE_BASES[basis] }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError :message="error(index, 'rate_basis')" />
                     </div>
                 </div>
 

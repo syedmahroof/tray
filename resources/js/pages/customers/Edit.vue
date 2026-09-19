@@ -17,11 +17,12 @@ import {
 } from '@/components/ui/select';
 import { RATE_TIERS, RATE_TIER_KEYS } from '@/lib/products';
 import { edit, index, show, update } from '@/routes/customers';
-import type { Branch, Country, Customer, NamedOption } from '@/types';
+import type { Branch, Country, Customer, NamedOption, Route } from '@/types';
 
 const props = defineProps<{
     customer: Customer;
     countries: Country[];
+    routes: Route[];
     users: NamedOption[];
     branches: Branch[];
 }>();
@@ -143,9 +144,12 @@ const userOptions = computed(() =>
 
             <LocationSelect
                 :countries="countries"
+                :routes="routes"
                 :initial-country-id="customer.country_id"
                 :initial-state-id="customer.state_id"
                 :initial-district-id="customer.district_id"
+                :initial-location-id="customer.location_id"
+                :initial-route-id="customer.route_id"
             />
 
             <div class="grid gap-2">

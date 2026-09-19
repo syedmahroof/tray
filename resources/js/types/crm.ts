@@ -1,8 +1,11 @@
 import type {
     Country,
     District,
+    Location,
+    LocationWithDistrict,
     NamedOption,
     RateTier,
+    Route,
     State,
 } from '@/types/admin';
 
@@ -17,6 +20,8 @@ export type Contact = {
     country_id: number | null;
     state_id: number | null;
     district_id: number | null;
+    location_id: number | null;
+    route_id: number | null;
     assigned_to: number | null;
     created_by: number | null;
     created_at: string;
@@ -45,6 +50,8 @@ export type ContactDetail = Contact & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    location: Location | null;
+    route: Route | null;
     assignee: NamedOption | null;
     creator: NamedOption | null;
     branch: NamedOption;
@@ -61,6 +68,8 @@ export type Customer = {
     country_id: number | null;
     state_id: number | null;
     district_id: number | null;
+    location_id: number | null;
+    route_id: number | null;
     assigned_to: number | null;
     /** The rate tier this customer's quotations are priced at by default. */
     rate_tier: RateTier | null;
@@ -74,6 +83,8 @@ export type CustomerDetail = Customer & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    location: Location | null;
+    route: Route | null;
     assignee: NamedOption | null;
     branch: NamedOption;
 };
@@ -149,6 +160,8 @@ export type VisitReport = {
     report: string | null;
     next_meeting_date: string | null;
     next_call_date: string | null;
+    location_id: number | null;
+    route_id: number | null;
     created_at: string;
 };
 
@@ -163,6 +176,8 @@ export type VisitReportListItem = VisitReport & {
 export type VisitReportDetail = VisitReport & {
     user: ActivityAuthor;
     branch: NamedOption;
+    location: LocationWithDistrict | null;
+    route: Route | null;
     projects: NamedOption[];
     customers: NamedOption[];
     contacts: NamedOption[];
@@ -265,9 +280,22 @@ export type QuotationListItem = Quotation & {
 };
 
 export type QuotationDetail = Quotation & {
-    customer: NamedOption | null;
+    customer:
+        | (NamedOption & {
+              phone: string | null;
+              email: string | null;
+              address: string | null;
+              gst_number: string | null;
+              state: (NamedOption & { code: string | null }) | null;
+          })
+        | null;
     contact:
-        | (NamedOption & { phone: string | null; email: string | null })
+        | (NamedOption & {
+              phone: string | null;
+              email: string | null;
+              address: string | null;
+              state: (NamedOption & { code: string | null }) | null;
+          })
         | null;
     project: NamedOption | null;
     enquiry: { id: number; contact: NamedOption | null } | null;
@@ -275,6 +303,66 @@ export type QuotationDetail = Quotation & {
     creator: NamedOption | null;
     branch: NamedOption;
     items: QuotationItem[];
+};
+
+/** One printed line of a quotation. */
+export type InvoiceLine = {
+    sl: number;
+    description: string;
+    hsn: string | null;
+    quantity: number;
+    unit: string;
+    rate: number;
+    amount: number;
+};
+
+/** One row of the HSN tax summary printed under the totals. */
+export type InvoiceTaxSummaryRow = {
+    hsn: string;
+    taxable: number;
+    rate: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    tax: number;
+};
+
+/** A quotation worked out the way its printed invoice states it. */
+export type QuotationInvoice = {
+    lines: InvoiceLine[];
+    subtotal: number;
+    discount: number;
+    taxable_value: number;
+    tax_lines: { label: string; rate: number; amount: number }[];
+    tax_total: number;
+    round_off: number;
+    total: number;
+    total_quantity: number;
+    total_unit: string | null;
+    hsn_summary: InvoiceTaxSummaryRow[];
+    inter_state: boolean;
+    amount_in_words: string;
+    tax_in_words: string;
+};
+
+/** The seller identity a quotation is raised under. */
+export type CompanyProfile = {
+    name?: string | null;
+    address?: string[];
+    phone?: string | null;
+    mobile?: string | null;
+    udyam?: string | null;
+    gstin?: string | null;
+    state?: { name?: string | null; code?: string | null };
+    email?: string | null;
+    bank?: {
+        name?: string | null;
+        account?: string | null;
+        branch_ifsc?: string | null;
+    };
+    declaration?: string | null;
+    quotation_title?: string | null;
+    footer?: string | null;
 };
 
 /**

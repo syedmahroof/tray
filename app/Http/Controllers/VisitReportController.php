@@ -7,10 +7,14 @@ use App\Http\Requests\SaveVisitReportRequest;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Customer;
+use App\Models\District;
+use App\Models\Location;
 use App\Models\Project;
+use App\Models\Route;
 use App\Models\User;
 use App\Models\VisitReport;
 use App\Support\BranchAccess;
+use App\Support\RouteLocationFilter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Http\RedirectResponse;
@@ -70,6 +74,7 @@ class VisitReportController extends Controller
                     });
                 })
                 ->when($visitType, fn ($query) => $query->where('visit_type', $visitType))
+                ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
                 ->when($userId, fn ($query) => $query->where('user_id', $userId))
                 ->when($projectId, fn ($query) => $query->whereHas('projects', fn ($q) => $q->where('projects.id', $projectId)))
                 ->when($upcomingFollowUp, fn ($query) => $query->where(function ($q) {
@@ -84,9 +89,11 @@ class VisitReportController extends Controller
             'visitTypes' => VisitReport::VISIT_TYPES,
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
+            ...RouteLocationFilter::options('visitReports'),
             'filters' => [
                 'search' => $search,
                 'visit_type' => $visitType,
+                ...RouteLocationFilter::filters($request),
                 'user_id' => $userId,
                 'project_id' => $projectId,
                 'date_filter' => $dateFilter,
@@ -194,6 +201,7 @@ class VisitReportController extends Controller
                 });
             })
             ->when($request->input('visit_type'), fn ($query, $value) => $query->where('visit_type', $value))
+            ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
             ->when($request->input('user_id'), fn ($query, $value) => $query->where('user_id', $value))
             ->when($request->input('project_id'), fn ($query, $value) => $query->whereHas('projects', fn ($q) => $q->where('projects.id', $value)))
             ->when($upcomingFollowUp, fn ($query) => $query->where(function ($q) {
@@ -234,6 +242,9 @@ class VisitReportController extends Controller
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'visitTypes' => VisitReport::VISIT_TYPES,
+            'locations' => Location::query()->with('district:id,name')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'district_id']),
+            'districts' => District::query()->with('state:id,name')->orderBy('name')->get(['id', 'name', 'state_id']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'preselectedProjectId' => $request->integer('project_id') ?: null,
             'preselectedCustomerId' => $request->integer('customer_id') ?: null,
@@ -267,7 +278,7 @@ class VisitReportController extends Controller
      */
     public function show(VisitReport $visitReport): Response
     {
-        $visitReport->load(['user', 'branch', 'projects', 'customers', 'contacts', 'builders']);
+        $visitReport->load(['user', 'branch', 'projects', 'customers', 'contacts', 'builders', 'location.district', 'route']);
 
         $contactIds = $visitReport->contacts->pluck('id');
         $customerIds = $visitReport->customers->pluck('id');
@@ -299,7 +310,7 @@ class VisitReportController extends Controller
      */
     public function edit(VisitReport $visitReport): Response
     {
-        $visitReport->load(['projects', 'customers', 'contacts', 'builders']);
+        $visitReport->load(['projects', 'customers', 'contacts', 'builders', 'location.district', 'route']);
 
         return Inertia::render('visit-reports/Edit', [
             'visitReport' => $visitReport,
@@ -308,6 +319,9 @@ class VisitReportController extends Controller
             'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'visitTypes' => VisitReport::VISIT_TYPES,
+            'locations' => Location::query()->with('district:id,name')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'district_id']),
+            'districts' => District::query()->with('state:id,name')->orderBy('name')->get(['id', 'name', 'state_id']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
     }

@@ -18,9 +18,10 @@ import {
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
-import StatCard from '@/components/StatCard.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
+import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -40,6 +41,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { formatDate } from '@/lib/utils';
 import { noVisitPeriodOptions } from '@/lib/visitFilters';
 import {
@@ -51,10 +53,24 @@ import {
     show,
     analytics,
 } from '@/routes/contacts';
-import type { ContactListItem, Filters, Paginated, NamedOption } from '@/types';
+import type {
+    ContactListItem,
+    FilterDistrict,
+    FilterState,
+    Filters,
+    LocationWithDistrict,
+    NamedOption,
+    Paginated,
+    Route,
+} from '@/types';
 
 const props = defineProps<{
     contacts: Paginated<ContactListItem>;
+    countries: NamedOption[];
+    states: FilterState[];
+    districts: FilterDistrict[];
+    locations: LocationWithDistrict[];
+    routes: Route[];
     contactTypes: NamedOption[];
     users: NamedOption[];
     filters: Filters & {
@@ -64,6 +80,11 @@ const props = defineProps<{
         created_from?: string;
         created_to?: string;
         no_visit_within?: string;
+        country_id?: string | number;
+        state_id?: string | number;
+        district_id?: string | number;
+        location_id?: string | number;
+        route_id?: string | number;
     };
     stats: {
         total: number;
@@ -98,6 +119,8 @@ const createdBy = ref(
 const createdFrom = ref(props.filters.created_from ?? '');
 const createdTo = ref(props.filters.created_to ?? '');
 const noVisitWithin = ref(props.filters.no_visit_within ?? 'all');
+const { place, placeQuery, placeIsActive, resetPlace } =
+    useRouteLocationFilters(props.filters);
 
 const updateFilters = () => {
     router.get(
@@ -116,6 +139,7 @@ const updateFilters = () => {
             created_to: createdTo.value || undefined,
             no_visit_within:
                 noVisitWithin.value !== 'all' ? noVisitWithin.value : undefined,
+            ...placeQuery.value,
         },
         {
             preserveState: true,
@@ -133,7 +157,8 @@ const hasActiveFilters = computed(
         (isSuperAdmin.value && createdBy.value !== 'all') ||
         createdFrom.value !== '' ||
         createdTo.value !== '' ||
-        noVisitWithin.value !== 'all',
+        noVisitWithin.value !== 'all' ||
+        placeIsActive.value,
 );
 
 const clearFilters = () => {
@@ -144,6 +169,7 @@ const clearFilters = () => {
     createdFrom.value = '';
     createdTo.value = '';
     noVisitWithin.value = 'all';
+    resetPlace();
     updateFilters();
 };
 
@@ -165,6 +191,7 @@ const exportUrl = computed(() =>
             created_to: createdTo.value || undefined,
             no_visit_within:
                 noVisitWithin.value !== 'all' ? noVisitWithin.value : undefined,
+            ...placeQuery.value,
         },
     }),
 );
@@ -298,6 +325,16 @@ const confirmDelete = (contact: ContactListItem) => {
                             </SelectItem>
                         </SelectContent>
                     </Select>
+
+                    <RouteLocationFilters
+                        v-model="place"
+                        :countries="countries"
+                        :states="states"
+                        :districts="districts"
+                        :locations="locations"
+                        :routes="routes"
+                        @change="updateFilters"
+                    />
 
                     <!-- No visit report within -->
                     <Select

@@ -14,6 +14,7 @@ import {
     MapPin,
     Pencil,
     PhoneCall,
+    Route as RouteIcon,
     ScrollText,
     Target,
     User,
@@ -161,7 +162,9 @@ const visitTypeIcon = computed(() => {
                             >Linked Entities</CardTitle
                         >
                     </CardHeader>
-                    <CardContent class="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <CardContent
+                        class="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4"
+                    >
                         <div>
                             <p
                                 class="flex items-center gap-1.5 text-sm text-muted-foreground"
@@ -366,6 +369,32 @@ const visitTypeIcon = computed(() => {
                             </p>
                             <p class="mt-0.5 text-sm font-medium">
                                 {{ visitReport.branch.name }}
+                            </p>
+                        </div>
+                        <div>
+                            <p
+                                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+                            >
+                                <MapPin class="h-4 w-4 text-rose-500" />
+                                Location
+                            </p>
+                            <p class="mt-0.5 text-sm font-medium">
+                                {{
+                                    visitReport.location
+                                        ? `${visitReport.location.name} — ${visitReport.location.district.name}`
+                                        : '—'
+                                }}
+                            </p>
+                        </div>
+                        <div>
+                            <p
+                                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+                            >
+                                <RouteIcon class="h-4 w-4 text-sky-600" />
+                                Route
+                            </p>
+                            <p class="mt-0.5 text-sm font-medium">
+                                {{ visitReport.route?.name ?? '—' }}
                             </p>
                         </div>
                         <div>

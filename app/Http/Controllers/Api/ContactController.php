@@ -70,6 +70,8 @@ class ContactController extends Controller
             'country_id' => 'nullable|integer|exists:countries,id',
             'state_id' => 'nullable|integer|exists:states,id',
             'district_id' => 'nullable|integer|exists:districts,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'route_id' => 'nullable|integer|exists:routes,id',
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
@@ -78,6 +80,7 @@ class ContactController extends Controller
         $validated['created_by'] = $request->user()?->id ?? 1;
 
         $contact = Contact::create($validated);
+
         return response()->json($contact->load(['contactType', 'assignee']), 201);
     }
 
@@ -92,16 +95,20 @@ class ContactController extends Controller
             'country_id' => 'nullable|integer|exists:countries,id',
             'state_id' => 'nullable|integer|exists:states,id',
             'district_id' => 'nullable|integer|exists:districts,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'route_id' => 'nullable|integer|exists:routes,id',
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
         $contact->update($validated);
+
         return response()->json($contact->load(['contactType', 'assignee']));
     }
 
     public function destroy(Contact $contact)
     {
         $contact->delete();
+
         return response()->json(['message' => 'Contact deleted successfully']);
     }
 }

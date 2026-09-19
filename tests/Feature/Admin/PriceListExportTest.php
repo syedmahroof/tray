@@ -100,24 +100,26 @@ test('a category sheet carries both header rows and the workbook columns', funct
     // Row 1: the sheet title, then each branch over its block.
     expect($data[0][0])->toBe('PIPE SUPPORTS');
     expect($data[0][4])->toBe('Kochi');
-    expect($data[0][14])->toBe('Calicut');
+    expect($data[0][15])->toBe('Calicut');
 
     // Row 2: the workbook's own column captions, repeated per branch.
     expect($data[1])->toBe([
         'SL NO.', 'CODE', 'ITEMS', 'UNIT',
-        'COST', 'SR %', 'SR', 'SR+TAX', 'PR %', 'PR', 'PR+TAX', 'CR %', 'CR', 'CR+TAX',
-        'COST', 'SR %', 'SR', 'SR+TAX', 'PR %', 'PR', 'PR+TAX', 'CR %', 'CR', 'CR+TAX',
+        'COST', 'BASIS', 'SR %', 'SR', 'SR+TAX', 'PR %', 'PR', 'PR+TAX', 'CR %', 'CR', 'CR+TAX',
+        'COST', 'BASIS', 'SR %', 'SR', 'SR+TAX', 'PR %', 'PR', 'PR+TAX', 'CR %', 'CR', 'CR+TAX',
     ]);
 
     // Row 3: the product, with both branches side by side.
     expect($data[2][1])->toBe('SUP-00001');
     expect($data[2][2])->toBe('Slotted Channel 1.2 MM');
     expect($data[2][3])->toBe('Mtr');
-    expect($data[2][5])->toBe(25.0);
-    expect($data[2][6])->toBe(79.75);
-    expect($data[2][7])->toBe(94.11);
-    expect($data[2][8])->toBeNull();
-    expect($data[2][16])->toBe(85.0);
+    // Priced off cost, so the % reads as a markup rather than a discount.
+    expect($data[2][5])->toBe('COST +%');
+    expect($data[2][6])->toBe(25.0);
+    expect($data[2][7])->toBe(79.75);
+    expect($data[2][8])->toBe(94.11);
+    expect($data[2][9])->toBeNull();
+    expect($data[2][18])->toBe(85.0);
 });
 
 test('an unpriced branch leaves its block empty rather than shifting columns', function () {
@@ -126,9 +128,10 @@ test('an unpriced branch leaves its block empty rather than shifting columns', f
     $sheet = new PriceListSheet('Valves', $rows->where('category', 'Valves')->values(), $branches);
     $line = $sheet->array()[2];
 
-    expect($line[6])->toBe(314.0);
+    expect($line[5])->toBe('MRP -%');
+    expect($line[7])->toBe(314.0);
     // Calicut has no price for this valve.
-    expect(array_slice($line, 14, 10))->toBe(array_fill(0, 10, null));
+    expect(array_slice($line, 15, 11))->toBe(array_fill(0, 11, null));
 });
 
 test('a per-branch sheet groups its rows by category', function () {
@@ -200,13 +203,14 @@ test('a branch sheet carries the house style', function () {
     expect($sheet->getFreezePane())->toBe('E3');
 
     // Row 3 is the category heading, banded across the whole sheet.
-    expect($sheet->getMergeCells())->toHaveKey('A3:N3');
+    expect($sheet->getMergeCells())->toHaveKey('A3:O3');
     expect($sheet->getStyle('A3')->getFill()->getStartColor()->getRGB())->toBe(SheetStyle::BAND);
 
-    // Row 4 is the channel: COST in E, SR % in F, SR in G.
-    expect($sheet->getCell('F4')->getValue())->toEqual(25);
-    expect($sheet->getStyle('F4')->getNumberFormat()->getFormatCode())->toBe(SheetStyle::PERCENT);
-    expect($sheet->getStyle('G4')->getNumberFormat()->getFormatCode())->toBe(SheetStyle::MONEY);
+    // Row 4 is the channel: COST in E, BASIS in F, SR % in G, SR in H.
+    expect($sheet->getCell('F4')->getValue())->toBe('COST +%');
+    expect($sheet->getCell('G4')->getValue())->toEqual(25);
+    expect($sheet->getStyle('G4')->getNumberFormat()->getFormatCode())->toBe(SheetStyle::PERCENT);
+    expect($sheet->getStyle('H4')->getNumberFormat()->getFormatCode())->toBe(SheetStyle::MONEY);
 });
 
 test('the comparison sheet is filterable and highlights the spread', function () {

@@ -118,3 +118,35 @@ test('the branch index can be filtered by a search term', function () {
             ->where('branches.data.0.name', 'Northgate Branch')
             ->where('filters.search', 'Northgate'));
 });
+
+test('a branch keeps its own bank account details', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+
+    $this->actingAs($admin)
+        ->post(route('branches.store'), [
+            'name' => 'Calicut',
+            'code' => 'CAL',
+            'bank_name' => 'Axis Bank',
+            'bank_account_number' => '921020054975428',
+            'bank_branch' => 'Kaliai Road,Kozhikode',
+            'bank_ifsc' => 'UTIB0001908',
+            'is_active' => true,
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    $branch = Branch::where('code', 'CAL')->sole();
+
+    expect($branch->bank_name)->toBe('Axis Bank');
+    expect($branch->bankDetails())->toBe([
+        'name' => 'Axis Bank',
+        'account' => '921020054975428',
+        'branch_ifsc' => 'Kaliai Road,Kozhikode & UTIB0001908',
+    ]);
+});
+
+test('a branch without a bank name banks under the company account', function () {
+    $branch = Branch::factory()->create(['bank_name' => null]);
+
+    expect($branch->bankDetails())->toBeNull();
+});

@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $country_id
  * @property int|null $state_id
  * @property int|null $district_id
+ * @property int|null $location_id
+ * @property int|null $route_id
  * @property string $status
  * @property string|null $description
  * @property string|null $owner_name
@@ -40,6 +42,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
+ * @property-read Location|null $locationMaster
+ * @property-read Route|null $route
  * @property-read User|null $assignee
  * @property-read User|null $creator
  * @property-read Collection<int, ProjectContact> $projectContacts
@@ -54,6 +58,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'country_id',
     'state_id',
     'district_id',
+    'location_id',
+    'route_id',
     'status',
     'description',
     'owner_name',
@@ -115,6 +121,25 @@ class Project extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class);
+    }
+
+    /**
+     * Named "locationMaster" rather than "location" because the latter would
+     * collide with the free-text $location column this model already carries.
+     *
+     * @return BelongsTo<Location, $this>
+     */
+    public function locationMaster(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    /**
+     * @return BelongsTo<Route, $this>
+     */
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(Route::class);
     }
 
     /**

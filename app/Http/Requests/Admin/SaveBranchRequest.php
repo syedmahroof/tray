@@ -26,6 +26,10 @@ class SaveBranchRequest extends FormRequest
             ],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account_number' => ['nullable', 'string', 'max:50'],
+            'bank_branch' => ['nullable', 'string', 'max:255'],
+            'bank_ifsc' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

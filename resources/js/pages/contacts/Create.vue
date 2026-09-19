@@ -17,11 +17,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { create, index, store } from '@/routes/contacts';
-import type { Branch, Country, NamedOption } from '@/types';
+import type { Branch, Country, NamedOption, Route } from '@/types';
 
 const props = defineProps<{
     contactTypes: NamedOption[];
     countries: Country[];
+    routes: Route[];
     users: NamedOption[];
     branches: Branch[];
 }>();
@@ -102,7 +103,7 @@ const userOptions = computed(() =>
                         <InputError :message="errors.address" />
                     </div>
 
-                    <LocationSelect :countries="countries" />
+                    <LocationSelect :countries="countries" :routes="routes" />
 
                     <div class="grid gap-2">
                         <Label for="assigned_to">Assigned to</Label>

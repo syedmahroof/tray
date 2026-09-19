@@ -17,6 +17,7 @@ use InvalidArgumentException;
  * @property int $branch_id
  * @property string|null $cost
  * @property string|null $mrp
+ * @property string $rate_basis
  * @property string|null $sr_discount
  * @property string|null $sr_rate
  * @property string|null $sr_rate_with_tax
@@ -33,7 +34,7 @@ use InvalidArgumentException;
  * @property-read Branch $branch
  */
 #[Fillable([
-    'product_id', 'branch_id', 'cost', 'mrp',
+    'product_id', 'branch_id', 'cost', 'mrp', 'rate_basis',
     'sr_discount', 'sr_rate', 'sr_rate_with_tax',
     'pr_discount', 'pr_rate', 'pr_rate_with_tax',
     'cr_discount', 'cr_rate', 'cr_rate_with_tax',
@@ -56,6 +57,17 @@ class ProductBranchPrice extends Model
         'SR' => 'Stockist Rate',
         'PR' => 'Project Rate',
         'CR' => 'Counter Rate',
+    ];
+
+    /**
+     * What a tier's percentage is worked out from, mapping the stored value to
+     * its human label.
+     *
+     * @var array<string, string>
+     */
+    public const array RATE_BASES = [
+        'mrp' => 'Discount off MRP',
+        'cost' => 'Markup on cost',
     ];
 
     /**
@@ -106,6 +118,15 @@ class ProductBranchPrice extends Model
         }
 
         return $tier;
+    }
+
+    /**
+     * Determine whether this row's percentages are discounts off its MRP,
+     * rather than markups on its cost.
+     */
+    public function usesMrp(): bool
+    {
+        return $this->rate_basis !== 'cost';
     }
 
     /**

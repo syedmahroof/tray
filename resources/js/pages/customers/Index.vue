@@ -5,6 +5,7 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,19 +25,34 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { create, destroy, edit, index, show } from '@/routes/customers';
 import type {
     CustomerListItem,
+    FilterDistrict,
+    FilterState,
     Filters,
+    LocationWithDistrict,
     NamedOption,
     Paginated,
+    Route,
 } from '@/types';
 
 const props = defineProps<{
     customers: Paginated<CustomerListItem>;
+    countries: NamedOption[];
+    states: FilterState[];
+    districts: FilterDistrict[];
+    locations: LocationWithDistrict[];
+    routes: Route[];
     users: NamedOption[];
     filters: Filters & {
         assigned_to?: string | number;
+        country_id?: string | number;
+        state_id?: string | number;
+        district_id?: string | number;
+        location_id?: string | number;
+        route_id?: string | number;
     };
 }>();
 
@@ -50,6 +66,8 @@ const search = ref(props.filters.search ?? '');
 const assignedTo = ref(
     props.filters.assigned_to ? String(props.filters.assigned_to) : 'all',
 );
+const { place, placeQuery, placeIsActive, resetPlace } =
+    useRouteLocationFilters(props.filters);
 
 const updateFilters = () => {
     router.get(
@@ -58,6 +76,7 @@ const updateFilters = () => {
             search: search.value || undefined,
             assigned_to:
                 assignedTo.value !== 'all' ? assignedTo.value : undefined,
+            ...placeQuery.value,
         },
         {
             preserveState: true,
@@ -68,12 +87,16 @@ const updateFilters = () => {
 };
 
 const hasActiveFilters = computed(
-    () => search.value !== '' || assignedTo.value !== 'all',
+    () =>
+        search.value !== '' ||
+        assignedTo.value !== 'all' ||
+        placeIsActive.value,
 );
 
 const clearFilters = () => {
     search.value = '';
     assignedTo.value = 'all';
+    resetPlace();
     updateFilters();
 };
 
@@ -141,6 +164,16 @@ const confirmDelete = (customer: CustomerListItem) => {
                             </SelectItem>
                         </SelectContent>
                     </Select>
+
+                    <RouteLocationFilters
+                        v-model="place"
+                        :countries="countries"
+                        :states="states"
+                        :districts="districts"
+                        :locations="locations"
+                        :routes="routes"
+                        @change="updateFilters"
+                    />
 
                     <!-- Clear Filters -->
                     <Button

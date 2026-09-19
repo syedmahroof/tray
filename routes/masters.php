@@ -4,8 +4,10 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ContactTypeController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DistrictController;
+use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProjectCategoryController;
+use App\Http\Controllers\Admin\RouteController as RouteMasterController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\LocationLookupController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +15,17 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('location/states', [LocationLookupController::class, 'states'])->name('location.states');
     Route::get('location/districts', [LocationLookupController::class, 'districts'])->name('location.districts');
+    Route::get('location/locations', [LocationLookupController::class, 'locations'])->name('location.locations');
+
+    Route::post('location/countries/{country}/states', [LocationLookupController::class, 'storeState'])
+        ->middleware('permission:states.create')
+        ->name('location.states.store');
+    Route::post('location/states/{state}/districts', [LocationLookupController::class, 'storeDistrict'])
+        ->middleware('permission:districts.create')
+        ->name('location.districts.store');
+    Route::post('location/districts/{district}/locations', [LocationLookupController::class, 'storeLocation'])
+        ->middleware('permission:locations.create')
+        ->name('location.locations.store');
 
     Route::resource('countries', CountryController::class)
         ->except('show')
@@ -39,6 +52,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('edit', 'permission:districts.view')
         ->middlewareFor('update', 'permission:districts.update')
         ->middlewareFor('destroy', 'permission:districts.delete');
+
+    Route::resource('districts.locations', LocationController::class)
+        ->except('show')
+        ->scoped()
+        ->middlewareFor('index', 'permission:locations.view')
+        ->middlewareFor(['create', 'store'], 'permission:locations.create')
+        ->middlewareFor('edit', 'permission:locations.view')
+        ->middlewareFor('update', 'permission:locations.update')
+        ->middlewareFor('destroy', 'permission:locations.delete');
+
+    Route::resource('routes', RouteMasterController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middlewareFor('index', 'permission:routes.view')
+        ->middlewareFor('store', 'permission:routes.create')
+        ->middlewareFor('update', 'permission:routes.update')
+        ->middlewareFor('destroy', 'permission:routes.delete');
 
     Route::resource('project-categories', ProjectCategoryController::class)
         ->only(['index', 'store', 'update', 'destroy'])

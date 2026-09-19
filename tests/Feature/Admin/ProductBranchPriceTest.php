@@ -237,3 +237,107 @@ test('a user without the price permission cannot change prices through the form'
     expect($product->fresh()->name)->toBe('Renamed');
     expect($product->fresh()->priceFor($branch->id)->rate('SR'))->toBe('10.00');
 });
+
+test('a price row records whether its percentages come off cost or MRP', function () {
+    $product = Product::factory()->create();
+    $kochi = Branch::factory()->create();
+    $calicut = Branch::factory()->create();
+
+    $offMrp = $this->action->handle($product, $kochi, ['mrp' => 628, 'sr_discount' => 50, 'sr_rate' => 314]);
+    $onCost = $this->action->handle($product, $calicut, ['cost' => 100, 'sr_discount' => 10, 'sr_rate' => 110]);
+
+    expect($offMrp->rate_basis)->toBe('mrp');
+    expect($offMrp->usesMrp())->toBeTrue();
+    expect($onCost->rate_basis)->toBe('cost');
+    expect($onCost->usesMrp())->toBeFalse();
+});
+
+test('a price row keeps the basis it was given, even against its figures', function () {
+    $product = Product::factory()->create();
+    $branch = Branch::factory()->create();
+
+    // Costed off an MRP that is only recorded for reference.
+    $price = $this->action->handle($product, $branch, [
+        'cost' => 100,
+        'mrp' => 200,
+        'rate_basis' => 'cost',
+        'sr_discount' => 10,
+        'sr_rate' => 110,
+    ]);
+
+    expect($price->rate_basis)->toBe('cost');
+
+    // A later edit that says nothing about the basis leaves it alone.
+    $this->action->handle($product, $branch, ['cost' => 120]);
+
+    expect($price->fresh()->rate_basis)->toBe('cost');
+});
+
+test('the price list can switch a row between cost and MRP pricing', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $product = Product::factory()->create(['product_category_id' => ProductCategory::factory()]);
+    $branch = Branch::factory()->create();
+
+    $this->action->handle($product, $branch, ['mrp' => 200, 'sr_discount' => 10, 'sr_rate' => 180]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('products.branch-prices.update', [$product, $branch]), [
+            'rate_basis' => 'cost',
+            'cost' => 100,
+            'sr_discount' => 10,
+            'sr_rate' => 110,
+        ])
+        ->assertOk()
+        ->assertJsonPath('rate_basis', 'cost')
+        ->assertJsonPath('sr_rate', '110.00');
+
+    expect($product->fresh()->priceFor($branch->id)->rate_basis)->toBe('cost');
+});
+
+test('a product form can price a branch off cost and another off MRP', function () {
+    $kochi = Branch::factory()->create();
+    $calicut = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $kochi->id]);
+    $manager->assignRole('Manager');
+    $manager->branches()->sync([$kochi->id, $calicut->id]);
+    $category = ProductCategory::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => $category->id,
+            'name' => 'Slotted Channel',
+            'tax_percentage' => 18,
+            'prices' => [
+                // Cost plus 10%.
+                ['branch_id' => $kochi->id, 'rate_basis' => 'cost', 'cost' => 100, 'sr_discount' => 10, 'sr_rate' => 110],
+                // 20% off the MRP.
+                ['branch_id' => $calicut->id, 'rate_basis' => 'mrp', 'mrp' => 200, 'sr_discount' => 20, 'sr_rate' => 160],
+            ],
+        ])
+        ->assertRedirect(route('products.index'));
+
+    $product = Product::where('name', 'Slotted Channel')->sole();
+
+    expect($product->priceFor($kochi->id)->rate_basis)->toBe('cost');
+    expect($product->priceFor($kochi->id)->rate('SR'))->toBe('110.00');
+    expect($product->priceFor($calicut->id)->rate_basis)->toBe('mrp');
+    expect($product->priceFor($calicut->id)->rate('SR'))->toBe('160.00');
+});
+
+test('a price basis outside the two the price list knows is rejected', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $manager->branches()->sync([$branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('products.store'), [
+            'product_category_id' => ProductCategory::factory()->create()->id,
+            'name' => 'Odd basis',
+            'prices' => [
+                ['branch_id' => $branch->id, 'rate_basis' => 'guesswork', 'cost' => 10],
+            ],
+        ])
+        ->assertSessionHasErrors('prices.0.rate_basis');
+});

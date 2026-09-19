@@ -7,9 +7,11 @@ use App\Http\Requests\SaveContactRequest;
 use App\Models\Contact;
 use App\Models\ContactType;
 use App\Models\Country;
+use App\Models\Route;
 use App\Models\User;
 use App\Models\VisitReport;
 use App\Support\BranchAccess;
+use App\Support\RouteLocationFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -44,6 +46,7 @@ class ContactController extends Controller
                     });
                 })
                 ->when($contactTypeId, fn ($query) => $query->where('contact_type_id', $contactTypeId))
+                ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
                 ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
                 ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
                 ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
@@ -56,9 +59,11 @@ class ContactController extends Controller
                 ->withQueryString(),
             'contactTypes' => ContactType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            ...RouteLocationFilter::options('contacts'),
             'filters' => [
                 'search' => $search,
                 'contact_type_id' => $contactTypeId,
+                ...RouteLocationFilter::filters($request),
                 'assigned_to' => $assignedTo,
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
@@ -98,6 +103,7 @@ class ContactController extends Controller
                 });
             })
             ->when($request->input('contact_type_id'), fn ($query, $value) => $query->where('contact_type_id', $value))
+            ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
             ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
             ->when($request->user()->hasRole('Super Admin') && $request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
@@ -134,7 +140,8 @@ class ContactController extends Controller
     {
         return Inertia::render('contacts/Create', [
             'contactTypes' => ContactType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
@@ -160,7 +167,7 @@ class ContactController extends Controller
      */
     public function show(Contact $contact): Response
     {
-        $contact->load(['contactType', 'country', 'state', 'district', 'assignee', 'creator', 'branch']);
+        $contact->load(['contactType', 'country', 'state', 'district', 'location', 'route', 'assignee', 'creator', 'branch']);
 
         return Inertia::render('contacts/Show', [
             'contact' => $contact,
@@ -285,7 +292,8 @@ class ContactController extends Controller
         return Inertia::render('contacts/Edit', [
             'contact' => $contact,
             'contactTypes' => ContactType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);

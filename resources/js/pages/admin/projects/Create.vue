@@ -21,12 +21,19 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { create, index, store } from '@/routes/projects';
-import type { Branch, ContactListItem, Country, NamedOption } from '@/types';
+import type {
+    Branch,
+    ContactListItem,
+    Country,
+    NamedOption,
+    Route,
+} from '@/types';
 
 const props = defineProps<{
     builders: NamedOption[];
     projectCategories: NamedOption[];
     countries: Country[];
+    routes: Route[];
     statuses: string[];
     branches: Branch[];
     users: NamedOption[];
@@ -344,6 +351,7 @@ const removeProjectContact = (key: number) => {
                         <div class="lg:col-span-2">
                             <LocationSelect
                                 :countries="countries"
+                                :routes="routes"
                                 hide-country
                             />
                             <div class="mt-1 flex flex-col gap-1">

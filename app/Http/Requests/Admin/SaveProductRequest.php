@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\ProductBranchPrice;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -61,6 +62,7 @@ class SaveProductRequest extends FormRequest
             'prices.*.remove' => ['nullable', 'boolean'],
             'prices.*.cost' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'prices.*.mrp' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'prices.*.rate_basis' => ['nullable', Rule::in(array_keys(ProductBranchPrice::RATE_BASES))],
             ...$this->tierRules(),
         ];
     }

@@ -18,6 +18,7 @@ namespace App\Support\PriceList;
  *     load: string|null,
  *     cost: float|null,
  *     mrp: float|null,
+ *     rate_basis: string,
  *     sr_discount: float|null, sr_rate: float|null, sr_rate_with_tax: float|null,
  *     pr_discount: float|null, pr_rate: float|null, pr_rate_with_tax: float|null,
  *     cr_discount: float|null, cr_rate: float|null, cr_rate_with_tax: float|null,
@@ -321,6 +322,9 @@ class PriceListParser
             // COST wins over COST + FREIGHT wherever both are present.
             'cost' => $numbers['cost'] ?? $numbers['cost_freight'] ?? null,
             'mrp' => $numbers['mrp'] ?? null,
+            // The source sheets take their % off an MRP where they carry one,
+            // and put it on cost where they do not.
+            'rate_basis' => ($numbers['mrp'] ?? 0) > 0 ? 'mrp' : 'cost',
             'sr_discount' => $discounts['sr'] ?? null,
             'sr_rate' => $numbers['sr_rate'] ?? null,
             'sr_rate_with_tax' => $numbers['sr_rate_with_tax'] ?? null,

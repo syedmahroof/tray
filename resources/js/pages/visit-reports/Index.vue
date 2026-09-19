@@ -26,6 +26,7 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { formatDate } from '@/lib/utils';
 import {
     analytics,
@@ -58,16 +60,25 @@ import {
     show,
 } from '@/routes/visit-reports';
 import type {
+    FilterDistrict,
+    FilterState,
     Filters,
+    LocationWithDistrict,
+    NamedOption,
     Paginated,
+    Route,
     VisitReportListItem,
     VisitReportTypeCount,
-    NamedOption,
     VisitType,
 } from '@/types';
 
 const props = defineProps<{
     visitReports: Paginated<VisitReportListItem>;
+    countries: NamedOption[];
+    states: FilterState[];
+    districts: FilterDistrict[];
+    locations: LocationWithDistrict[];
+    routes: Route[];
     visitReportsByType: VisitReportTypeCount[];
     visitTypes: VisitType[];
     users: NamedOption[];
@@ -80,6 +91,11 @@ const props = defineProps<{
         start_date?: string | null;
         end_date?: string | null;
         upcoming_followup?: boolean;
+        country_id?: string | number;
+        state_id?: string | number;
+        district_id?: string | number;
+        location_id?: string | number;
+        route_id?: string | number;
     };
 }>();
 
@@ -101,6 +117,8 @@ const dateFilter = ref(props.filters.date_filter ?? 'all');
 const startDate = ref(props.filters.start_date ?? '');
 const endDate = ref(props.filters.end_date ?? '');
 const upcomingFollowUp = ref(props.filters.upcoming_followup ?? false);
+const { place, placeQuery, placeIsActive, resetPlace } =
+    useRouteLocationFilters(props.filters);
 
 const updateFilters = () => {
     router.get(
@@ -114,6 +132,7 @@ const updateFilters = () => {
             start_date: startDate.value || undefined,
             end_date: endDate.value || undefined,
             upcoming_followup: upcomingFollowUp.value ? true : undefined,
+            ...placeQuery.value,
         },
         {
             preserveState: true,
@@ -130,7 +149,8 @@ const hasActiveFilters = computed(
         userId.value !== 'all' ||
         projectId.value !== 'all' ||
         dateFilter.value !== 'all' ||
-        upcomingFollowUp.value === true,
+        upcomingFollowUp.value === true ||
+        placeIsActive.value,
 );
 
 const clearFilters = () => {
@@ -142,6 +162,7 @@ const clearFilters = () => {
     startDate.value = '';
     endDate.value = '';
     upcomingFollowUp.value = false;
+    resetPlace();
     updateFilters();
 };
 
@@ -164,6 +185,7 @@ const exportUrl = computed(() =>
             start_date: startDate.value || undefined,
             end_date: endDate.value || undefined,
             upcoming_followup: upcomingFollowUp.value ? true : undefined,
+            ...placeQuery.value,
         },
     }),
 );
@@ -176,10 +198,14 @@ const typeMeta: Record<string, { icon: typeof Search; color: string }> = {
 };
 
 const typeBadgeClasses: Record<string, string> = {
-    'Site Visit': 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50',
-    'Client Meeting': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
-    'Follow-up': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
-    'Inspection': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50',
+    'Site Visit':
+        'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50',
+    'Client Meeting':
+        'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
+    'Follow-up':
+        'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
+    Inspection:
+        'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50',
 };
 
 const statCards = computed(() =>
@@ -201,37 +227,60 @@ const confirmDelete = (visitReport: VisitReportListItem) => {
 };
 
 const getLinkedEntities = (visitReport: VisitReportListItem) => [
-    ...visitReport.projects.map((p) => ({ name: p.name, icon: Building, colorClass: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50' })),
-    ...visitReport.customers.map((c) => ({ name: c.name, icon: UserRound, colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50' })),
-    ...visitReport.contacts.map((c) => ({ name: c.name, icon: IdCard, colorClass: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50' })),
-    ...visitReport.builders.map((b) => ({ name: b.name, icon: HardHat, colorClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50' })),
+    ...visitReport.projects.map((p) => ({
+        name: p.name,
+        icon: Building,
+        colorClass:
+            'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50',
+    })),
+    ...visitReport.customers.map((c) => ({
+        name: c.name,
+        icon: UserRound,
+        colorClass:
+            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
+    })),
+    ...visitReport.contacts.map((c) => ({
+        name: c.name,
+        icon: IdCard,
+        colorClass:
+            'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50',
+    })),
+    ...visitReport.builders.map((b) => ({
+        name: b.name,
+        icon: HardHat,
+        colorClass:
+            'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
+    })),
 ];
 
 const getDateStatus = (dateStr: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const targetDate = new Date(dateStr);
     targetDate.setHours(0, 0, 0, 0);
-    
+
     const diffTime = targetDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
         return {
-            colorClass: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50',
+            colorClass:
+                'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50',
             isNear: true,
             isOverdue: true,
         };
     } else if (diffDays <= 3) {
         return {
-            colorClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
+            colorClass:
+                'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50',
             isNear: true,
             isOverdue: false,
         };
     } else {
         return {
-            colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
+            colorClass:
+                'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50',
             isNear: false,
             isOverdue: false,
         };
@@ -454,11 +503,21 @@ const getDateStatus = (dateStr: string) => {
                             <SelectValue placeholder="Select Date Range" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="last_7_days">Last 7 days</SelectItem>
-                            <SelectItem value="last_30_days">Last 30 days</SelectItem>
-                            <SelectItem value="this_month">This month</SelectItem>
-                            <SelectItem value="last_3_months">Last 3 months</SelectItem>
-                            <SelectItem value="last_6_months">Last 6 months</SelectItem>
+                            <SelectItem value="last_7_days"
+                                >Last 7 days</SelectItem
+                            >
+                            <SelectItem value="last_30_days"
+                                >Last 30 days</SelectItem
+                            >
+                            <SelectItem value="this_month"
+                                >This month</SelectItem
+                            >
+                            <SelectItem value="last_3_months"
+                                >Last 3 months</SelectItem
+                            >
+                            <SelectItem value="last_6_months"
+                                >Last 6 months</SelectItem
+                            >
                             <SelectItem value="last_year">Last year</SelectItem>
                             <SelectItem value="all">All</SelectItem>
                             <SelectItem value="custom">Custom</SelectItem>
@@ -466,7 +525,10 @@ const getDateStatus = (dateStr: string) => {
                     </Select>
 
                     <!-- Custom Date Range -->
-                    <div v-if="dateFilter === 'custom'" class="flex items-center gap-1.5">
+                    <div
+                        v-if="dateFilter === 'custom'"
+                        class="flex items-center gap-1.5"
+                    >
                         <CalendarDays class="h-4 w-4 text-[#16a34a]" />
                         <Input
                             v-model="startDate"
@@ -485,14 +547,30 @@ const getDateStatus = (dateStr: string) => {
                         />
                     </div>
 
+                    <RouteLocationFilters
+                        v-model="place"
+                        :countries="countries"
+                        :states="states"
+                        :districts="districts"
+                        :locations="locations"
+                        :routes="routes"
+                        @change="updateFilters"
+                    />
+
                     <!-- Upcoming Followup Filter -->
                     <Button
                         variant="outline"
                         size="sm"
                         class="gap-2"
-                        @click="upcomingFollowUp = !upcomingFollowUp; updateFilters()"
+                        @click="
+                            upcomingFollowUp = !upcomingFollowUp;
+                            updateFilters();
+                        "
                     >
-                        <CheckSquare v-if="upcomingFollowUp" class="h-4 w-4 text-emerald-600" />
+                        <CheckSquare
+                            v-if="upcomingFollowUp"
+                            class="h-4 w-4 text-emerald-600"
+                        />
                         <Square v-else class="h-4 w-4" />
                         Upcoming Follow-up
                     </Button>
@@ -545,7 +623,12 @@ const getDateStatus = (dateStr: string) => {
                             <TableCell>
                                 <Badge
                                     variant="outline"
-                                    :class="typeBadgeClasses[visitReport.visit_type] || 'bg-slate-50 text-slate-700 border-slate-200'"
+                                    :class="
+                                        typeBadgeClasses[
+                                            visitReport.visit_type
+                                        ] ||
+                                        'border-slate-200 bg-slate-50 text-slate-700'
+                                    "
                                 >
                                     {{ visitReport.visit_type }}
                                 </Badge>
@@ -554,12 +637,20 @@ const getDateStatus = (dateStr: string) => {
                             <TableCell>
                                 <div class="flex flex-wrap gap-1.5">
                                     <Badge
-                                        v-for="entity in getLinkedEntities(visitReport)"
+                                        v-for="entity in getLinkedEntities(
+                                            visitReport,
+                                        )"
                                         :key="entity.name"
                                         variant="outline"
-                                        :class="['flex items-center gap-1 font-medium px-2 py-0.5', entity.colorClass]"
+                                        :class="[
+                                            'flex items-center gap-1 px-2 py-0.5 font-medium',
+                                            entity.colorClass,
+                                        ]"
                                     >
-                                        <component :is="entity.icon" class="h-3.5 w-3.5" />
+                                        <component
+                                            :is="entity.icon"
+                                            class="h-3.5 w-3.5"
+                                        />
                                         {{ entity.name }}
                                     </Badge>
                                 </div>
@@ -573,17 +664,37 @@ const getDateStatus = (dateStr: string) => {
                                     >
                                         <Badge
                                             variant="outline"
-                                            :class="['flex items-center gap-1 px-1.5 py-0.5 text-xs', getDateStatus(visitReport.next_meeting_date).colorClass]"
+                                            :class="[
+                                                'flex items-center gap-1 px-1.5 py-0.5 text-xs',
+                                                getDateStatus(
+                                                    visitReport.next_meeting_date,
+                                                ).colorClass,
+                                            ]"
                                         >
                                             <CalendarDays class="h-3 w-3" />
-                                            <span>Meet: {{ formatDate(visitReport.next_meeting_date) }}</span>
+                                            <span
+                                                >Meet:
+                                                {{
+                                                    formatDate(
+                                                        visitReport.next_meeting_date,
+                                                    )
+                                                }}</span
+                                            >
                                             <AlertCircle
-                                                v-if="getDateStatus(visitReport.next_meeting_date).isOverdue"
-                                                class="h-3 w-3 text-red-500 animate-pulse ml-0.5"
+                                                v-if="
+                                                    getDateStatus(
+                                                        visitReport.next_meeting_date,
+                                                    ).isOverdue
+                                                "
+                                                class="ml-0.5 h-3 w-3 animate-pulse text-red-500"
                                             />
                                             <AlertTriangle
-                                                v-else-if="getDateStatus(visitReport.next_meeting_date).isNear"
-                                                class="h-3 w-3 text-amber-500 ml-0.5"
+                                                v-else-if="
+                                                    getDateStatus(
+                                                        visitReport.next_meeting_date,
+                                                    ).isNear
+                                                "
+                                                class="ml-0.5 h-3 w-3 text-amber-500"
                                             />
                                         </Badge>
                                     </div>
@@ -593,22 +704,45 @@ const getDateStatus = (dateStr: string) => {
                                     >
                                         <Badge
                                             variant="outline"
-                                            :class="['flex items-center gap-1 px-1.5 py-0.5 text-xs', getDateStatus(visitReport.next_call_date).colorClass]"
+                                            :class="[
+                                                'flex items-center gap-1 px-1.5 py-0.5 text-xs',
+                                                getDateStatus(
+                                                    visitReport.next_call_date,
+                                                ).colorClass,
+                                            ]"
                                         >
                                             <Phone class="h-3 w-3" />
-                                            <span>Call: {{ formatDate(visitReport.next_call_date) }}</span>
+                                            <span
+                                                >Call:
+                                                {{
+                                                    formatDate(
+                                                        visitReport.next_call_date,
+                                                    )
+                                                }}</span
+                                            >
                                             <AlertCircle
-                                                v-if="getDateStatus(visitReport.next_call_date).isOverdue"
-                                                class="h-3 w-3 text-red-500 animate-pulse ml-0.5"
+                                                v-if="
+                                                    getDateStatus(
+                                                        visitReport.next_call_date,
+                                                    ).isOverdue
+                                                "
+                                                class="ml-0.5 h-3 w-3 animate-pulse text-red-500"
                                             />
                                             <AlertTriangle
-                                                v-else-if="getDateStatus(visitReport.next_call_date).isNear"
-                                                class="h-3 w-3 text-amber-500 ml-0.5"
+                                                v-else-if="
+                                                    getDateStatus(
+                                                        visitReport.next_call_date,
+                                                    ).isNear
+                                                "
+                                                class="ml-0.5 h-3 w-3 text-amber-500"
                                             />
                                         </Badge>
                                     </div>
                                     <span
-                                        v-if="!visitReport.next_meeting_date && !visitReport.next_call_date"
+                                        v-if="
+                                            !visitReport.next_meeting_date &&
+                                            !visitReport.next_call_date
+                                        "
                                         class="text-xs text-muted-foreground italic"
                                     >
                                         None

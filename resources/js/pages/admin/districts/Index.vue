@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import { ListTree, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { index as countriesIndex } from '@/routes/countries';
 import { index as statesIndex } from '@/routes/countries/states';
+import { index as locationsIndex } from '@/routes/districts/locations';
 import { create, destroy, edit, index } from '@/routes/states/districts';
 import type { District, Filters, Paginated, StateWithCountry } from '@/types';
 
@@ -90,12 +91,24 @@ const confirmDelete = (district: District) => {
                             <TableCell class="font-medium">{{
                                 district.name
                             }}</TableCell>
-                            <TableCell class="text-right space-x-1.5">
+                            <TableCell class="space-x-1.5 text-right">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
-                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
+                                    class="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:hover:text-blue-300"
+                                    :aria-label="`Manage locations for ${district.name}`"
+                                    :data-test="`locations-${district.id}`"
+                                >
+                                    <Link :href="locationsIndex(district.id)">
+                                        <ListTree class="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    as-child
+                                    class="bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-900/40 dark:hover:text-amber-300"
                                     :aria-label="`Edit ${district.name}`"
                                     :data-test="`edit-district-${district.id}`"
                                 >
@@ -110,7 +123,7 @@ const confirmDelete = (district: District) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
+                                    class="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 dark:hover:text-red-300"
                                     :aria-label="`Delete ${district.name}`"
                                     :data-test="`delete-district-${district.id}`"
                                     @click="confirmDelete(district)"

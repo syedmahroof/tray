@@ -3,7 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Quotation;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\QuotationDocument;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -18,8 +18,15 @@ class QuotationMail extends Mailable implements ShouldQueue
 
     /**
      * Create a new message instance.
+     *
+     * @param  string|null  $host  the host the quotation was sent from, kept so
+     *                             the queued attachment prints the right
+     *                             company identity
      */
-    public function __construct(public Quotation $quotation) {}
+    public function __construct(public Quotation $quotation, public ?string $host = null)
+    {
+        $this->host ??= request()->getHost();
+    }
 
     /**
      * Get the message envelope.
@@ -49,9 +56,7 @@ class QuotationMail extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
-        $this->quotation->loadMissing(['contact', 'project', 'branch', 'items.product']);
-
-        $pdf = Pdf::loadView('quotations.pdf', ['quotation' => $this->quotation]);
+        $pdf = QuotationDocument::render($this->quotation, (string) $this->host);
 
         return [
             Attachment::fromData(fn (): string => $pdf->output(), "{$this->quotation->number}.pdf")

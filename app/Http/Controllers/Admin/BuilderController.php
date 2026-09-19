@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBuilderRequest;
 use App\Models\Builder;
 use App\Models\Country;
+use App\Models\Route;
 use App\Models\User;
 use App\Models\VisitReport;
 use App\Support\BranchAccess;
+use App\Support\RouteLocationFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,7 +35,7 @@ class BuilderController extends Controller
 
         return Inertia::render('admin/builders/Index', [
             'builders' => Builder::query()
-                ->with(['country', 'state', 'district', 'assignee', 'creator'])
+                ->with(['country', 'state', 'district', 'location', 'route', 'assignee', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -43,6 +45,7 @@ class BuilderController extends Controller
                     });
                 })
                 ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
+                ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
                 ->when($createdBy, fn ($query) => $query->where('created_by', $createdBy))
                 ->when($createdFrom, fn ($query) => $query->whereDate('created_at', '>=', $createdFrom))
                 ->when($createdTo, fn ($query) => $query->whereDate('created_at', '<=', $createdTo))
@@ -54,8 +57,10 @@ class BuilderController extends Controller
                 ->paginate(15)
                 ->withQueryString(),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            ...RouteLocationFilter::options('builders'),
             'filters' => [
                 'search' => $search,
+                ...RouteLocationFilter::filters($request),
                 'assigned_to' => $assignedTo,
                 'created_by' => $createdBy,
                 'created_from' => $createdFrom,
@@ -73,7 +78,7 @@ class BuilderController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $builders = Builder::query()
-            ->with(['country', 'state', 'district', 'assignee', 'creator'])
+            ->with(['country', 'state', 'district', 'location', 'route', 'assignee', 'creator'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -83,6 +88,7 @@ class BuilderController extends Controller
                 });
             })
             ->when($request->input('assigned_to'), fn ($query, $value) => $query->where('assigned_to', $value))
+            ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
             ->when($request->input('created_by'), fn ($query, $value) => $query->where('created_by', $value))
             ->when($request->input('created_from'), fn ($query, $value) => $query->whereDate('created_at', '>=', $value))
             ->when($request->input('created_to'), fn ($query, $value) => $query->whereDate('created_at', '<=', $value))
@@ -97,7 +103,8 @@ class BuilderController extends Controller
             $builder->contact_person,
             $builder->phone,
             $builder->email,
-            collect([$builder->district?->name, $builder->state?->name, $builder->country?->name])->filter()->join(', '),
+            collect([$builder->location?->name, $builder->district?->name, $builder->state?->name, $builder->country?->name])->filter()->join(', '),
+            $builder->route?->name,
             $builder->is_active ? 'Active' : 'Inactive',
             $builder->assignee?->name,
             $builder->creator?->name,
@@ -106,7 +113,7 @@ class BuilderController extends Controller
 
         return Excel::download(
             new GenericSheetExport(
-                ['Name', 'Contact Person', 'Phone', 'Email', 'Location', 'Status', 'Assigned To', 'Created By', 'Created At'],
+                ['Name', 'Contact Person', 'Phone', 'Email', 'Location', 'Route', 'Status', 'Assigned To', 'Created By', 'Created At'],
                 $rows,
             ),
             'builders.xlsx',
@@ -119,7 +126,8 @@ class BuilderController extends Controller
     public function create(): Response
     {
         return Inertia::render('admin/builders/Create', [
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
@@ -146,7 +154,7 @@ class BuilderController extends Controller
      */
     public function show(Builder $builder): Response
     {
-        $builder->load(['country', 'state', 'district', 'assignee', 'projects', 'visitReports.user']);
+        $builder->load(['country', 'state', 'district', 'location', 'route', 'assignee', 'projects', 'visitReports.user']);
 
         return Inertia::render('admin/builders/Show', [
             'builder' => $builder,
@@ -162,7 +170,8 @@ class BuilderController extends Controller
     {
         return Inertia::render('admin/builders/Edit', [
             'builder' => $builder,
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);

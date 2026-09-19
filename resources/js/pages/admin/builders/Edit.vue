@@ -17,11 +17,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { edit, index, update } from '@/routes/builders';
-import type { Branch, Builder, Country, NamedOption } from '@/types';
+import type { Branch, Builder, Country, NamedOption, Route } from '@/types';
 
 const props = defineProps<{
     builder: Builder;
     countries: Country[];
+    routes: Route[];
     users: NamedOption[];
     branches: Branch[];
 }>();
@@ -112,9 +113,12 @@ const userOptions = computed(() =>
 
             <LocationSelect
                 :countries="countries"
+                :routes="routes"
                 :initial-country-id="builder.country_id"
                 :initial-state-id="builder.state_id"
                 :initial-district-id="builder.district_id"
+                :initial-location-id="builder.location_id"
+                :initial-route-id="builder.route_id"
             />
 
             <div class="grid gap-2">

@@ -22,16 +22,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $country_id
  * @property int|null $state_id
  * @property int|null $district_id
+ * @property int|null $location_id
+ * @property int|null $route_id
  * @property bool $is_active
  * @property int|null $assigned_to
  * @property int|null $created_by
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
+ * @property-read Location|null $location
+ * @property-read Route|null $route
  * @property-read User|null $assignee
  * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'is_active', 'assigned_to', 'created_by'])]
+#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'is_active', 'assigned_to', 'created_by'])]
 class Builder extends Model
 {
     use BelongsToBranch;
@@ -71,6 +75,22 @@ class Builder extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * @return BelongsTo<Route, $this>
+     */
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(Route::class);
     }
 
     /**

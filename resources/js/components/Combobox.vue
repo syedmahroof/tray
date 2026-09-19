@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { Check, ChevronsUpDown, Plus } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -30,11 +30,30 @@ const props = defineProps<{
     disabled?: boolean;
     /** Extra classes for the dropdown, e.g. to widen it past a narrow trigger. */
     contentClass?: string;
+    /** Label for the inline create action; omit to hide it. */
+    createLabel?: string;
+}>();
+
+const emit = defineEmits<{
+    /** The user asked to create an option, with whatever they had typed. */
+    create: [term: string];
 }>();
 
 const modelValue = defineModel<string | undefined>();
 
 const open = ref(false);
+const searchTerm = ref('');
+
+watch(open, (value) => {
+    if (!value) {
+        searchTerm.value = '';
+    }
+});
+
+const startCreate = () => {
+    open.value = false;
+    emit('create', searchTerm.value.trim());
+};
 
 const selectedLabel = computed(
     () =>
@@ -79,7 +98,12 @@ const select = (value: string) => {
             :class="cn('w-(--reka-popover-trigger-width) p-0', contentClass)"
         >
             <Command>
-                <CommandInput :placeholder="placeholder ?? 'Search…'" />
+                <CommandInput
+                    :placeholder="placeholder ?? 'Search…'"
+                    @input="
+                        searchTerm = ($event.target as HTMLInputElement).value
+                    "
+                />
                 <CommandList>
                     <CommandEmpty>{{
                         emptyText ?? 'No results found.'
@@ -106,6 +130,24 @@ const select = (value: string) => {
                     </CommandGroup>
                 </CommandList>
             </Command>
+            <div v-if="createLabel" class="border-t p-1">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="w-full justify-start font-normal"
+                    @click="startCreate"
+                >
+                    <Plus class="mr-2 h-4 w-4 shrink-0" />
+                    <span class="truncate">
+                        {{
+                            searchTerm.trim()
+                                ? `Add “${searchTerm.trim()}”`
+                                : createLabel
+                        }}
+                    </span>
+                </Button>
+            </div>
         </PopoverContent>
     </Popover>
 </template>

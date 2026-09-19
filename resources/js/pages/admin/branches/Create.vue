@@ -57,6 +57,45 @@ defineOptions({
                 <InputError :message="errors.address" />
             </div>
 
+            <div class="space-y-4 rounded-lg border p-4">
+                <div>
+                    <Label class="text-base">Bank details</Label>
+                    <p class="text-sm text-muted-foreground">
+                        Printed on this branch's quotations. Leave blank to use
+                        the company's own account.
+                    </p>
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="bank_name">Bank name</Label>
+                    <Input id="bank_name" name="bank_name" />
+                    <InputError :message="errors.bank_name" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="bank_account_number">A/c no.</Label>
+                    <Input
+                        id="bank_account_number"
+                        name="bank_account_number"
+                    />
+                    <InputError :message="errors.bank_account_number" />
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label for="bank_branch">Bank branch</Label>
+                        <Input id="bank_branch" name="bank_branch" />
+                        <InputError :message="errors.bank_branch" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="bank_ifsc">IFS code</Label>
+                        <Input id="bank_ifsc" name="bank_ifsc" />
+                        <InputError :message="errors.bank_ifsc" />
+                    </div>
+                </div>
+            </div>
+
             <Label for="is_active" class="flex items-center space-x-3">
                 <Checkbox
                     id="is_active"

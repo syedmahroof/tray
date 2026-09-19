@@ -15,7 +15,7 @@ class BuilderController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $builders = Builder::query()
-            ->with(['country', 'state', 'district', 'assignee'])
+            ->with(['country', 'state', 'district', 'location', 'route', 'assignee'])
             ->withCount('projects')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -105,6 +105,8 @@ class BuilderController extends Controller
             'country_id' => 'nullable|exists:countries,id',
             'state_id' => 'nullable|exists:states,id',
             'district_id' => 'nullable|exists:districts,id',
+            'location_id' => 'nullable|exists:locations,id',
+            'route_id' => 'nullable|exists:routes,id',
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
     }

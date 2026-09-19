@@ -180,7 +180,11 @@ class ImportPriceListCommand extends Command
      */
     private function normalise(array $item, string $sheet, array $layout): array
     {
-        $price = ['cost' => $item['cost'], 'mrp' => $item['mrp']];
+        $price = [
+            'cost' => $item['cost'],
+            'mrp' => $item['mrp'],
+            'rate_basis' => $item['rate_basis'] ?? 'mrp',
+        ];
 
         foreach (['sr', 'pr', 'cr'] as $tier) {
             $price["{$tier}_discount"] = $item["{$tier}_discount"];

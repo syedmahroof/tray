@@ -22,11 +22,14 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, WithEvents, WithStrictNullComparison, WithTitle
 {
     /**
-     * The rate columns each branch contributes, after its COST column.
+     * The columns each branch contributes: its cost, what its percentages are
+     * worked out from, then the rate block.
      *
      * @var list<array{string, string}>
      */
-    private const array TIER_COLUMNS = [
+    private const array BRANCH_COLUMNS = [
+        ['cost', 'COST'],
+        ['rate_basis', 'BASIS'],
         ['sr_discount', 'SR %'],
         ['sr_rate', 'SR'],
         ['sr_rate_with_tax', 'SR+TAX'],
@@ -88,13 +91,11 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
             $branchRow[] = $branch->name;
 
             // The name sits over the first cell of its block; the rest are blank.
-            for ($index = 0; $index < count(self::TIER_COLUMNS); $index++) {
+            for ($index = 1; $index < count(self::BRANCH_COLUMNS); $index++) {
                 $branchRow[] = '';
             }
 
-            $columnRow[] = 'COST';
-
-            foreach (self::TIER_COLUMNS as [, $label]) {
+            foreach (self::BRANCH_COLUMNS as [, $label]) {
                 $columnRow[] = $label;
             }
         }
@@ -191,7 +192,7 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
      */
     private function decorateBranchBlock(Worksheet $sheet, int $position, int $lastRow): void
     {
-        $blockWidth = count(self::TIER_COLUMNS) + 1;
+        $blockWidth = count(self::BRANCH_COLUMNS);
         $start = count(self::LEADING) + 1 + $position * $blockWidth;
         $from = Coordinate::stringFromColumnIndex($start);
         $to = Coordinate::stringFromColumnIndex($start + $blockWidth - 1);
@@ -204,13 +205,13 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
             return;
         }
 
-        $keys = ['cost', ...array_column(self::TIER_COLUMNS, 0)];
-
-        foreach ($keys as $offset => $key) {
+        foreach (array_column(self::BRANCH_COLUMNS, 0) as $offset => $key) {
             $column = Coordinate::stringFromColumnIndex($start + $offset);
             $range = "{$column}3:{$column}{$lastRow}";
 
-            if (str_ends_with($key, '_discount')) {
+            if ($key === 'rate_basis') {
+                SheetStyle::center($sheet, $range);
+            } elseif (str_ends_with($key, '_discount')) {
                 SheetStyle::percent($sheet, $range);
             } else {
                 SheetStyle::money($sheet, $range, muted: str_ends_with($key, '_with_tax'));
@@ -230,10 +231,10 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
         foreach ($this->branches as $branch) {
             $cells = $row->prices[$branch->id] ?? null;
 
-            $line[] = $this->number($cells?->cost);
-
-            foreach (self::TIER_COLUMNS as [$key]) {
-                $line[] = $this->number($cells?->{$key});
+            foreach (self::BRANCH_COLUMNS as [$key]) {
+                $line[] = $key === 'rate_basis'
+                    ? $this->basisLabel($cells?->rate_basis)
+                    : $this->number($cells?->{$key});
             }
         }
 
@@ -242,7 +243,7 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
 
     private function columnCount(): int
     {
-        return count(self::LEADING) + $this->branches->count() * (count(self::TIER_COLUMNS) + 1);
+        return count(self::LEADING) + $this->branches->count() * count(self::BRANCH_COLUMNS);
     }
 
     /**
@@ -254,6 +255,19 @@ class PriceListSheet implements FromArray, ShouldAutoSize, WithColumnWidths, Wit
     private function pad(array $values): array
     {
         return array_pad($values, $this->columnCount(), null);
+    }
+
+    /**
+     * Spell out what a branch's percentages are worked out from, so a reader
+     * can tell a discount off MRP from a markup on cost at a glance.
+     */
+    private function basisLabel(?string $basis): ?string
+    {
+        if ($basis === null) {
+            return null;
+        }
+
+        return $basis === 'cost' ? 'COST +%' : 'MRP -%';
     }
 
     /**

@@ -17,10 +17,11 @@ import {
 } from '@/components/ui/select';
 import { RATE_TIERS, RATE_TIER_KEYS } from '@/lib/products';
 import { create, index, store } from '@/routes/customers';
-import type { Branch, Country, NamedOption } from '@/types';
+import type { Branch, Country, NamedOption, Route } from '@/types';
 
 const props = defineProps<{
     countries: Country[];
+    routes: Route[];
     users: NamedOption[];
     branches: Branch[];
 }>();
@@ -116,7 +117,7 @@ const userOptions = computed(() =>
                 </div>
             </div>
 
-            <LocationSelect :countries="countries" />
+            <LocationSelect :countries="countries" :routes="routes" />
 
             <div class="grid gap-2">
                 <Label for="assigned_to">Assigned to</Label>

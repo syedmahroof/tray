@@ -14,7 +14,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
-import { formatDate } from '@/lib/utils';
+import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +26,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import QuotationsCard from '@/components/QuotationsCard.vue';
+import { formatDate } from '@/lib/utils';
 import { edit, index, show } from '@/routes/builders';
 import { show as showProject } from '@/routes/projects';
 import { create as createQuotation } from '@/routes/quotations';
@@ -39,7 +39,9 @@ import type {
     Country,
     State,
     District,
+    Location,
     NamedOption,
+    Route,
     Project,
     QuotationSummary,
     VisitReport,
@@ -54,6 +56,8 @@ type BuilderDetail = Builder & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    location: Location | null;
+    route: Route | null;
     assignee: NamedOption | null;
     projects: Project[];
 };
@@ -194,6 +198,20 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         </p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-muted-foreground">
+                                Location
+                            </p>
+                            <p class="text-sm font-medium">
+                                {{ builder.location?.name ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-muted-foreground">Route</p>
+                            <p class="text-sm font-medium">
+                                {{ builder.route?.name ?? '—' }}
+                            </p>
+                        </div>
                         <div>
                             <p class="text-sm text-muted-foreground">
                                 District

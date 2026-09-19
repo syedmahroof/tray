@@ -25,6 +25,8 @@ class SaveVisitReportRequest extends FormRequest
             'report' => ['nullable', 'string'],
             'next_meeting_date' => ['nullable', 'date'],
             'next_call_date' => ['nullable', 'date'],
+            'location_id' => ['nullable', Rule::exists('locations', 'id')],
+            'route_id' => ['nullable', Rule::exists('routes', 'id')],
             'project_ids' => ['array'],
             'project_ids.*' => [Rule::exists('projects', 'id')],
             'customer_ids' => ['array'],

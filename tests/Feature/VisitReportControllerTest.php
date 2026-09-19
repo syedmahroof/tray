@@ -3,6 +3,7 @@
 use App\Models\Branch;
 use App\Models\Builder;
 use App\Models\Contact;
+use App\Models\District;
 use App\Models\User;
 use App\Models\VisitReport;
 use Database\Seeders\RolePermissionSeeder;
@@ -32,6 +33,26 @@ test('the show page lists previous visit reports that share a linked entity', fu
             ->where('history', fn ($history) => collect($history)->pluck('id')->contains($older->id)
                 && ! collect($history)->pluck('id')->contains($unrelated->id)
                 && ! collect($history)->pluck('id')->contains($current->id)));
+});
+
+test('the create and edit forms expose the districts a location can be added to', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $branch = Branch::factory()->create();
+    $district = District::factory()->create(['name' => 'Ernakulam']);
+    $report = VisitReport::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($admin)
+        ->get(route('visit-reports.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('visit-reports/Create')
+            ->has('districts', 1)
+            ->where('districts.0.name', 'Ernakulam')
+            ->where('districts.0.state.name', $district->state->name));
+
+    $this->actingAs($admin)
+        ->get(route('visit-reports.edit', $report))
+        ->assertInertia(fn ($page) => $page->has('districts', 1));
 });
 
 test('the create and edit forms expose the builder options and linked builders', function () {

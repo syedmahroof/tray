@@ -32,8 +32,8 @@ test('an admin can create a builder with a cascading location select', function 
     $page->click('New builder')->assertSee('New builder');
     $page->fill('name', 'Acme Developers');
 
-    $page->click('Select a country');
-    $page->click('India');
+    // The country picker defaults to India, so only state and district are chosen.
+    $page->assertSee('India');
 
     $page->click('Select a state');
     $page->click('Karnataka');
@@ -303,4 +303,54 @@ test('the category page shows its products and their rates', function () {
         ->assertNoJavaScriptErrors()
         ->assertSee('Perforated Tray 50x50')
         ->assertSee('138.60');
+});
+
+test('the branch price editor can switch a branch from MRP discounts to a markup on cost', function () {
+    $kochi = Branch::factory()->create(['name' => 'Kochi', 'code' => 'KOC']);
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+
+    $product = Product::factory()->create([
+        'name' => 'Ball Valve 15 MM',
+        'product_category_id' => ProductCategory::factory()->create(['name' => 'Valves'])->id,
+        'tax_percentage' => 18,
+    ]);
+
+    // Priced 20% off an MRP of 200.
+    app(SaveProductBranchPrice::class)->handle($product, $kochi, [
+        'mrp' => 200,
+        'sr_discount' => 20, 'sr_rate' => 160,
+    ]);
+
+    $this->actingAs($admin);
+
+    $page = visit("/products/{$product->id}/edit");
+    $page->assertNoJavaScriptErrors()
+        ->assertSee('Discount %')
+        ->assertSee('discount off MRP 200.00');
+
+    $page->click('@rate-basis-0')->wait(0.5)->click('@rate-basis-0-cost')->wait(0.5);
+
+    // The same % is now read as a markup, so it needs a cost to work from.
+    $page->assertSee('Markup %')
+        ->fill('#cost-0', '100')
+        ->wait(0.5);
+
+    $page->assertValue('#sr-rate-0', '120');
+
+    $page->fill('#sr-discount-0', '10');
+    $page->assertValue('#sr-rate-0', '110');
+
+    $page->click('Save');
+    $page->wait(1.5);
+    $page->assertNoJavaScriptErrors();
+
+    $this->assertDatabaseHas('product_branch_prices', [
+        'product_id' => $product->id,
+        'branch_id' => $kochi->id,
+        'rate_basis' => 'cost',
+        'cost' => 100,
+        'sr_discount' => 10,
+        'sr_rate' => 110,
+    ]);
 });

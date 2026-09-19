@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Branding;
 use App\Support\ReminderNotifications;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -54,21 +55,19 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * Resolve the branding (name, subtitle, logo) for the given request host.
+     * The company identity that goes with it is only printed on paperwork, so
+     * it is left out of the shared props.
      *
      * @return array{name: string, subtitle: string|null, logo: string|null}
      */
     private function brandForHost(string $host): array
     {
-        /** @var array<string, array{name?: string, subtitle?: string|null, logo?: string|null}> $domains */
-        $domains = config('branding.domains', []);
-
-        /** @var array{name?: string, subtitle?: string|null, logo?: string|null} $brand */
-        $brand = $domains[$host] ?? config('branding.default', []);
+        $brand = Branding::forHost($host);
 
         return [
-            'name' => $brand['name'] ?? config('app.name'),
-            'subtitle' => $brand['subtitle'] ?? null,
-            'logo' => $brand['logo'] ?? null,
+            'name' => $brand['name'],
+            'subtitle' => $brand['subtitle'],
+            'logo' => $brand['logo'],
         ];
     }
 }

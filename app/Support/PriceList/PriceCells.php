@@ -14,6 +14,8 @@ final readonly class PriceCells implements JsonSerializable
     public function __construct(
         public ?string $cost,
         public ?string $mrp,
+        /** Whether the tier percentages are discounts off MRP or markups on cost. */
+        public string $rate_basis,
         public ?string $sr_discount,
         public ?string $sr_rate,
         public ?string $sr_rate_with_tax,
@@ -34,6 +36,7 @@ final readonly class PriceCells implements JsonSerializable
         return new self(
             cost: $price->cost,
             mrp: $price->mrp,
+            rate_basis: $price->rate_basis,
             sr_discount: $price->sr_discount,
             sr_rate: $price->sr_rate,
             sr_rate_with_tax: $price->sr_rate_with_tax,

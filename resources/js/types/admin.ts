@@ -4,6 +4,11 @@ export type Branch = {
     code: string;
     address: string | null;
     city: string | null;
+    /** The account this branch collects into, printed on its quotations. */
+    bank_name?: string | null;
+    bank_account_number?: string | null;
+    bank_branch?: string | null;
+    bank_ifsc?: string | null;
     is_active: boolean;
 };
 
@@ -75,6 +80,60 @@ export type StateWithCountry = State & {
     country: Country;
 };
 
+/** A locality within a district: the finest grain of the location tree. */
+export type Location = {
+    id: number;
+    district_id: number;
+    name: string;
+    pincode: string | null;
+    is_active: boolean;
+};
+
+export type LocationWithDistrict = Location & {
+    district: NamedOption;
+};
+
+/** A district as a picker offers it, qualified by the state it sits in. */
+export type DistrictOption = NamedOption & { state: NamedOption };
+
+/** A state as the listing filters offer it: just enough to group by country. */
+export type FilterState = NamedOption & { country_id: number };
+
+/** A district as the listing filters offer it: just enough to group by state. */
+export type FilterDistrict = NamedOption & { state_id: number };
+
+/**
+ * The place pickers offered on a listing screen, each list holding only what
+ * the listing actually uses.
+ */
+export type PlaceFilterOptions = {
+    countries: NamedOption[];
+    states: FilterState[];
+    districts: FilterDistrict[];
+    locations: LocationWithDistrict[];
+    routes: Route[];
+};
+
+/** The place filters a listing is narrowed by; "all" means no filter. */
+export type PlaceFilterValues = {
+    country_id: string;
+    state_id: string;
+    district_id: string;
+    location_id: string;
+    route_id: string;
+};
+
+export type DistrictWithState = District & {
+    state: StateWithCountry;
+};
+
+/** A sales route, shared across districts rather than nested under one. */
+export type Route = {
+    id: number;
+    name: string;
+    is_active: boolean;
+};
+
 export type Builder = {
     id: number;
     branch_id: number;
@@ -86,6 +145,8 @@ export type Builder = {
     country_id: number | null;
     state_id: number | null;
     district_id: number | null;
+    location_id: number | null;
+    route_id: number | null;
     is_active: boolean;
     assigned_to: number | null;
     created_by: number | null;
@@ -96,6 +157,8 @@ export type BuilderListItem = Builder & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    location: Location | null;
+    route: Route | null;
     assignee: NamedOption | null;
     creator: NamedOption | null;
 };
@@ -124,6 +187,8 @@ export type Project = {
     country_id: number | null;
     state_id: number | null;
     district_id: number | null;
+    location_id: number | null;
+    route_id: number | null;
     status: string;
     description: string | null;
     owner_name: string | null;
@@ -145,12 +210,17 @@ export type Project = {
 
 export type ProjectListItem = Project & {
     builder: NamedOption | null;
+    location_master: Location | null;
+    route: Route | null;
     project_category: NamedOption;
     assignee: NamedOption | null;
     creator: NamedOption | null;
 };
 
 export type RateTier = 'SR' | 'PR' | 'CR';
+
+/** What a price row's tier percentages are worked out from. */
+export type RateBasis = 'mrp' | 'cost';
 
 export type ProductBranchPrice = {
     id: number;
@@ -159,6 +229,7 @@ export type ProductBranchPrice = {
     branch?: Branch;
     cost: string | null;
     mrp: string | null;
+    rate_basis: RateBasis;
     sr_discount: string | null;
     sr_rate: string | null;
     sr_rate_with_tax: string | null;
@@ -209,6 +280,7 @@ export type Product = {
 export type BranchPriceCells = {
     cost: string | null;
     mrp: string | null;
+    rate_basis: RateBasis;
     sr_discount: string | null;
     sr_rate: string | null;
     sr_rate_with_tax: string | null;

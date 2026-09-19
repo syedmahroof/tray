@@ -15,6 +15,7 @@ import {
     LayoutGrid,
     Package,
     PlaneTakeoff,
+    Route as RouteIcon,
     Shapes,
     Shield,
     Tag,
@@ -57,6 +58,7 @@ import { index as projectsIndex } from '@/routes/projects';
 import { index as quotationsIndex } from '@/routes/quotations';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as rolesIndex } from '@/routes/roles';
+import { index as routesIndex } from '@/routes/routes';
 import { index as usersIndex } from '@/routes/users';
 import {
     analytics as visitReportsAnalytics,
@@ -112,6 +114,12 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: brandsIndex(),
             icon: Tag,
             color: '#e11d48',
+        },
+        permissions.value.includes('routes.view') && {
+            title: 'Routes',
+            href: routesIndex(),
+            icon: RouteIcon,
+            color: '#0284c7',
         },
     ]);
 

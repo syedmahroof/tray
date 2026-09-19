@@ -42,6 +42,14 @@ class SaveProductBranchPrice
             $isNew = ! $price->exists;
             $original = $this->trackedValues($price);
 
+            // A caller that says nothing about the basis gets the price list's
+            // own rule: a % is a discount off an MRP where there is one, and a
+            // markup on cost where there is not. An existing row keeps the
+            // basis it was given.
+            if ($isNew && ! array_key_exists('rate_basis', $attributes)) {
+                $attributes['rate_basis'] = ((float) ($attributes['mrp'] ?? 0)) > 0 ? 'mrp' : 'cost';
+            }
+
             $price->fill($attributes);
             $price->save();
 

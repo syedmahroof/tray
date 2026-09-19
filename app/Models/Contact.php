@@ -24,16 +24,20 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property int|null $country_id
  * @property int|null $state_id
  * @property int|null $district_id
+ * @property int|null $location_id
+ * @property int|null $route_id
  * @property int|null $assigned_to
  * @property int|null $created_by
  * @property-read ContactType $contactType
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
+ * @property-read Location|null $location
+ * @property-read Route|null $route
  * @property-read User|null $assignee
  * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to', 'created_by'])]
+#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to', 'created_by'])]
 class Contact extends Model
 {
     use BelongsToBranch;
@@ -72,6 +76,22 @@ class Contact extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * @return BelongsTo<Route, $this>
+     */
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(Route::class);
     }
 
     /**
@@ -193,6 +213,14 @@ class Contact extends Model
                     } elseif ($key === 'district_id') {
                         $oldName = $oldValue ? District::find($oldValue)?->name : 'None';
                         $newName = $newValue ? District::find($newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } elseif ($key === 'location_id') {
+                        $oldName = $oldValue ? Location::find((int) $oldValue)?->name : 'None';
+                        $newName = $newValue ? Location::find((int) $newValue)?->name : 'None';
+                        $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
+                    } elseif ($key === 'route_id') {
+                        $oldName = $oldValue ? Route::find((int) $oldValue)?->name : 'None';
+                        $newName = $newValue ? Route::find((int) $newValue)?->name : 'None';
                         $descriptions[] = "{$fieldName} changed from '{$oldName}' to '{$newName}'";
                     } else {
                         $oldDisp = $oldValue ?? 'None';

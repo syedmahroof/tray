@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SaveCustomerRequest;
 use App\Models\Country;
 use App\Models\Customer;
+use App\Models\Route;
 use App\Models\User;
 use App\Support\BranchAccess;
+use App\Support\RouteLocationFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,13 +35,16 @@ class CustomerController extends Controller
                     });
                 })
                 ->when($assignedTo, fn ($query) => $query->where('assigned_to', $assignedTo))
+                ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            ...RouteLocationFilter::options('customers'),
             'filters' => [
                 'search' => $search,
                 'assigned_to' => $assignedTo,
+                ...RouteLocationFilter::filters($request),
             ],
         ]);
     }
@@ -50,7 +55,8 @@ class CustomerController extends Controller
     public function create(): Response
     {
         return Inertia::render('customers/Create', [
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);
@@ -73,7 +79,7 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer): Response
     {
-        $customer->load(['country', 'state', 'district', 'assignee', 'branch']);
+        $customer->load(['country', 'state', 'district', 'location', 'route', 'assignee', 'branch']);
 
         return Inertia::render('customers/Show', [
             'customer' => $customer,
@@ -89,7 +95,8 @@ class CustomerController extends Controller
     {
         return Inertia::render('customers/Edit', [
             'customer' => $customer,
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
         ]);

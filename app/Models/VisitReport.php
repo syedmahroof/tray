@@ -22,9 +22,13 @@ use Illuminate\Support\Carbon;
  * @property string|null $report
  * @property Carbon|null $next_meeting_date
  * @property Carbon|null $next_call_date
+ * @property int|null $location_id
+ * @property int|null $route_id
  * @property-read User $user
+ * @property-read Location|null $location
+ * @property-read Route|null $route
  */
-#[Fillable(['branch_id', 'user_id', 'visit_date', 'visit_type', 'objective', 'report', 'next_meeting_date', 'next_call_date'])]
+#[Fillable(['branch_id', 'user_id', 'visit_date', 'visit_type', 'objective', 'report', 'next_meeting_date', 'next_call_date', 'location_id', 'route_id'])]
 class VisitReport extends Model
 {
     use BelongsToBranch;
@@ -66,6 +70,22 @@ class VisitReport extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * @return BelongsTo<Route, $this>
+     */
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(Route::class);
     }
 
     /**

@@ -51,6 +51,8 @@ class CustomerController extends Controller
             'country_id' => 'nullable|integer|exists:countries,id',
             'state_id' => 'nullable|integer|exists:states,id',
             'district_id' => 'nullable|integer|exists:districts,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'route_id' => 'nullable|integer|exists:routes,id',
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
@@ -73,6 +75,8 @@ class CustomerController extends Controller
             'country_id' => 'nullable|integer|exists:countries,id',
             'state_id' => 'nullable|integer|exists:states,id',
             'district_id' => 'nullable|integer|exists:districts,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'route_id' => 'nullable|integer|exists:routes,id',
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 

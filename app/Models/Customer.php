@@ -23,13 +23,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $country_id
  * @property int|null $state_id
  * @property int|null $district_id
+ * @property int|null $location_id
+ * @property int|null $route_id
  * @property int|null $assigned_to
  * @property-read Country|null $country
  * @property-read State|null $state
  * @property-read District|null $district
+ * @property-read Location|null $location
+ * @property-read Route|null $route
  * @property-read User|null $assignee
  */
-#[Fillable(['branch_id', 'name', 'phone', 'email', 'gst_number', 'rate_tier', 'address', 'country_id', 'state_id', 'district_id', 'assigned_to'])]
+#[Fillable(['branch_id', 'name', 'phone', 'email', 'gst_number', 'rate_tier', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to'])]
 class Customer extends Model
 {
     use BelongsToBranch;
@@ -59,6 +63,22 @@ class Customer extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * @return BelongsTo<Route, $this>
+     */
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(Route::class);
     }
 
     /**

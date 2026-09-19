@@ -11,9 +11,11 @@ use App\Models\Country;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCategory;
+use App\Models\Route;
 use App\Models\User;
 use App\Models\VisitReport;
 use App\Support\BranchAccess;
+use App\Support\RouteLocationFilter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Http\RedirectResponse;
@@ -63,9 +65,11 @@ class ProjectController extends Controller
             'products' => Product::query()->orderBy('name')->get(['id', 'name']),
             'statuses' => Project::STATUSES,
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            ...RouteLocationFilter::options('projects'),
             'filters' => [
                 'search' => $search,
                 'builder_id' => $builderId,
+                ...RouteLocationFilter::filters($request),
                 'project_category_id' => $categoryId,
                 'status' => $status,
                 'product_id' => $productId,
@@ -128,6 +132,7 @@ class ProjectController extends Controller
                 });
             })
             ->when($request->input('builder_id'), fn ($query, $value) => $query->where('builder_id', $value))
+            ->pipe(fn ($query) => RouteLocationFilter::apply($query, $request))
             ->when($request->input('project_category_id'), fn ($query, $value) => $query->where('project_category_id', $value))
             ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
             ->when($request->input('product_id'), fn ($query, $value) => $query->whereHas('products', fn ($q) => $q->where('products.id', $value)))
@@ -332,7 +337,8 @@ class ProjectController extends Controller
         return Inertia::render('admin/projects/Create', [
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'projectCategories' => ProjectCategory::query()->orderBy('name')->get(['id', 'name']),
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'statuses' => Project::STATUSES,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
@@ -375,7 +381,8 @@ class ProjectController extends Controller
             'project' => $project,
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'projectCategories' => ProjectCategory::query()->orderBy('name')->get(['id', 'name']),
-            'countries' => Country::query()->orderBy('name')->get(['id', 'name']),
+            'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'statuses' => Project::STATUSES,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),

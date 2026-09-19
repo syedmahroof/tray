@@ -98,6 +98,7 @@ const displayRows = computed(() => {
 const basisOf = (cells: BranchPriceCells | null): PriceBasis => ({
     mrp: cells?.mrp,
     cost: cells?.cost,
+    rate_basis: cells?.rate_basis,
     freight: cells ? impliedFreight(cells) : 0,
 });
 

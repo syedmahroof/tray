@@ -8,9 +8,11 @@ use App\Models\Builder;
 use App\Models\ContactType;
 use App\Models\Country;
 use App\Models\District;
+use App\Models\Location;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCategory;
+use App\Models\Route;
 use App\Models\State;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,6 +25,8 @@ class MetadataController extends Controller
             'countries' => Country::orderBy('name')->get(['id', 'name']),
             'states' => State::orderBy('name')->get(['id', 'name', 'country_id']),
             'districts' => District::orderBy('name')->get(['id', 'name', 'state_id']),
+            'locations' => Location::where('is_active', true)->orderBy('name')->get(['id', 'name', 'district_id']),
+            'routes' => Route::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::orderBy('name')->get(['id', 'name']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'contact_types' => ContactType::orderBy('name')->get(['id', 'name']),

@@ -1,4 +1,4 @@
-import type { RateTier } from '@/types';
+import type { RateBasis, RateTier } from '@/types';
 
 /** Units of measure used across the catalogue. */
 export const UNIT_OPTIONS = ['Mtr', 'Nos', 'Kg', 'Sqm', 'Ltr', 'Set'] as const;
@@ -11,6 +11,24 @@ export const RATE_TIERS: Record<RateTier, string> = {
 };
 
 export const RATE_TIER_KEYS = Object.keys(RATE_TIERS) as RateTier[];
+
+/** How a price row works its tier percentages out, and what to call it. */
+export const RATE_BASES: Record<RateBasis, string> = {
+    mrp: 'Discount off MRP',
+    cost: 'Markup on cost',
+};
+
+export const RATE_BASIS_KEYS = Object.keys(RATE_BASES) as RateBasis[];
+
+/**
+ * The basis a saved row carries, or the one the price list would infer for a
+ * row that has never been given one: a discount where there is an MRP.
+ */
+export const basisOrInferred = (price: {
+    rate_basis?: RateBasis | null;
+    mrp?: string | number | null;
+}): RateBasis =>
+    price.rate_basis ?? ((toNumber(price.mrp) ?? 0) > 0 ? 'mrp' : 'cost');
 
 /** Format a decimal string as rupees, or an em dash when it is missing. */
 export const money = (value: string | number | null | undefined): string =>
@@ -51,17 +69,21 @@ export const roundTo2 = (value: number): number =>
 export type PriceBasis = {
     mrp?: string | number | null;
     cost?: string | number | null;
+    /** What the % is worked out from; inferred from the MRP when absent. */
+    rate_basis?: RateBasis | null;
     /** Added to cost before a markup. Worked out, never stored. */
     freight: number;
 };
 
 /**
- * The price list uses the tier % two ways. With an MRP it is a discount off
- * MRP; without one it is a markup on cost, and on some sheets (cable tray) on
- * cost plus a freight figure the database does not keep.
+ * The price list uses the tier % two ways: as a discount off MRP, or as a
+ * markup on cost — and on some sheets (cable tray) on cost plus a freight
+ * figure the database does not keep. Which one a row uses is its own choice,
+ * falling back to the old rule for rows that predate the setting.
  */
-export const usesMrp = (basis: Pick<PriceBasis, 'mrp'>): boolean =>
-    (toNumber(basis.mrp) ?? 0) > 0;
+export const usesMrp = (
+    basis: Pick<PriceBasis, 'mrp' | 'rate_basis'>,
+): boolean => basisOrInferred(basis) === 'mrp';
 
 /** The figure a % is applied to, when there is one. */
 export const basisFor = (basis: PriceBasis): number | undefined => {
@@ -128,11 +150,12 @@ export const impliedFreight = (
     price: TierFigures & {
         cost?: string | number | null;
         mrp?: string | number | null;
+        rate_basis?: RateBasis | null;
     },
 ): number => {
     const cost = toNumber(price.cost);
 
-    if (toNumber(price.mrp) || cost === undefined) {
+    if (usesMrp(price) || cost === undefined) {
         return 0;
     }
 

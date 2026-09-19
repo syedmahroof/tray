@@ -15,7 +15,7 @@ class RolePermissionSeeder extends Seeder
      */
     private const RESOURCES = [
         'users', 'branches', 'roles',
-        'countries', 'states', 'districts',
+        'countries', 'states', 'districts', 'locations', 'routes',
         'project-categories', 'product-categories', 'contact-types', 'brands',
         'builders', 'projects', 'products',
         'contacts', 'customers', 'enquiries',
@@ -61,6 +61,7 @@ class RolePermissionSeeder extends Seeder
         Role::findOrCreate('Manager')->syncPermissions([
             ...$this->permissionNames(['countries', 'states', 'districts'], ['view']),
             ...$this->permissionNames([
+                'locations', 'routes',
                 'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products',
                 'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations',
@@ -74,10 +75,13 @@ class RolePermissionSeeder extends Seeder
 
         Role::findOrCreate('Sales Executive')->syncPermissions([
             ...$this->permissionNames([
-                'countries', 'states', 'districts',
+                'countries', 'states', 'districts', 'routes',
                 'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products',
             ], ['view']),
+            // Field staff meet missing localities first, so they may add one
+            // straight from a location picker.
+            ...$this->permissionNames(['locations'], ['view', 'create']),
             ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations'], self::ACTIONS),
             'quotations.send',
             'products.price.view',
@@ -85,7 +89,7 @@ class RolePermissionSeeder extends Seeder
 
         Role::findOrCreate('Telecaller')->syncPermissions([
             ...$this->permissionNames([
-                'countries', 'states', 'districts',
+                'countries', 'states', 'districts', 'locations', 'routes',
                 'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products', 'contacts', 'customers',
             ], ['view']),

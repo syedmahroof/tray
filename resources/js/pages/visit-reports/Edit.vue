@@ -2,8 +2,10 @@
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed } from 'vue';
+import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import LocationCombobox from '@/components/LocationCombobox.vue';
 import MultiCombobox from '@/components/MultiCombobox.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,13 +26,16 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { edit, index, show, update } from '@/routes/visit-reports';
-import {
-    contactOptionLabel,
-    type Branch,
-    type ContactSelectOption,
-    type NamedOption,
-    type VisitReportDetail,
-    type VisitType,
+import { contactOptionLabel } from '@/types';
+import type {
+    Branch,
+    ContactSelectOption,
+    DistrictOption,
+    LocationWithDistrict,
+    NamedOption,
+    Route,
+    VisitReportDetail,
+    VisitType,
 } from '@/types';
 
 const props = defineProps<{
@@ -39,6 +44,9 @@ const props = defineProps<{
     customers: NamedOption[];
     contacts: ContactSelectOption[];
     builders: NamedOption[];
+    locations: LocationWithDistrict[];
+    districts: DistrictOption[];
+    routes: Route[];
     visitTypes: VisitType[];
     branches: Branch[];
 }>();
@@ -55,6 +63,13 @@ defineOptions({
         ],
     }),
 });
+
+const routeOptions = computed(() =>
+    props.routes.map((route) => ({
+        value: String(route.id),
+        label: route.name,
+    })),
+);
 
 const projectOptions = computed(() =>
     props.projects.map((project) => ({
@@ -90,8 +105,9 @@ const selectedCustomerIds = computed(() =>
 const selectedContactIds = computed(() =>
     props.visitReport.contacts.map((contact) => String(contact.id)),
 );
-const selectedBuilderIds = computed(() =>
-    props.visitReport.builders?.map((builder) => String(builder.id)) ?? [],
+const selectedBuilderIds = computed(
+    () =>
+        props.visitReport.builders?.map((builder) => String(builder.id)) ?? [],
 );
 </script>
 
@@ -123,10 +139,13 @@ const selectedBuilderIds = computed(() =>
                 <CardHeader>
                     <CardTitle>Link Entities</CardTitle>
                     <CardDescription>
-                        Select at least one project, customer, contact, or builder
+                        Select at least one project, customer, contact, or
+                        builder
                     </CardDescription>
                 </CardHeader>
-                <CardContent class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <CardContent
+                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                >
                     <div class="grid gap-2">
                         <Label for="project_ids">Projects</Label>
                         <MultiCombobox
@@ -241,6 +260,34 @@ const selectedBuilderIds = computed(() =>
                                 </SelectContent>
                             </Select>
                             <InputError :message="errors.branch_id" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="location_id">Location</Label>
+                            <LocationCombobox
+                                name="location_id"
+                                :locations="locations"
+                                :districts="districts"
+                                :initial-location-id="visitReport.location_id"
+                            />
+                            <InputError :message="errors.location_id" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="route_id">Route</Label>
+                            <Combobox
+                                name="route_id"
+                                placeholder="Select a route…"
+                                :options="routeOptions"
+                                :model-value="
+                                    visitReport.route_id
+                                        ? String(visitReport.route_id)
+                                        : undefined
+                                "
+                            />
+                            <InputError :message="errors.route_id" />
                         </div>
                     </div>
 

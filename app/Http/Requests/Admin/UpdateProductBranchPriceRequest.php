@@ -3,11 +3,13 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Branch;
+use App\Models\ProductBranchPrice;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -22,7 +24,7 @@ class UpdateProductBranchPriceRequest extends FormRequest
      * @var list<string>
      */
     public const array FIELDS = [
-        'cost',
+        'cost', 'rate_basis',
         'sr_discount', 'sr_rate',
         'pr_discount', 'pr_rate',
         'cr_discount', 'cr_rate',
@@ -47,7 +49,10 @@ class UpdateProductBranchPriceRequest extends FormRequest
      */
     public function rules(): array
     {
-        $rules = ['cost' => ['sometimes', 'nullable', 'numeric', 'min:0']];
+        $rules = [
+            'cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'rate_basis' => ['sometimes', Rule::in(array_keys(ProductBranchPrice::RATE_BASES))],
+        ];
 
         foreach (['sr', 'pr', 'cr'] as $tier) {
             $rules["{$tier}_discount"] = ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999.99'];

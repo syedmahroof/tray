@@ -25,6 +25,11 @@ class SaveProjectRequest extends FormRequest
             'country_id' => ['nullable', Rule::exists('countries', 'id')],
             'state_id' => ['nullable', Rule::exists('states', 'id')],
             'district_id' => ['nullable', Rule::exists('districts', 'id')],
+            'location_id' => ['nullable', Rule::exists('locations', 'id')->when(
+                $this->filled('district_id'),
+                fn ($rule) => $rule->where('district_id', $this->input('district_id')),
+            )],
+            'route_id' => ['nullable', Rule::exists('routes', 'id')],
             'status' => ['required', Rule::in(Project::STATUSES)],
             'description' => ['nullable', 'string'],
             'branch_id' => [
