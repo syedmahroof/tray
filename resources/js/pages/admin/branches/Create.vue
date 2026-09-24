@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import BranchLetterheadFields from '@/components/admin/BranchLetterheadFields.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { create, index, store } from '@/routes/branches';
+import type { NamedOption } from '@/types';
+
+defineProps<{
+    brands: NamedOption[];
+}>();
 
 defineOptions({
     layout: {
@@ -53,9 +60,11 @@ defineOptions({
 
             <div class="grid gap-2">
                 <Label for="address">Address</Label>
-                <Input id="address" name="address" />
+                <Textarea id="address" name="address" rows="3" />
                 <InputError :message="errors.address" />
             </div>
+
+            <BranchLetterheadFields :brands="brands" :errors="errors" />
 
             <div class="space-y-4 rounded-lg border p-4">
                 <div>

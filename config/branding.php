@@ -34,9 +34,12 @@ return [
             'gstin' => '32AAUFB0851A1ZX',
             'state' => ['name' => 'Kerala', 'code' => '32'],
             'email' => 'buildtechgroupclt@gmail.com',
+            'website' => null,
             'bank' => [
                 'name' => 'Axis Bank',
                 'account' => '921020054975428',
+                'branch' => 'Kaliai Road,Kozhikode',
+                'ifsc' => 'UTIB0001908',
                 'branch_ifsc' => 'Kaliai Road,Kozhikode & UTIB0001908',
             ],
             'declaration' => 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
@@ -73,7 +76,7 @@ return [
                 'gstin' => null,
                 'state' => ['name' => null, 'code' => null],
                 'email' => null,
-                'bank' => ['name' => null, 'account' => null, 'branch_ifsc' => null],
+                'bank' => ['name' => null, 'account' => null, 'branch' => null, 'ifsc' => null, 'branch_ifsc' => null],
             ],
         ],
 
@@ -91,7 +94,7 @@ return [
                 'gstin' => null,
                 'state' => ['name' => null, 'code' => null],
                 'email' => null,
-                'bank' => ['name' => null, 'account' => null, 'branch_ifsc' => null],
+                'bank' => ['name' => null, 'account' => null, 'branch' => null, 'ifsc' => null, 'branch_ifsc' => null],
             ],
         ],
 

@@ -314,6 +314,10 @@ export type InvoiceLine = {
     unit: string;
     rate: number;
     amount: number;
+    detail: string | null;
+    discount_percent: number;
+    net_rate: number;
+    net_amount: number;
 };
 
 /** One row of the HSN tax summary printed under the totals. */
@@ -332,6 +336,7 @@ export type QuotationInvoice = {
     lines: InvoiceLine[];
     subtotal: number;
     discount: number;
+    discount_percent: number;
     taxable_value: number;
     tax_lines: { label: string; rate: number; amount: number }[];
     tax_total: number;
@@ -358,6 +363,8 @@ export type CompanyProfile = {
     bank?: {
         name?: string | null;
         account?: string | null;
+        branch?: string | null;
+        ifsc?: string | null;
         branch_ifsc?: string | null;
     };
     declaration?: string | null;

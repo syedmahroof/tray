@@ -6,6 +6,7 @@ use App\Models\Branch;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 
 class SaveBranchRequest extends FormRequest
 {
@@ -26,10 +27,21 @@ class SaveBranchRequest extends FormRequest
             ],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', File::image()->max(2 * 1024)],
+            'remove_logo' => ['nullable', 'boolean'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'mobile' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'website' => ['nullable', 'string', 'max:255'],
+            'gstin' => ['nullable', 'string', 'max:20'],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account_number' => ['nullable', 'string', 'max:50'],
             'bank_branch' => ['nullable', 'string', 'max:255'],
             'bank_ifsc' => ['nullable', 'string', 'max:20'],
+            'quotation_terms' => ['nullable', 'string', 'max:5000'],
+            'brands' => ['nullable', 'array'],
+            'brands.*' => [Rule::exists('brands', 'id')],
         ];
     }
 }

@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import BranchLetterheadFields from '@/components/admin/BranchLetterheadFields.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { edit, index, update } from '@/routes/branches';
-import type { Branch } from '@/types';
+import type { Branch, NamedOption } from '@/types';
 
 const props = defineProps<{
     branch: Branch;
+    brands: NamedOption[];
 }>();
 
 defineOptions({
@@ -34,10 +37,17 @@ defineOptions({
         />
 
         <Form
-            v-bind="update.form(props.branch.id)"
+            :action="update.url(props.branch.id)"
+            method="post"
             class="max-w-xl space-y-6"
             v-slot="{ errors, processing }"
         >
+            <!--
+                Posted with a spoofed PUT: PHP only reads multipart bodies on
+                POST, so a real PUT would drop an uploaded logo.
+            -->
+            <input type="hidden" name="_method" value="put" />
+
             <div class="grid gap-2">
                 <Label for="name">Name</Label>
                 <Input
@@ -73,13 +83,20 @@ defineOptions({
 
             <div class="grid gap-2">
                 <Label for="address">Address</Label>
-                <Input
+                <Textarea
                     id="address"
                     name="address"
+                    rows="3"
                     :default-value="branch.address ?? undefined"
                 />
                 <InputError :message="errors.address" />
             </div>
+
+            <BranchLetterheadFields
+                :branch="branch"
+                :brands="brands"
+                :errors="errors"
+            />
 
             <div class="space-y-4 rounded-lg border p-4">
                 <div>

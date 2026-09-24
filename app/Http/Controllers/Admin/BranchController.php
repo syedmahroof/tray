@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBranchRequest;
 use App\Models\Branch;
+use App\Models\Brand;
+use App\Support\StoredImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +42,9 @@ class BranchController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('admin/branches/Create');
+        return Inertia::render('admin/branches/Create', [
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     /**
@@ -48,10 +52,13 @@ class BranchController extends Controller
      */
     public function store(SaveBranchRequest $request): RedirectResponse
     {
-        Branch::create([
-            ...$request->validated(),
+        $branch = Branch::create([
+            ...$request->safe()->except(['logo', 'remove_logo', 'brands']),
             'is_active' => $request->boolean('is_active'),
+            'logo_path' => StoredImage::sync(null, $request->file('logo'), false, 'branch-logos'),
         ]);
+
+        $branch->brands()->sync($request->validated('brands', []));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch created.')]);
 
@@ -64,7 +71,11 @@ class BranchController extends Controller
     public function edit(Branch $branch): Response
     {
         return Inertia::render('admin/branches/Edit', [
-            'branch' => $branch,
+            'branch' => [
+                ...$branch->toArray(),
+                'brand_ids' => $branch->brands()->pluck('brands.id'),
+            ],
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -74,9 +85,17 @@ class BranchController extends Controller
     public function update(SaveBranchRequest $request, Branch $branch): RedirectResponse
     {
         $branch->update([
-            ...$request->validated(),
+            ...$request->safe()->except(['logo', 'remove_logo', 'brands']),
             'is_active' => $request->boolean('is_active'),
+            'logo_path' => StoredImage::sync(
+                $branch->logo_path,
+                $request->file('logo'),
+                $request->boolean('remove_logo'),
+                'branch-logos',
+            ),
         ]);
+
+        $branch->brands()->sync($request->validated('brands', []));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch updated.')]);
 
@@ -94,6 +113,7 @@ class BranchController extends Controller
             return back();
         }
 
+        StoredImage::delete($branch->logo_path);
         $branch->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch deleted.')]);

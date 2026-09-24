@@ -4,6 +4,17 @@ export type Branch = {
     code: string;
     address: string | null;
     city: string | null;
+    /** The letterhead this branch prints on its quotations. */
+    company_name?: string | null;
+    logo_url?: string | null;
+    phone?: string | null;
+    mobile?: string | null;
+    email?: string | null;
+    website?: string | null;
+    gstin?: string | null;
+    quotation_terms?: string | null;
+    /** The brands shown under this branch's quotation footer. */
+    brand_ids?: number[];
     /** The account this branch collects into, printed on its quotations. */
     bank_name?: string | null;
     bank_account_number?: string | null;

@@ -97,12 +97,12 @@ const confirmDelete = (branch: Branch) => {
                                     }}
                                 </Badge>
                             </TableCell>
-                            <TableCell class="text-right space-x-1.5">
+                            <TableCell class="space-x-1.5 text-right">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     as-child
-                                    class="bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
+                                    class="bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-900/40 dark:hover:text-amber-300"
                                     :aria-label="`Edit ${branch.name}`"
                                     :data-test="`edit-branch-${branch.id}`"
                                 >
@@ -113,7 +113,7 @@ const confirmDelete = (branch: Branch) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    class="bg-red-50 text-red-600 hover:text-red-800 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/40"
+                                    class="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 dark:hover:text-red-300"
                                     :aria-label="`Delete ${branch.name}`"
                                     :data-test="`delete-branch-${branch.id}`"
                                     @click="confirmDelete(branch)"

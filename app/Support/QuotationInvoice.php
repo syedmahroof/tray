@@ -19,21 +19,39 @@ final readonly class QuotationInvoice
     /**
      * The printed lines, in the column order the invoice uses.
      *
-     * @return list<array{sl: int, description: string, hsn: string|null, quantity: float, unit: string, rate: float, amount: float}>
+     * Each line also carries its share of the quotation's discount, stated as
+     * the percentage off list and the price and total that leaves.
+     *
+     * @return list<array{sl: int, description: string, detail: string|null, hsn: string|null, quantity: float, unit: string, rate: float, amount: float, discount_percent: float, net_rate: float, net_amount: float}>
      */
     public function lines(): array
     {
+        $discountPercent = $this->discountPercent();
+
         return array_values($this->quotation->items
             ->values()
-            ->map(fn (QuotationItem $item, int $index): array => [
-                'sl' => $index + 1,
-                'description' => $item->description ?: (string) $item->product?->name,
-                'hsn' => $item->hsn_code,
-                'quantity' => (float) $item->quantity,
-                'unit' => $this->unitFor($item),
-                'rate' => (float) $item->unit_price,
-                'amount' => round((float) $item->quantity * (float) $item->unit_price, 2),
-            ])
+            ->map(function (QuotationItem $item, int $index) use ($discountPercent): array {
+                $rate = (float) $item->unit_price;
+                $netRate = round($rate * (1 - $discountPercent / 100), 2);
+                $productName = (string) $item->product?->name;
+                $description = $item->description ?: $productName;
+
+                return [
+                    'sl' => $index + 1,
+                    'description' => $description,
+                    'detail' => filled($item->product?->description) && $item->product->description !== $description
+                        ? $item->product->description
+                        : null,
+                    'hsn' => $item->hsn_code,
+                    'quantity' => (float) $item->quantity,
+                    'unit' => $this->unitFor($item),
+                    'rate' => $rate,
+                    'amount' => round((float) $item->quantity * $rate, 2),
+                    'discount_percent' => $discountPercent,
+                    'net_rate' => $netRate,
+                    'net_amount' => round((float) $item->quantity * $rate * (1 - $discountPercent / 100), 2),
+                ];
+            })
             ->all());
     }
 
@@ -45,6 +63,16 @@ final readonly class QuotationInvoice
     public function discount(): float
     {
         return (float) $this->quotation->discount;
+    }
+
+    /**
+     * The quotation's discount as a percentage off the list total.
+     */
+    public function discountPercent(): float
+    {
+        $subtotal = $this->subtotal();
+
+        return $subtotal > 0 ? round($this->discount() / $subtotal * 100, 2) : 0.0;
     }
 
     /**
@@ -168,6 +196,7 @@ final readonly class QuotationInvoice
             'lines' => $this->lines(),
             'subtotal' => $this->subtotal(),
             'discount' => $this->discount(),
+            'discount_percent' => $this->discountPercent(),
             'taxable_value' => $this->taxableValue(),
             'tax_lines' => $this->taxLines(),
             'tax_total' => $this->taxTotal(),
