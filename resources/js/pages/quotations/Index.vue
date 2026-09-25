@@ -51,8 +51,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { show as analyticsShow } from '@/routes/analytics';
 import {
-    analytics,
     create,
     destroy,
     edit,
@@ -240,7 +240,9 @@ const sendEmail = () => {
 
             <div class="flex items-center gap-2">
                 <Button variant="outline" as-child>
-                    <Link :href="analytics()"><ChartColumn /> Analytics</Link>
+                    <Link :href="analyticsShow('quotations')"
+                        ><ChartColumn /> Analytics</Link
+                    >
                 </Button>
                 <Button variant="outline" as-child>
                     <a :href="exportUrl"><Download /> Export</a>

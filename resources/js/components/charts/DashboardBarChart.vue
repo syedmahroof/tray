@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue';
+import { GroupedBar } from '@unovis/ts';
+import {
+    VisAxis,
+    VisGroupedBar,
+    VisTooltip,
+    VisXYContainer,
+} from '@unovis/vue';
 import { ChartContainer } from '@/components/ui/chart';
 
 type BarDatum = { label: string; value: number };
@@ -19,6 +25,29 @@ const props = withDefaults(
 const x = (_: BarDatum, i: number) => i;
 const y = (d: BarDatum) => d.value;
 const tickFormat = (tick: number) => props.data[tick]?.label ?? '';
+
+const escapeHtml = (value: string) =>
+    value.replace(
+        /[&<>"']/g,
+        (character) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[character] ?? character,
+    );
+
+/** Names the bar under the pointer and the count it stands for. */
+const tooltipTriggers = {
+    [GroupedBar.selectors.bar]: (d: BarDatum) =>
+        `<div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <span style="width:10px;height:10px;border-radius:2px;background:${props.color};"></span>
+            <span>${escapeHtml(d.label)}</span>
+            <strong style="margin-left:8px;font-variant-numeric:tabular-nums;">${d.value.toLocaleString()}</strong>
+        </div>`,
+};
 </script>
 
 <template>
@@ -35,6 +64,7 @@ const tickFormat = (tick: number) => props.data[tick]?.label ?? '';
                 :rounded-corners="4"
                 :bar-padding="0.3"
             />
+            <VisTooltip :triggers="tooltipTriggers" />
             <VisAxis
                 type="x"
                 :x="x"

@@ -50,8 +50,8 @@ import {
 } from '@/components/ui/table';
 import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { formatDate } from '@/lib/utils';
+import { show as analyticsShow } from '@/routes/analytics';
 import {
-    analytics,
     create,
     destroy,
     edit,
@@ -400,7 +400,9 @@ const getDateStatus = (dateStr: string) => {
                     <a :href="exportUrl"><Download /> Export</a>
                 </Button>
                 <Button variant="outline" as-child>
-                    <Link :href="analytics()"><BarChart3 /> Analytics</Link>
+                    <Link :href="analyticsShow('visit-reports')"
+                        ><BarChart3 /> Analytics</Link
+                    >
                 </Button>
                 <Button as-child>
                     <Link :href="create()"><Plus /> New visit report</Link>

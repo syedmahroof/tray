@@ -8,7 +8,6 @@ import {
     Pencil,
     Plus,
     User,
-    Phone,
     Mail,
     FileText,
     Info,
@@ -20,6 +19,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -323,11 +323,7 @@ const activeTab = useTabQuery(
                                 <p
                                     class="flex items-center gap-1.5 text-sm font-medium"
                                 >
-                                    <Phone
-                                        v-if="project.owner_phone"
-                                        class="h-3.5 w-3.5 text-green-600"
-                                    />
-                                    {{ project.owner_phone ?? '—' }}
+                                    <PhoneLink :phone="project.owner_phone" />
                                 </p>
                             </div>
                             <div>
@@ -519,7 +515,7 @@ const activeTab = useTabQuery(
                                             {{ contact.role ?? '—' }}
                                         </td>
                                         <td class="p-3">
-                                            {{ contact.phone ?? '—' }}
+                                            <PhoneLink :phone="contact.phone" />
                                         </td>
                                         <td class="p-3">
                                             {{ contact.email ?? '—' }}
@@ -587,8 +583,7 @@ const activeTab = useTabQuery(
                                         v-if="contact.phone"
                                         class="flex items-center justify-end gap-1 text-muted-foreground"
                                     >
-                                        <Phone class="h-3 w-3 text-green-600" />
-                                        {{ contact.phone }}
+                                        <PhoneLink :phone="contact.phone" />
                                     </p>
                                     <p
                                         v-if="contact.email"

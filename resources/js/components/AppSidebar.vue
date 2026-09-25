@@ -4,6 +4,7 @@ import {
     Building,
     Building2,
     ChartColumnBig,
+    ChartPie,
     ClipboardCheck,
     ClipboardList,
     Contact,
@@ -36,6 +37,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { show as analyticsShow } from '@/routes/analytics';
 import { index as branchesIndex } from '@/routes/branches';
 import { index as brandsIndex } from '@/routes/brands';
 import { index as buildersIndex } from '@/routes/builders';
@@ -60,10 +62,7 @@ import { index as reportsIndex } from '@/routes/reports';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as routesIndex } from '@/routes/routes';
 import { index as usersIndex } from '@/routes/users';
-import {
-    analytics as visitReportsAnalytics,
-    index as visitReportsIndex,
-} from '@/routes/visit-reports';
+import { index as visitReportsIndex } from '@/routes/visit-reports';
 import type { NavItem } from '@/types';
 
 const dashboardUrl = dashboard().url;
@@ -201,6 +200,29 @@ const catalogNavItems = computed<NavItem[]>(() => {
     return navItems(items);
 });
 
+/**
+ * The Analytics sub-menu, one entry per section the user may open. Mirrors
+ * AnalyticsController::SECTIONS, which enforces the same permissions.
+ */
+const analyticsSections: [key: string, title: string, permission: string][] = [
+    ['quotations', 'Sales & Quotations', 'quotations.view'],
+    ['enquiries', 'Enquiries', 'enquiries.view'],
+    ['visit-reports', 'Visit Reports', 'visit-reports.view'],
+    ['team', 'Team Performance', 'reports.view'],
+    ['customers', 'Customers', 'customers.view'],
+    ['contacts', 'Contacts', 'contacts.view'],
+    ['projects', 'Projects', 'projects.view'],
+    ['builders', 'Builders', 'builders.view'],
+    ['products', 'Products & Brands', 'reports.view'],
+    ['routes-locations', 'Routes & Locations', 'reports.view'],
+];
+
+const analyticsItems = computed(() =>
+    analyticsSections
+        .filter(([, , permission]) => permissions.value.includes(permission))
+        .map(([key, title]) => ({ title, href: analyticsShow(key) })),
+);
+
 const crmNavItems = computed<NavItem[]>(() => {
     const items: Array<NavItem | false> = [
         permissions.value.includes('contacts.view') && {
@@ -230,16 +252,19 @@ const crmNavItems = computed<NavItem[]>(() => {
             href: visitReportsIndex(),
             icon: ClipboardCheck,
             color: '#0ea5e9',
-            items: [
-                { title: 'List', href: visitReportsIndex() },
-                { title: 'Analytics', href: visitReportsAnalytics() },
-            ],
         },
         permissions.value.includes('quotations.view') && {
             title: 'Quotations',
             href: quotationsIndex(),
             icon: FileText,
             color: '#4f46e5',
+        },
+        analyticsItems.value.length > 0 && {
+            title: 'Analytics',
+            href: analyticsItems.value[0].href,
+            icon: ChartPie,
+            color: '#db2777',
+            items: analyticsItems.value,
         },
         permissions.value.includes('reports.view') && {
             title: 'Reports',

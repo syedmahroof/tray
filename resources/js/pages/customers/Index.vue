@@ -5,6 +5,7 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Button } from '@/components/ui/button';
@@ -216,7 +217,7 @@ const confirmDelete = (customer: CustomerListItem) => {
                                 </Link>
                             </TableCell>
                             <TableCell>
-                                <div>{{ customer.phone ?? '—' }}</div>
+                                <div><PhoneLink :phone="customer.phone" /></div>
                                 <div class="text-sm text-muted-foreground">
                                     {{ customer.email ?? '' }}
                                 </div>

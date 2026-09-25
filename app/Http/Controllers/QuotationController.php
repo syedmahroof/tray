@@ -81,106 +81,6 @@ class QuotationController extends Controller
     }
 
     /**
-     * Display quotation analytics: value, status mix, win rate, and trends.
-     */
-    public function analytics(Request $request): Response
-    {
-        $range = $request->input('range', '30d');
-        $from = $request->input('from');
-        $to = $request->input('to');
-
-        $applyRange = function ($query) use ($range, $from, $to) {
-            if ($range === 'custom' && $from && $to) {
-                return $query->whereBetween('quotation_date', [$from, $to]);
-            }
-
-            $days = match ($range) {
-                '7d' => 7,
-                'this_month' => now()->day,
-                '3m' => 90,
-                '6m' => 180,
-                '1y' => 365,
-                default => 30,
-            };
-
-            return $query->where('quotation_date', '>=', now()->subDays($days)->toDateString());
-        };
-
-        $filtered = $applyRange(Quotation::query())
-            ->with(['creator:id,name', 'branch:id,name'])
-            ->get(['id', 'status', 'total', 'quotation_date', 'created_by', 'branch_id']);
-
-        $won = $filtered->where('status', 'accepted')->count();
-        $lost = $filtered->whereIn('status', ['rejected', 'expired'])->count();
-
-        $statusBreakdown = array_map(
-            fn (string $status): array => [
-                'status' => $status,
-                'count' => $filtered->where('status', $status)->count(),
-                'value' => (float) $filtered->where('status', $status)->sum('total'),
-            ],
-            Quotation::STATUSES,
-        );
-
-        return Inertia::render('quotations/Analytics', [
-            'range' => $range,
-            'from' => $from,
-            'to' => $to,
-            'stats' => [
-                'total' => (int) $filtered->count(),
-                'quotedValue' => (float) $filtered->sum('total'),
-                'acceptedValue' => (float) $filtered->where('status', 'accepted')->sum('total'),
-                'winRate' => ($won + $lost) > 0 ? round($won / ($won + $lost) * 100, 1) : 0.0,
-            ],
-            'statusBreakdown' => $statusBreakdown,
-            'byCreator' => $filtered->groupBy(fn (Quotation $q): string => $q->creator?->name ?? 'Unassigned')
-                ->map(fn ($group, string $name): array => [
-                    'staff' => $name,
-                    'count' => $group->count(),
-                    'value' => (float) $group->sum('total'),
-                ])
-                ->sortByDesc('value')
-                ->values()
-                ->all(),
-            'byBranch' => $filtered->groupBy(fn (Quotation $q): string => $q->branch?->name ?? 'No Branch')
-                ->map(fn ($group, string $name): array => [
-                    'branch' => $name,
-                    'value' => (float) $group->sum('total'),
-                ])
-                ->sortByDesc('value')
-                ->values()
-                ->all(),
-            'trend' => $this->quotationTrend($applyRange, $range, $from, $to),
-        ]);
-    }
-
-    /**
-     * Build a time-series of quoted value, driver-agnostic across sqlite/MySQL.
-     *
-     * @return array<int, array{label: string, value: float}>
-     */
-    private function quotationTrend(callable $applyRange, string $range, ?string $from, ?string $to): array
-    {
-        $monthly = in_array($range, ['6m', '1y'], true)
-            || ($range === 'custom' && $from && $to && now()->parse($from)->diffInDays($to) > 60);
-
-        $driver = Quotation::query()->getConnection()->getDriverName();
-        $format = $monthly ? '%Y-%m' : '%Y-%m-%d';
-
-        $expression = $driver === 'sqlite'
-            ? "strftime('{$format}', quotation_date) as label, sum(total) as value"
-            : "DATE_FORMAT(quotation_date, '{$format}') as label, sum(total) as value";
-
-        return $applyRange(Quotation::query())
-            ->selectRaw($expression)
-            ->groupBy('label')
-            ->orderBy('label')
-            ->get()
-            ->map(fn ($row): array => ['label' => (string) $row->label, 'value' => (float) $row->value])
-            ->all();
-    }
-
-    /**
      * Export the filtered quotations to an Excel spreadsheet.
      */
     public function export(Request $request): BinaryFileResponse
@@ -270,6 +170,7 @@ class QuotationController extends Controller
             // The screen shows the same document that prints.
             'invoice' => (new QuotationInvoice($quotation))->toArray(),
             'company' => QuotationDocument::company($quotation, request()->getHost()),
+            'terms' => QuotationDocument::terms($quotation),
             'shareUrl' => URL::signedRoute('quotations.shared', $quotation),
             'statuses' => Quotation::STATUSES,
             'versions' => Quotation::query()

@@ -60,10 +60,12 @@ class RouteLocationFilter
     }
 
     /**
-     * The places and routes a listing can actually be filtered by.
+     * The places and routes a listing can be filtered by.
      *
-     * Only those already in use by the listed model are offered, so the pickers
-     * stay short and never contain an option that would return nothing.
+     * The country, state and district pickers offer only the tiers the listed
+     * model already sits in, so they stay short. Every active location and
+     * route is offered, so those filters are always there to pick from, even
+     * before any record has been given one.
      *
      * @param  string  $relation  the relation on Location/Route pointing back at the listed model
      * @return array{
@@ -92,12 +94,12 @@ class RouteLocationFilter
                 ->orderBy('name')
                 ->get(['id', 'name', 'state_id']),
             'locations' => Location::query()
-                ->whereHas($relation)
+                ->where('is_active', true)
                 ->with('district:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'district_id']),
             'routes' => Route::query()
-                ->whereHas($relation)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
         ];

@@ -4,7 +4,6 @@ import {
     Pencil,
     ArrowLeft,
     UserRound,
-    Phone,
     Mail,
     User,
     Info,
@@ -13,6 +12,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -128,8 +128,7 @@ const activeTab = useTabQuery(
                             <p
                                 class="flex items-center gap-1.5 text-sm font-medium"
                             >
-                                <Phone class="h-3.5 w-3.5 text-green-600" />
-                                {{ customer.phone ?? '—' }}
+                                <PhoneLink :phone="customer.phone" />
                             </p>
                         </div>
                         <div>

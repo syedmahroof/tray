@@ -4,3 +4,4 @@ export * from './crm';
 export * from './hr';
 export * from './navigation';
 export * from './ui';
+export * from './analytics';

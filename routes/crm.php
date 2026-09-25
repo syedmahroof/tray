@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EnquiryController;
@@ -11,9 +12,13 @@ use App\Http\Controllers\VisitReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('contacts/analytics', [ContactController::class, 'analytics'])
-        ->middleware('permission:contacts.view')
-        ->name('contacts.analytics');
+    Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    Route::get('analytics/{section}', [AnalyticsController::class, 'show'])
+        ->whereIn('section', array_keys(AnalyticsController::SECTIONS))
+        ->name('analytics.show');
+
+    Route::permanentRedirect('contacts/analytics', '/analytics/contacts')->name('contacts.analytics');
 
     Route::get('contacts/export', [ContactController::class, 'export'])
         ->middleware('permission:contacts.view')
@@ -71,9 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:reminders.delete')
         ->name('reminders.destroy');
 
-    Route::get('visit-reports/analytics', [VisitReportController::class, 'analytics'])
-        ->middleware('permission:visit-reports.view')
-        ->name('visit-reports.analytics');
+    Route::permanentRedirect('visit-reports/analytics', '/analytics/visit-reports')->name('visit-reports.analytics');
 
     Route::get('visit-reports/export', [VisitReportController::class, 'export'])
         ->middleware('permission:visit-reports.view')
@@ -106,9 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:quotations.create')
         ->name('quotations.revise');
 
-    Route::get('quotations/analytics', [QuotationController::class, 'analytics'])
-        ->middleware('permission:quotations.view')
-        ->name('quotations.analytics');
+    Route::permanentRedirect('quotations/analytics', '/analytics/quotations')->name('quotations.analytics');
 
     Route::get('quotations/export', [QuotationController::class, 'export'])
         ->middleware('permission:quotations.view')

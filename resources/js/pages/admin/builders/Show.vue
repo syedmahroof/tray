@@ -5,7 +5,6 @@ import {
     Building2,
     MapPin,
     Pencil,
-    Phone,
     Mail,
     User,
     ClipboardList,
@@ -14,6 +13,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -141,11 +141,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
                         <p
                             class="flex items-center gap-1.5 text-sm font-medium"
                         >
-                            <Phone
-                                v-if="builder.phone"
-                                class="h-3.5 w-3.5 text-green-600"
-                            />
-                            {{ builder.phone ?? '—' }}
+                            <PhoneLink :phone="builder.phone" />
                         </p>
                     </div>
                     <div>

@@ -273,3 +273,13 @@ test('the branch brands are printed under the quotation footer', function () {
         ->toContain('Supreme')
         ->not->toContain('Retired Brand');
 });
+
+test('the quotation page shows the branch default terms when the quotation has none', function () {
+    $this->quotation->branch->update(['quotation_terms' => "GST 18% Extra\nPayment Against Proforma Invoice"]);
+
+    $this->actingAs($this->admin)
+        ->get(route('quotations.show', $this->quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('terms', "GST 18% Extra\nPayment Against Proforma Invoice")
+            ->where('invoice.discount_percent', 0));
+});

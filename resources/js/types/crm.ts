@@ -367,6 +367,7 @@ export type CompanyProfile = {
         ifsc?: string | null;
         branch_ifsc?: string | null;
     };
+    website?: string | null;
     declaration?: string | null;
     quotation_title?: string | null;
     footer?: string | null;

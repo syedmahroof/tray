@@ -17,9 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('update', 'permission:builders.update')
         ->middlewareFor('destroy', 'permission:builders.delete');
 
-    Route::get('projects/analytics', [ProjectController::class, 'analytics'])
-        ->middleware('permission:projects.view')
-        ->name('projects.analytics');
+    Route::permanentRedirect('projects/analytics', '/analytics/projects')->name('projects.analytics');
 
     Route::get('projects/export', [ProjectController::class, 'export'])
         ->middleware('permission:projects.view')

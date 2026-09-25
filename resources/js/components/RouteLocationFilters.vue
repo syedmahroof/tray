@@ -181,11 +181,7 @@ const routeOptions = computed(() =>
         />
     </div>
 
-    <div
-        v-if="locations.length > 0"
-        class="w-full sm:w-[200px]"
-        data-test="location-filter"
-    >
+    <div class="w-full sm:w-[200px]" data-test="location-filter">
         <Combobox
             v-model="selectedLocation"
             placeholder="All locations"
@@ -194,11 +190,7 @@ const routeOptions = computed(() =>
         />
     </div>
 
-    <div
-        v-if="routes.length > 0"
-        class="w-full sm:w-[180px]"
-        data-test="route-filter"
-    >
+    <div class="w-full sm:w-[180px]" data-test="route-filter">
         <Combobox
             v-model="selectedRoute"
             placeholder="All routes"

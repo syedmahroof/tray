@@ -16,6 +16,7 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -356,7 +357,13 @@ const confirmDelete = (builder: BuilderListItem) => {
                             <TableCell>
                                 <div>{{ builder.contact_person ?? '—' }}</div>
                                 <div class="text-sm text-muted-foreground">
-                                    {{ builder.phone ?? builder.email ?? '' }}
+                                    <PhoneLink
+                                        v-if="builder.phone"
+                                        :phone="builder.phone"
+                                    />
+                                    <template v-else>{{
+                                        builder.email ?? ''
+                                    }}</template>
                                 </div>
                             </TableCell>
                             <TableCell>

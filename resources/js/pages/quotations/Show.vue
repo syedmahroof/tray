@@ -72,6 +72,7 @@ const props = defineProps<{
     quotation: QuotationDetail;
     invoice: QuotationInvoiceView;
     company: CompanyProfile;
+    terms: string | null;
     shareUrl: string;
     statuses: string[];
     versions: QuotationVersion[];
@@ -329,6 +330,7 @@ const createRevision = () => {
             :quotation="quotation"
             :invoice="invoice"
             :company="company"
+            :terms="terms"
         />
 
         <Card>

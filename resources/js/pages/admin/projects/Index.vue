@@ -47,6 +47,7 @@ import {
 import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { formatDate } from '@/lib/utils';
 import { noVisitPeriodOptions } from '@/lib/visitFilters';
+import { show as analyticsShow } from '@/routes/analytics';
 import {
     create,
     destroy,
@@ -54,7 +55,6 @@ import {
     exportMethod,
     index,
     show,
-    analytics,
 } from '@/routes/projects';
 import type {
     FilterDistrict,
@@ -282,7 +282,9 @@ const confirmDelete = (project: ProjectListItem) => {
                     <a :href="exportUrl"><Download /> Export</a>
                 </Button>
                 <Button variant="outline" as-child>
-                    <Link :href="analytics()"><BarChart3 /> Analytics</Link>
+                    <Link :href="analyticsShow('projects')"
+                        ><BarChart3 /> Analytics</Link
+                    >
                 </Button>
                 <Button as-child>
                     <Link :href="create()"><Plus /> New project</Link>

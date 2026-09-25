@@ -147,22 +147,27 @@ test('visit reports can be filtered by location and route', function () {
         ->assertInertia(fn ($page) => $page->has('visitReports.data', 1));
 });
 
-test('the pickers only offer locations and routes the listing actually uses', function () {
+test('the pickers offer every active location and route, used or not', function () {
     Builder::factory()->create([
         'branch_id' => $this->branch->id,
         'location_id' => $this->location->id,
         'route_id' => $this->salesRoute->id,
     ]);
+    Location::factory()->create(['district_id' => $this->district->id, 'name' => 'Closed', 'is_active' => false]);
+    Route::factory()->create(['name' => 'Retired Route', 'is_active' => false]);
 
-    // $otherLocation and $otherRoute belong to no builder, so they are left out.
+    // The other locations and route belong to no builder, but are still offered.
     $this->actingAs($this->admin)
         ->get(route('builders.index'))
         ->assertInertia(fn ($page) => $page
-            ->has('locations', 1)
-            ->where('locations.0.name', 'Kakkanad')
-            ->where('locations.0.district.name', $this->location->district->name)
-            ->has('routes', 1)
-            ->where('routes.0.name', 'Kochi North'));
+            ->has('locations', 3)
+            ->where('locations.0.name', 'Aluva')
+            ->where('locations.1.name', 'Guruvayur')
+            ->where('locations.2.name', 'Kakkanad')
+            ->where('locations.2.district.name', $this->location->district->name)
+            ->has('routes', 2)
+            ->where('routes.0.name', 'Kochi North')
+            ->where('routes.1.name', 'Thrissur East'));
 });
 
 test('the builder export honours the location and route filters', function () {

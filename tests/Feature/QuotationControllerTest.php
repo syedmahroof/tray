@@ -470,12 +470,16 @@ test('the analytics page renders quotation metrics', function () {
 
     $this->actingAs($manager)
         ->get(route('quotations.analytics'))
+        ->assertRedirect(route('analytics.show', 'quotations'));
+
+    $this->actingAs($manager)
+        ->get(route('analytics.show', 'quotations'))
         ->assertInertia(fn ($page) => $page
-            ->component('quotations/Analytics')
-            ->where('stats.total', 2)
-            ->where('stats.winRate', fn ($value): bool => (float) $value === 50.0)
-            ->has('statusBreakdown')
-            ->has('trend'));
+            ->component('analytics/Show')
+            ->where('report.stats.0.value', 2)
+            ->where('report.stats.3.label', 'Win rate')
+            ->where('report.stats.3.value', fn ($value): bool => (float) $value === 50.0)
+            ->has('report.charts'));
 });
 
 test('the quotation index can be filtered by status', function () {

@@ -76,20 +76,19 @@ test('contact creation and update creates audit log entries', function () {
     expect($assignedLog->description)->toContain('Assignment changed');
 });
 
-test('contact analytics returns correct inertia data structure', function () {
+test('contact analytics now lives under the analytics menu', function () {
     $branch = Branch::factory()->create();
     $user = User::factory()->create(['branch_id' => $branch->id]);
     $user->assignRole('Super Admin');
 
-    $response = $this->actingAs($user)->get(route('contacts.analytics'));
+    $this->actingAs($user)
+        ->get(route('contacts.analytics'))
+        ->assertRedirect(route('analytics.show', 'contacts'));
 
-    $response->assertSuccessful();
-    $response->assertInertia(fn ($page) => $page
-        ->component('contacts/Analytics')
-        ->has('stats')
-        ->has('contactsByType')
-        ->has('contactsByBranch')
-        ->has('contactsByStaff')
-        ->has('contactTrends')
-    );
+    $this->actingAs($user)
+        ->get(route('analytics.show', 'contacts'))
+        ->assertInertia(fn ($page) => $page
+            ->component('analytics/Show')
+            ->where('section.key', 'contacts')
+            ->has('report.stats'));
 });

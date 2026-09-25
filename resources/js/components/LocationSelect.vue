@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { index as routesIndex } from '@/routes/routes';
 import type { Country, Route } from '@/types';
 
 /** The shape every tier of the location tree is picked by. */
@@ -344,14 +345,26 @@ const submitCreate = () => {
                     @create="openCreate('location', $event)"
                 />
             </div>
-            <div v-if="routes.length > 0" class="grid gap-2">
+            <div class="grid gap-2">
                 <Label for="route_id">Route</Label>
                 <Combobox
                     v-model="routeId"
                     name="route_id"
                     placeholder="Select a route"
+                    empty-text="No routes yet."
                     :options="routeOptions"
+                    :disabled="routes.length === 0"
                 />
+                <p
+                    v-if="routes.length === 0"
+                    class="text-xs text-muted-foreground"
+                >
+                    No routes yet. Add them under
+                    <a :href="routesIndex.url()" class="underline">
+                        Admin → Routes
+                    </a>
+                    .
+                </p>
             </div>
         </div>
 

@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     Eye,
+    Phone,
     Pencil,
     Plus,
     Trash2,
@@ -20,6 +21,7 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
@@ -44,6 +46,7 @@ import {
 import { useRouteLocationFilters } from '@/composables/useRouteLocationFilters';
 import { formatDate } from '@/lib/utils';
 import { noVisitPeriodOptions } from '@/lib/visitFilters';
+import { show as analyticsShow } from '@/routes/analytics';
 import {
     create,
     destroy,
@@ -51,7 +54,6 @@ import {
     exportMethod,
     index,
     show,
-    analytics,
 } from '@/routes/contacts';
 import type {
     ContactListItem,
@@ -218,7 +220,7 @@ const confirmDelete = (contact: ContactListItem) => {
 
             <div class="flex items-center gap-2">
                 <Button variant="outline" as-child>
-                    <Link :href="analytics()"
+                    <Link :href="analyticsShow('contacts')"
                         ><BarChart3 class="h-4 w-4" /> Analytics</Link
                     >
                 </Button>
@@ -453,7 +455,7 @@ const confirmDelete = (contact: ContactListItem) => {
                                 contact.contact_type.name
                             }}</TableCell>
                             <TableCell>
-                                <div>{{ contact.phone ?? '—' }}</div>
+                                <div><PhoneLink :phone="contact.phone" /></div>
                                 <div class="text-sm text-muted-foreground">
                                     {{ contact.email ?? '' }}
                                 </div>
@@ -470,6 +472,21 @@ const confirmDelete = (contact: ContactListItem) => {
                                 </div>
                             </TableCell>
                             <TableCell class="space-x-1.5 text-right">
+                                <Button
+                                    v-if="contact.phone"
+                                    variant="ghost"
+                                    size="sm"
+                                    as-child
+                                    class="bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/40 dark:hover:text-green-300"
+                                    :aria-label="`Call ${contact.name}`"
+                                    :data-test="`call-contact-${contact.id}`"
+                                >
+                                    <a
+                                        :href="`tel:${contact.phone.replace(/[^\d+]/g, '')}`"
+                                    >
+                                        <Phone class="h-4 w-4" />
+                                    </a>
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"

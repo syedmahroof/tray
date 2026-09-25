@@ -15,12 +15,9 @@ use App\Models\User;
 use App\Models\VisitReport;
 use App\Support\BranchAccess;
 use App\Support\RouteLocationFilter;
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -102,82 +99,6 @@ class VisitReportController extends Controller
                 'upcoming_followup' => $upcomingFollowUp,
             ],
         ]);
-    }
-
-    /**
-     * Display analytics for visit reports.
-     */
-    public function analytics(): Response
-    {
-        return Inertia::render('visit-reports/Analytics', [
-            'stats' => [
-                'total' => VisitReport::query()->count(),
-                'thisMonth' => VisitReport::query()
-                    ->whereMonth('visit_date', now()->month)
-                    ->whereYear('visit_date', now()->year)
-                    ->count(),
-                'upcomingFollowUps' => VisitReport::query()
-                    ->where(function ($q) {
-                        $q->where('next_meeting_date', '>=', now()->toDateString())
-                            ->orWhere('next_call_date', '>=', now()->toDateString());
-                    })
-                    ->count(),
-            ],
-            'visitReportsByType' => $this->visitReportsByType(),
-            'visitReportsByMonth' => $this->visitReportsByMonth(),
-            'mostVisitedCustomers' => $this->mostVisitedCustomers(),
-            'leastVisitedCustomers' => $this->leastVisitedCustomers(),
-            'mostVisitedProjects' => $this->mostVisitedProjects(),
-            'leastVisitedProjects' => $this->leastVisitedProjects(),
-        ]);
-    }
-
-    private function mostVisitedCustomers(): array
-    {
-        return DB::table('visit_report_customer')
-            ->join('customers', 'visit_report_customer.customer_id', '=', 'customers.id')
-            ->selectRaw('customers.id, customers.name, count(*) as count')
-            ->groupBy('customers.id', 'customers.name')
-            ->orderByDesc('count')
-            ->limit(5)
-            ->get()
-            ->all();
-    }
-
-    private function leastVisitedCustomers(): array
-    {
-        return DB::table('visit_report_customer')
-            ->join('customers', 'visit_report_customer.customer_id', '=', 'customers.id')
-            ->selectRaw('customers.id, customers.name, count(*) as count')
-            ->groupBy('customers.id', 'customers.name')
-            ->orderBy('count')
-            ->limit(5)
-            ->get()
-            ->all();
-    }
-
-    private function mostVisitedProjects(): array
-    {
-        return DB::table('visit_report_project')
-            ->join('projects', 'visit_report_project.project_id', '=', 'projects.id')
-            ->selectRaw('projects.id, projects.name, count(*) as count')
-            ->groupBy('projects.id', 'projects.name')
-            ->orderByDesc('count')
-            ->limit(5)
-            ->get()
-            ->all();
-    }
-
-    private function leastVisitedProjects(): array
-    {
-        return DB::table('visit_report_project')
-            ->join('projects', 'visit_report_project.project_id', '=', 'projects.id')
-            ->selectRaw('projects.id, projects.name, count(*) as count')
-            ->groupBy('projects.id', 'projects.name')
-            ->orderBy('count')
-            ->limit(5)
-            ->get()
-            ->all();
     }
 
     /**
@@ -369,32 +290,5 @@ class VisitReportController extends Controller
             fn (string $type): array => ['type' => $type, 'count' => $counts->get($type, 0)],
             VisitReport::VISIT_TYPES,
         );
-    }
-
-    /**
-     * @return array<int, array{month: string, count: int}>
-     */
-    private function visitReportsByMonth(): array
-    {
-        $start = Carbon::now()->startOfMonth()->subMonths(5);
-
-        /** @var array<string, int> $counts */
-        $counts = VisitReport::query()
-            ->where('visit_date', '>=', $start)
-            ->pluck('visit_date')
-            ->map(fn (CarbonInterface $visitDate): string => $visitDate->format('Y-m'))
-            ->countBy()
-            ->all();
-
-        return collect(range(0, 5))
-            ->map(function (int $offset) use ($start, $counts): array {
-                $month = $start->copy()->addMonths($offset);
-
-                return [
-                    'month' => $month->format('M'),
-                    'count' => $counts[$month->format('Y-m')] ?? 0,
-                ];
-            })
-            ->all();
     }
 }

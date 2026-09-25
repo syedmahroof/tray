@@ -17,6 +17,7 @@ import {
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import NotesPanel from '@/components/NotesPanel.vue';
+import PhoneLink from '@/components/PhoneLink.vue';
 import QuotationsCard from '@/components/QuotationsCard.vue';
 import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Button } from '@/components/ui/button';
@@ -112,6 +113,18 @@ const activeTab = useTabQuery(
 
             <div class="flex items-center gap-2">
                 <Button
+                    v-if="contact.phone"
+                    as-child
+                    class="bg-green-600 text-white hover:bg-green-700"
+                >
+                    <a
+                        :href="`tel:${contact.phone.replace(/[^\d+]/g, '')}`"
+                        data-test="call-contact"
+                    >
+                        <Phone /> Call
+                    </a>
+                </Button>
+                <Button
                     v-if="permissions.includes('enquiries.create')"
                     variant="outline"
                     as-child
@@ -177,8 +190,7 @@ const activeTab = useTabQuery(
                             <p
                                 class="flex items-center gap-1.5 text-sm font-medium"
                             >
-                                <Phone class="h-3.5 w-3.5 text-green-600" />
-                                {{ contact.phone ?? '—' }}
+                                <PhoneLink :phone="contact.phone" />
                             </p>
                         </div>
                         <div>
