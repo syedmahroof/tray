@@ -29,13 +29,14 @@ beforeEach(function () {
 });
 
 /**
- * Resolve the product names reachable through the scoped price rows.
+ * Resolve the product names reachable through the scoped price rows. The
+ * brand scope is lifted on the products so only the branch scope is tested.
  *
  * @return list<string>
  */
 function visibleProductNames(): array
 {
-    return ProductBranchPrice::with('product')
+    return ProductBranchPrice::with(['product' => fn ($query) => $query->withoutGlobalScopes()])
         ->get()
         ->map(fn (ProductBranchPrice $price): string => $price->product->name)
         ->all();

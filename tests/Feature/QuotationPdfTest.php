@@ -123,15 +123,17 @@ test('the printed page follows the quotation letter layout', function () {
         ->toContain('M/s EVERFINE ASSOCIATES WAYANAD')
         ->toContain('32AAEFE8477F1ZE')
         ->toContain('Quotation Date')
-        ->toContain('02/09/2026')
+        ->toContain('02 Sep 2026')
         ->toContain('QT-000001')
         ->toContain('List Price')
         ->toContain('Price after')
-        ->toContain('Pre -Tax Sub-Total')
+        ->toContain('Taxable Value')
+        ->toContain('GST @ 9%')
+        ->toContain('Rupees Three Hundred Seventy Six Only')
         ->toContain('₹ 376.00')
         ->toContain('Terms and Conditions')
-        ->toContain('1. GST 18% Extra')
-        ->toContain('2. Payment Against Proforma Invoice')
+        ->toContain('GST 18% Extra')
+        ->toContain('Payment Against Proforma Invoice')
         ->toContain('Bank Details')
         ->toContain('BUILD TECH SUPPORTS');
 });
@@ -243,9 +245,33 @@ test('a branch letterhead replaces the company details it fills in', function ()
     expect($html)
         ->toContain('PIPELINE PRODUCTS (INDIA)')
         ->toContain('www.pipelineproductsindia.com')
-        ->toContain('1. Rate EXGODOWN CHAWRI')
-        ->toContain('2. GST 18% Extra')
+        ->toContain('Rate EXGODOWN CHAWRI')
+        ->toContain('GST 18% Extra')
         ->not->toContain('BUILD TECH SUPPORTS');
+});
+
+test('a branch letterhead image heads the print in place of the logo and contact lines', function () {
+    Storage::fake('public');
+    $logo = UploadedFile::fake()->image('logo.png')->store('branch-logos', 'public');
+    $letterhead = UploadedFile::fake()->image('letterhead.png', 1200, 200)->store('branch-letterheads', 'public');
+
+    $this->quotation->branch->update([
+        'logo_path' => $logo,
+        'letterhead_path' => $letterhead,
+        'website' => 'www.pipelineproductsindia.com',
+    ]);
+
+    $document = QuotationDocument::for($this->quotation->fresh(), 'localhost');
+
+    expect($document['letterhead'])->toBe(Storage::disk('public')->path($letterhead));
+    expect($document['logo'])->toBe(Storage::disk('public')->path($logo));
+
+    $html = view('quotations.pdf', $document)->render();
+
+    expect($html)
+        ->toContain(Storage::disk('public')->path($letterhead))
+        ->not->toContain(Storage::disk('public')->path($logo))
+        ->not->toContain('class="contact"');
 });
 
 test('a quotation with its own terms prints them over the branch defaults', function () {
@@ -282,4 +308,28 @@ test('the quotation page shows the branch default terms when the quotation has n
         ->assertInertia(fn ($page) => $page
             ->where('terms', "GST 18% Extra\nPayment Against Proforma Invoice")
             ->where('invoice.discount_percent', 0));
+});
+
+test('a long quotation runs over several pages with the sign-off only once, at the end', function () {
+    $product = Product::factory()->create(['name' => 'FIBROCAST MHC', 'unit' => 'nos']);
+
+    foreach (range(4, 50) as $line) {
+        QuotationItem::factory()->create([
+            'quotation_id' => $this->quotation->id,
+            'product_id' => $product->id,
+            'description' => "Line item number {$line}",
+            'quantity' => 1,
+            'unit_price' => 10,
+        ]);
+    }
+
+    $pdf = QuotationDocument::render($this->quotation->fresh(), 'localhost');
+    $html = $pdf->getDomPDF()->outputHtml();
+    $pdf->output();
+
+    expect($pdf->getDomPDF()->getCanvas()->get_page_count())->toBeGreaterThan(2);
+    expect(substr_count($html, 'Authorised Signatory'))->toBe(1);
+    expect($html)
+        ->toContain('Line item number 4')
+        ->toContain('Line item number 50');
 });

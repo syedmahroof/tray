@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Product;
@@ -100,8 +101,10 @@ test('a project can be created with linked products', function () {
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
     $category = ProjectCategory::factory()->create();
-    $productA = Product::factory()->create();
-    $productB = Product::factory()->create();
+    $brand = Brand::factory()->create();
+    $manager->brands()->sync([$brand->id]);
+    $productA = Product::factory()->create(['brand_id' => $brand->id]);
+    $productB = Product::factory()->create(['brand_id' => $brand->id]);
 
     $this->actingAs($manager)
         ->post(route('projects.store'), [
@@ -123,8 +126,10 @@ test('project products can be synced on update', function () {
     $manager->assignRole('Manager');
     $category = ProjectCategory::factory()->create();
     $project = Project::factory()->create(['branch_id' => $branch->id]);
-    $oldProduct = Product::factory()->create();
-    $newProduct = Product::factory()->create();
+    $brand = Brand::factory()->create();
+    $manager->brands()->sync([$brand->id]);
+    $oldProduct = Product::factory()->create(['brand_id' => $brand->id]);
+    $newProduct = Product::factory()->create(['brand_id' => $brand->id]);
     $project->products()->attach($oldProduct);
 
     $this->actingAs($manager)

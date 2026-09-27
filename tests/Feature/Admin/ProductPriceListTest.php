@@ -171,11 +171,14 @@ test('in-place edits need the price permission, branch access and a figure', fun
 
     $viewer = User::factory()->create();
     $viewer->givePermissionTo(['products.view', 'products.price.view']);
+    $this->product->update(['brand_id' => Brand::factory()->create()->id]);
+    $viewer->brands()->sync([$this->product->brand_id]);
     $this->actingAs($viewer)->patchJson($url($this->kochi), ['sr_rate' => 90])->assertForbidden();
 
     $editor = User::factory()->create(['branch_id' => $this->kochi->id]);
     $editor->givePermissionTo(['products.view', 'products.price.view', 'products.price.update']);
     $editor->branches()->sync([$this->kochi->id]);
+    $editor->brands()->sync([$this->product->brand_id]);
     $this->actingAs($editor)->patchJson($url($this->calicut), ['sr_rate' => 90])->assertForbidden();
     $this->actingAs($editor)->patchJson($url($this->kochi), ['sr_rate' => 90])->assertOk();
 

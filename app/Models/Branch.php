@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $company_name
  * @property string|null $logo_path
  * @property-read string|null $logo_url
+ * @property string|null $letterhead_path
+ * @property-read string|null $letterhead_url
  * @property string|null $phone
  * @property string|null $mobile
  * @property string|null $email
@@ -36,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'name', 'code', 'address', 'city', 'is_active',
-    'company_name', 'logo_path', 'phone', 'mobile', 'email', 'website', 'gstin',
+    'company_name', 'logo_path', 'letterhead_path', 'phone', 'mobile', 'email', 'website', 'gstin',
     'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms',
 ])]
 class Branch extends Model
@@ -47,7 +49,7 @@ class Branch extends Model
     /**
      * @var list<string>
      */
-    protected $appends = ['logo_url'];
+    protected $appends = ['logo_url', 'letterhead_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -69,6 +71,16 @@ class Branch extends Model
     protected function logoUrl(): Attribute
     {
         return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['logo_path'] ?? null));
+    }
+
+    /**
+     * The public URL of the branch's letterhead banner.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function letterheadUrl(): Attribute
+    {
+        return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['letterhead_path'] ?? null));
     }
 
     /**

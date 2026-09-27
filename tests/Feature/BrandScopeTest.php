@@ -20,7 +20,7 @@ beforeEach(function () {
     Product::factory()->create(['brand_id' => null, 'name' => 'Unbranded Product']);
 });
 
-test('a user restricted to a brand only sees that brand and unbranded records', function () {
+test('a member only sees products of their assigned brands', function () {
     $user = User::factory()->create(['branch_id' => $this->branch->id]);
     $user->assignRole('Sales Executive');
     $user->branches()->sync([$this->branch->id]);
@@ -28,19 +28,34 @@ test('a user restricted to a brand only sees that brand and unbranded records', 
 
     $this->actingAs($user);
 
-    expect(Product::pluck('name')->all())
-        ->toEqualCanonicalizing(['A Product', 'Unbranded Product']);
+    expect(Product::pluck('name')->all())->toBe(['A Product']);
 });
 
-test('a user with no assigned brands sees every product', function () {
+test('a member also sees the products they created, whatever their brand', function () {
     $user = User::factory()->create(['branch_id' => $this->branch->id]);
     $user->assignRole('Sales Executive');
     $user->branches()->sync([$this->branch->id]);
+    $user->brands()->sync([$this->brandA->id]);
+
+    Product::factory()->create(['brand_id' => $this->brandB->id, 'name' => 'Own B Product', 'created_by' => $user->id]);
+    Product::factory()->create(['brand_id' => null, 'name' => 'Own Unbranded Product', 'created_by' => $user->id]);
 
     $this->actingAs($user);
 
     expect(Product::pluck('name')->all())
-        ->toEqualCanonicalizing(['A Product', 'B Product', 'Unbranded Product']);
+        ->toEqualCanonicalizing(['A Product', 'Own B Product', 'Own Unbranded Product']);
+});
+
+test('a member with no assigned brands only sees the products they created', function () {
+    $user = User::factory()->create(['branch_id' => $this->branch->id]);
+    $user->assignRole('Sales Executive');
+    $user->branches()->sync([$this->branch->id]);
+
+    Product::factory()->create(['brand_id' => $this->brandA->id, 'name' => 'Own Product', 'created_by' => $user->id]);
+
+    $this->actingAs($user);
+
+    expect(Product::pluck('name')->all())->toBe(['Own Product']);
 });
 
 test('admins are never restricted by brand', function () {

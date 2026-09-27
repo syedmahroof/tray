@@ -30,6 +30,8 @@ class SaveBranchRequest extends FormRequest
             'company_name' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', File::image()->max(2 * 1024)],
             'remove_logo' => ['nullable', 'boolean'],
+            'letterhead' => ['nullable', File::image()->max(2 * 1024)],
+            'remove_letterhead' => ['nullable', 'boolean'],
             'phone' => ['nullable', 'string', 'max:50'],
             'mobile' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],

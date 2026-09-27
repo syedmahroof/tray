@@ -3,6 +3,7 @@
 use App\Actions\Products\SaveProductBranchPrice;
 use App\Mail\QuotationMail;
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Customer;
@@ -97,7 +98,8 @@ test('the quotation form carries each product\'s rate per tier for the user\'s b
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
-    $product = Product::factory()->create(['tax_percentage' => 18]);
+    $product = Product::factory()->create(['tax_percentage' => 18, 'brand_id' => Brand::factory()]);
+    $manager->brands()->sync([$product->brand_id]);
     Customer::factory()->create(['branch_id' => $branch->id, 'rate_tier' => 'CR']);
 
     app(SaveProductBranchPrice::class)->handle($product, $branch, [

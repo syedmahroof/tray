@@ -15,10 +15,9 @@ class BrandScope implements Scope
     /**
      * Apply the scope to a given Eloquent query builder.
      *
-     * Super Admins and Admins see every brand's records. Other users are
-     * restricted to the brands assigned to them; a user with no assigned
-     * brands is not restricted at all. Records without a brand stay visible
-     * to everyone.
+     * Super Admins and Admins see every brand's records. Everyone else sees
+     * only records of the brands assigned to them and records they created
+     * themselves.
      */
     public function apply(Builder $builder, Model $model): void
     {
@@ -30,13 +29,9 @@ class BrandScope implements Scope
 
         $brandIds = $user->accessibleBrandIds();
 
-        if ($brandIds === []) {
-            return;
-        }
-
-        $builder->where(function (Builder $query) use ($model, $brandIds) {
-            $query->whereIn($model->qualifyColumn('brand_id'), $brandIds)
-                ->orWhereNull($model->qualifyColumn('brand_id'));
+        $builder->where(function (Builder $query) use ($model, $brandIds, $user) {
+            $query->where($model->qualifyColumn('created_by'), $user->getKey())
+                ->when($brandIds !== [], fn (Builder $query) => $query->orWhereIn($model->qualifyColumn('brand_id'), $brandIds));
         });
     }
 }

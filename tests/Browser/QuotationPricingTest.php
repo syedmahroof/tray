@@ -2,6 +2,7 @@
 
 use App\Actions\Products\SaveProductBranchPrice;
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\User;
@@ -17,7 +18,8 @@ test('quotation lines are priced from the chosen rate tier and re-priced when it
     $manager->assignRole('Manager');
     Customer::factory()->create(['branch_id' => $branch->id, 'name' => 'Acme Customer', 'rate_tier' => 'CR']);
 
-    $product = Product::factory()->create(['name' => 'Slotted Channel 1.2 MM', 'tax_percentage' => 18]);
+    $product = Product::factory()->create(['name' => 'Slotted Channel 1.2 MM', 'tax_percentage' => 18, 'brand_id' => Brand::factory()]);
+    $manager->brands()->sync([$product->brand_id]);
     app(SaveProductBranchPrice::class)->handle($product, $branch, [
         'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
     ]);

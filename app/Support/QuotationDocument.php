@@ -21,7 +21,7 @@ class QuotationDocument
      *
      * @param  string  $host  the request host, which decides whose company
      *                        identity the document carries
-     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, brands: list<array{name: string, logo: string|null}>}
+     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, letterhead: string|null, brands: list<array{name: string, logo: string|null}>}
      */
     public static function for(Quotation $quotation, string $host): array
     {
@@ -32,6 +32,7 @@ class QuotationDocument
             'invoice' => new QuotationInvoice($quotation),
             'company' => self::company($quotation, $host),
             'logo' => self::logoPath($quotation, $host),
+            'letterhead' => self::letterheadPath($quotation),
             'brands' => self::brands($quotation),
         ];
     }
@@ -64,11 +65,7 @@ class QuotationDocument
     public static function logoPath(Quotation $quotation, string $host): ?string
     {
         if ($quotation->branch !== null) {
-            $branchLogo = $quotation->branch->logo_path;
-
-            return filled($branchLogo) && Storage::disk(StoredImage::DISK)->exists($branchLogo)
-                ? Storage::disk(StoredImage::DISK)->path($branchLogo)
-                : null;
+            return self::storedFile($quotation->branch->logo_path);
         }
 
         $logo = Branding::forHost($host)['logo'];
@@ -80,6 +77,25 @@ class QuotationDocument
         $path = public_path(ltrim($logo, '/'));
 
         return is_file($path) ? $path : null;
+    }
+
+    /**
+     * The raising branch's letterhead banner as a file on disk. When there is
+     * one it heads the page in place of the logo and contact lines.
+     */
+    public static function letterheadPath(Quotation $quotation): ?string
+    {
+        return self::storedFile($quotation->branch?->letterhead_path);
+    }
+
+    /**
+     * The on-disk path of a stored image, or null when it is missing.
+     */
+    private static function storedFile(?string $path): ?string
+    {
+        $disk = Storage::disk(StoredImage::DISK);
+
+        return filled($path) && $disk->exists($path) ? $disk->path($path) : null;
     }
 
     /**

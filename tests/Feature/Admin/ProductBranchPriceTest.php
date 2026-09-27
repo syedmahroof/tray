@@ -2,6 +2,7 @@
 
 use App\Actions\Products\SaveProductBranchPrice;
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductBranchPrice;
 use App\Models\ProductCategory;
@@ -171,7 +172,8 @@ test('editing a product logs the price change against the editor', function () {
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
     $manager->branches()->sync([$branch->id]);
-    $product = Product::factory()->create(['tax_percentage' => 18]);
+    $product = Product::factory()->create(['tax_percentage' => 18, 'brand_id' => Brand::factory()]);
+    $manager->brands()->sync([$product->brand_id]);
 
     app(SaveProductBranchPrice::class)->handle($product, $branch, ['sr_rate' => 100]);
 
@@ -199,7 +201,8 @@ test('a branch price can be removed explicitly without touching the others', fun
     $manager = User::factory()->create(['branch_id' => $keep->id]);
     $manager->assignRole('Manager');
     $manager->branches()->sync([$keep->id, $drop->id]);
-    $product = Product::factory()->create();
+    $product = Product::factory()->create(['brand_id' => Brand::factory()]);
+    $manager->brands()->sync([$product->brand_id]);
 
     $action = app(SaveProductBranchPrice::class);
     $action->handle($product, $keep, ['sr_rate' => 10]);
@@ -222,7 +225,8 @@ test('a user without the price permission cannot change prices through the form'
     $user = User::factory()->create(['branch_id' => $branch->id]);
     $user->givePermissionTo(['products.view', 'products.update']);
     $user->branches()->sync([$branch->id]);
-    $product = Product::factory()->create();
+    $product = Product::factory()->create(['brand_id' => Brand::factory()]);
+    $user->brands()->sync([$product->brand_id]);
 
     app(SaveProductBranchPrice::class)->handle($product, $branch, ['sr_rate' => 10]);
 

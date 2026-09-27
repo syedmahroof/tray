@@ -218,6 +218,48 @@ test('removing a branch logo deletes the stored file', function () {
     expect($branch->fresh()->logo_path)->toBeNull();
 });
 
+test('a branch keeps a letterhead image apart from its logo', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $logo = UploadedFile::fake()->image('logo.png')->store('branch-logos', 'public');
+    $branch = Branch::factory()->create(['code' => 'CAL', 'logo_path' => $logo]);
+
+    $this->actingAs($admin)
+        ->put(route('branches.update', $branch), [
+            'name' => $branch->name,
+            'code' => 'CAL',
+            'letterhead' => UploadedFile::fake()->image('letterhead.png', 1200, 200),
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    $branch->refresh();
+
+    expect($branch->logo_path)->toBe($logo);
+    expect($branch->letterhead_path)->toStartWith('branch-letterheads/');
+    Storage::disk('public')->assertExists($branch->letterhead_path);
+
+    $this->actingAs($admin)
+        ->get(route('branches.edit', $branch))
+        ->assertInertia(fn ($page) => $page
+            ->where('branch.letterhead_url', Storage::disk('public')->url($branch->letterhead_path)));
+
+    $letterhead = $branch->letterhead_path;
+
+    $this->actingAs($admin)
+        ->put(route('branches.update', $branch), [
+            'name' => $branch->name,
+            'code' => 'CAL',
+            'remove_letterhead' => true,
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    Storage::disk('public')->assertMissing($letterhead);
+    Storage::disk('public')->assertExists($logo);
+    expect($branch->fresh()->letterhead_path)->toBeNull();
+});
+
 test('a branch keeps the brands it deals in', function () {
     $admin = User::factory()->create();
     $admin->assignRole('Admin');

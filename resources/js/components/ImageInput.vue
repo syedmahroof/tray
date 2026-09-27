@@ -16,8 +16,10 @@ const props = withDefaults(
         label: string;
         currentUrl?: string | null;
         error?: string;
+        /** Preview a wide image, such as a banner, uncropped. */
+        wide?: boolean;
     }>(),
-    { currentUrl: null, error: undefined },
+    { currentUrl: null, error: undefined, wide: false },
 );
 
 const input = ref<HTMLInputElement | null>(null);
@@ -61,15 +63,20 @@ onBeforeUnmount(releasePreview);
 <template>
     <div class="grid gap-2">
         <Label :for="id">{{ label }}</Label>
-        <div class="flex items-center gap-4">
+        <div
+            class="flex gap-4"
+            :class="wide ? 'flex-col items-start' : 'items-center'"
+        >
             <div
-                class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted"
+                class="flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted"
+                :class="wide ? 'h-24 w-full' : 'size-20'"
             >
                 <img
                     v-if="shown"
                     :src="shown"
                     :alt="label"
-                    class="size-full object-cover"
+                    class="size-full"
+                    :class="wide ? 'object-contain' : 'object-cover'"
                 />
                 <ImagePlus v-else class="size-6 text-muted-foreground" />
             </div>

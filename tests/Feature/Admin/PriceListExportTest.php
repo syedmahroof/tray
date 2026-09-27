@@ -6,6 +6,7 @@ use App\Exports\PriceListSheet;
 use App\Exports\SheetStyle;
 use App\Exports\SheetTitle;
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -260,6 +261,9 @@ test('the export only shows branches the user can reach', function () {
     $user = User::factory()->create(['branch_id' => $this->kochi->id]);
     $user->assignRole('Sales Executive');
     $user->branches()->sync([$this->kochi->id]);
+    $brand = Brand::factory()->create();
+    Product::query()->update(['brand_id' => $brand->id]);
+    $user->brands()->sync([$brand->id]);
 
     $this->actingAs($user)
         ->get(route('products.price-list.export-branches', ['branch_ids' => [$this->calicut->id]]))

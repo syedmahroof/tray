@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\ContactType;
@@ -86,10 +87,12 @@ test('a sales executive can create an enquiry against a contact with a project a
         'project_category_id' => $projectCategory->id,
         'name' => 'Skyline Residency',
     ]);
-    Product::factory()->create([
+    $product = Product::factory()->create([
         'product_category_id' => $productCategory->id,
+        'brand_id' => Brand::factory(),
         'name' => '2BHK Tower A',
     ]);
+    $salesExecutive->brands()->sync([$product->brand_id]);
     $this->actingAs($salesExecutive);
 
     $page = visit(route('contacts.show', $contact));

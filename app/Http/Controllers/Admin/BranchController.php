@@ -53,9 +53,10 @@ class BranchController extends Controller
     public function store(SaveBranchRequest $request): RedirectResponse
     {
         $branch = Branch::create([
-            ...$request->safe()->except(['logo', 'remove_logo', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(null, $request->file('logo'), false, 'branch-logos'),
+            'letterhead_path' => StoredImage::sync(null, $request->file('letterhead'), false, 'branch-letterheads'),
         ]);
 
         $branch->brands()->sync($request->validated('brands', []));
@@ -85,13 +86,19 @@ class BranchController extends Controller
     public function update(SaveBranchRequest $request, Branch $branch): RedirectResponse
     {
         $branch->update([
-            ...$request->safe()->except(['logo', 'remove_logo', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(
                 $branch->logo_path,
                 $request->file('logo'),
                 $request->boolean('remove_logo'),
                 'branch-logos',
+            ),
+            'letterhead_path' => StoredImage::sync(
+                $branch->letterhead_path,
+                $request->file('letterhead'),
+                $request->boolean('remove_letterhead'),
+                'branch-letterheads',
             ),
         ]);
 
@@ -114,6 +121,7 @@ class BranchController extends Controller
         }
 
         StoredImage::delete($branch->logo_path);
+        StoredImage::delete($branch->letterhead_path);
         $branch->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch deleted.')]);

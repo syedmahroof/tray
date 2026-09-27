@@ -7,6 +7,7 @@ export type Branch = {
     /** The letterhead this branch prints on its quotations. */
     company_name?: string | null;
     logo_url?: string | null;
+    letterhead_url?: string | null;
     phone?: string | null;
     mobile?: string | null;
     email?: string | null;

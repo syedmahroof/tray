@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Customer;
@@ -33,7 +34,8 @@ test('authenticated users can search projects, builders, contacts, products, cus
     $project = Project::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Residency', 'project_category_id' => $projectCategory->id]);
     $builder = Builder::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Developers']);
     $contact = Contact::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Buyer']);
-    $product = Product::factory()->create(['name' => 'Skyline Product', 'product_category_id' => $productCategory->id]);
+    $product = Product::factory()->create(['name' => 'Skyline Product', 'product_category_id' => $productCategory->id, 'brand_id' => Brand::factory()]);
+    $user->brands()->sync([$product->brand_id]);
     $customer = Customer::factory()->create(['branch_id' => $branch->id, 'name' => 'Skyline Customer']);
     $enquiry = Enquiry::factory()->create([
         'branch_id' => $branch->id,

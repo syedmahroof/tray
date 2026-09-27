@@ -37,6 +37,21 @@ defineProps<{
         />
 
         <div class="grid gap-2">
+            <ImageInput
+                id="letterhead"
+                name="letterhead"
+                label="Letterhead image"
+                :current-url="branch?.letterhead_url"
+                :error="errors.letterhead"
+                wide
+            />
+            <p class="text-sm text-muted-foreground">
+                A ready-made header banner. When set, it is printed across the
+                top of quotations in place of the logo, email and website.
+            </p>
+        </div>
+
+        <div class="grid gap-2">
             <Label for="company_name">Company name</Label>
             <Input
                 id="company_name"
