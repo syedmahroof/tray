@@ -57,8 +57,6 @@ class ProjectController extends Controller
             'expected_maturity' => 'nullable|date',
             'preferred_material' => 'nullable|string|max:255',
             'assignee_id' => 'nullable|exists:users,id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         $validated['branch_id'] = $request->user()->branch_id ?? 1;
@@ -99,8 +97,6 @@ class ProjectController extends Controller
             'expected_maturity' => 'nullable|date',
             'preferred_material' => 'nullable|string|max:255',
             'assignee_id' => 'nullable|exists:users,id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         $project->update($validated);

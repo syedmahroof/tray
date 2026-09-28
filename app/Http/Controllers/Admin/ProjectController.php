@@ -125,7 +125,7 @@ class ProjectController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('owner_name', 'like', "%{$search}%")
-                        ->orWhere('location', 'like', "%{$search}%")
+                        ->orWhereHas('locationMaster', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('builder', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
                 });
             })
@@ -154,6 +154,7 @@ class ProjectController extends Controller
             'country',
             'state',
             'district',
+            'locationMaster',
             'assignee',
             'creator',
             'contacts.contactType',

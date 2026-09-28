@@ -3,7 +3,6 @@
 use App\Models\Branch;
 use App\Models\Builder;
 use App\Models\Contact;
-use App\Models\District;
 use App\Models\User;
 use App\Models\VisitReport;
 use Database\Seeders\RolePermissionSeeder;
@@ -35,24 +34,22 @@ test('the show page lists previous visit reports that share a linked entity', fu
                 && ! collect($history)->pluck('id')->contains($current->id)));
 });
 
-test('the create and edit forms expose the districts a location can be added to', function () {
+test('the create and edit forms no longer ask for a location or route', function () {
     $admin = User::factory()->create();
     $admin->assignRole('Admin');
-    $branch = Branch::factory()->create();
-    $district = District::factory()->create(['name' => 'Ernakulam']);
-    $report = VisitReport::factory()->create(['branch_id' => $branch->id]);
+    $report = VisitReport::factory()->create(['branch_id' => Branch::factory()->create()->id]);
 
     $this->actingAs($admin)
         ->get(route('visit-reports.create'))
         ->assertInertia(fn ($page) => $page
             ->component('visit-reports/Create')
-            ->has('districts', 1)
-            ->where('districts.0.name', 'Ernakulam')
-            ->where('districts.0.state.name', $district->state->name));
+            ->missing('locations')
+            ->missing('districts')
+            ->missing('routes'));
 
     $this->actingAs($admin)
         ->get(route('visit-reports.edit', $report))
-        ->assertInertia(fn ($page) => $page->has('districts', 1));
+        ->assertInertia(fn ($page) => $page->missing('locations')->missing('routes'));
 });
 
 test('the create and edit forms expose the builder options and linked builders', function () {

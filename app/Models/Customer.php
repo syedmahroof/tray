@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\DefaultsToHomeCountry;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['branch_id', 'name', 'phone', 'email', 'gst_number', 'rate_tier', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to'])]
 class Customer extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, DefaultsToHomeCountry;
 
     /** @use HasFactory<CustomerFactory> */
     use HasFactory;

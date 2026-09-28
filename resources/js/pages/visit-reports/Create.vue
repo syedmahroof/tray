@@ -2,10 +2,8 @@
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed } from 'vue';
-import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
-import LocationCombobox from '@/components/LocationCombobox.vue';
 import MultiCombobox from '@/components/MultiCombobox.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,10 +28,7 @@ import { contactOptionLabel } from '@/types';
 import type {
     Branch,
     ContactSelectOption,
-    DistrictOption,
-    LocationWithDistrict,
     NamedOption,
-    Route,
     VisitType,
 } from '@/types';
 
@@ -42,9 +37,6 @@ const props = defineProps<{
     customers: NamedOption[];
     contacts: ContactSelectOption[];
     builders: NamedOption[];
-    locations: LocationWithDistrict[];
-    districts: DistrictOption[];
-    routes: Route[];
     visitTypes: VisitType[];
     branches: Branch[];
     preselectedProjectId: number | null;
@@ -61,13 +53,6 @@ defineOptions({
         ],
     },
 });
-
-const routeOptions = computed(() =>
-    props.routes.map((route) => ({
-        value: String(route.id),
-        label: route.name,
-    })),
-);
 
 const projectOptions = computed(() =>
     props.projects.map((project) => ({
@@ -250,29 +235,6 @@ const initialBuilderIds = computed(() =>
                                 </SelectContent>
                             </Select>
                             <InputError :message="errors.branch_id" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div class="grid gap-2">
-                            <Label for="location_id">Location</Label>
-                            <LocationCombobox
-                                name="location_id"
-                                :locations="locations"
-                                :districts="districts"
-                            />
-                            <InputError :message="errors.location_id" />
-                        </div>
-
-                        <div class="grid gap-2">
-                            <Label for="route_id">Route</Label>
-                            <Combobox
-                                name="route_id"
-                                placeholder="Select a route…"
-                                :options="routeOptions"
-                                :model-value="undefined"
-                            />
-                            <InputError :message="errors.route_id" />
                         </div>
                     </div>
 

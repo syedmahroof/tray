@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * Shared "filter by place / route" plumbing for the CRM listing screens.
@@ -20,18 +19,11 @@ use Illuminate\Support\Facades\Schema;
 class RouteLocationFilter
 {
     /**
-     * The location tree tiers a listing can be narrowed by, widest first.
+     * The place and route columns a listing can be narrowed by, widest first.
      *
-     * Each tier maps to the relation path that reaches it from a listing which
-     * does not carry the column itself, such as visit reports.
-     *
-     * @var array<string, string>
+     * @var list<string>
      */
-    private const TIERS = [
-        'country_id' => 'location.district.state',
-        'state_id' => 'location.district',
-        'district_id' => 'location',
-    ];
+    private const COLUMNS = ['country_id', 'state_id', 'district_id', 'location_id', 'route_id'];
 
     /**
      * Narrow a listing query to the requested place and route.
@@ -43,16 +35,39 @@ class RouteLocationFilter
      */
     public static function apply(EloquentBuilder $query, Request $request): EloquentBuilder
     {
-        $query
-            ->when($request->input('location_id'), fn ($q, $value) => $q->where('location_id', $value))
-            ->when($request->input('route_id'), fn ($q, $value) => $q->where('route_id', $value));
-
-        foreach (self::TIERS as $column => $relation) {
+        foreach (self::COLUMNS as $column) {
             $query->when(
                 $request->input($column),
-                fn (EloquentBuilder $q, $value) => self::hasColumn($q->getModel(), $column)
-                    ? $q->where($column, $value)
-                    : $q->whereHas($relation, fn ($tier) => $tier->where($column, $value)),
+                fn (EloquentBuilder $q, $value) => $q->where($q->qualifyColumn($column), $value),
+            );
+        }
+
+        return $query;
+    }
+
+    /**
+     * Narrow a listing with no place of its own, such as visit reports, to the
+     * records linked to any entity that sits in the requested place and route.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  EloquentBuilder<TModel>  $query
+     * @param  list<string>  $relations  the listed model's relations to its linked entities
+     * @return EloquentBuilder<TModel>
+     */
+    public static function applyThroughLinks(EloquentBuilder $query, Request $request, array $relations): EloquentBuilder
+    {
+        foreach (self::COLUMNS as $column) {
+            $query->when(
+                $request->input($column),
+                fn (EloquentBuilder $q, $value) => $q->where(function (EloquentBuilder $linked) use ($relations, $column, $value) {
+                    foreach ($relations as $relation) {
+                        $linked->orWhereHas(
+                            $relation,
+                            fn (EloquentBuilder $entity) => $entity->where($entity->qualifyColumn($column), $value),
+                        );
+                    }
+                }),
             );
         }
 
@@ -63,11 +78,11 @@ class RouteLocationFilter
      * The places and routes a listing can be filtered by.
      *
      * The country, state and district pickers offer only the tiers the listed
-     * model already sits in, so they stay short. Every active location and
+     * models already sit in, so they stay short. Every active location and
      * route is offered, so those filters are always there to pick from, even
      * before any record has been given one.
      *
-     * @param  string  $relation  the relation on Location/Route pointing back at the listed model
+     * @param  string|list<string>  $relations  the relation(s) on Location pointing at the models that carry the place
      * @return array{
      *     countries: Collection<int, Country>,
      *     states: Collection<int, State>,
@@ -76,21 +91,21 @@ class RouteLocationFilter
      *     routes: Collection<int, Route>,
      * }
      */
-    public static function options(string $relation): array
+    public static function options(string|array $relations): array
     {
-        $model = self::listedModel($relation);
+        $models = array_map(self::listedModel(...), (array) $relations);
 
         return [
             'countries' => Country::query()
-                ->whereIn('id', self::tierIds($model, $relation, 'country_id'))
+                ->whereIn('id', self::tierIds($models, 'country_id'))
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'states' => State::query()
-                ->whereIn('id', self::tierIds($model, $relation, 'state_id'))
+                ->whereIn('id', self::tierIds($models, 'state_id'))
                 ->orderBy('name')
                 ->get(['id', 'name', 'country_id']),
             'districts' => District::query()
-                ->whereIn('id', self::tierIds($model, $relation, 'district_id'))
+                ->whereIn('id', self::tierIds($models, 'district_id'))
                 ->orderBy('name')
                 ->get(['id', 'name', 'state_id']),
             'locations' => Location::query()
@@ -133,32 +148,16 @@ class RouteLocationFilter
     }
 
     /**
-     * The ids of one tier of the location tree that the listing actually sits in.
+     * The ids of one tier of the location tree that the given models sit in.
      *
-     * Listings that carry the tier themselves are read straight off their own
-     * column; the rest, such as visit reports, are reached through the location
-     * tree above them.
-     *
+     * @param  list<Model>  $models
      * @return SupportCollection<int, int>
      */
-    private static function tierIds(Model $model, string $relation, string $column): SupportCollection
+    private static function tierIds(array $models, string $column): SupportCollection
     {
-        if (self::hasColumn($model, $column)) {
-            return $model->newQuery()->whereNotNull($column)->distinct()->pluck($column);
-        }
-
-        return match ($column) {
-            'district_id' => Location::query()->whereHas($relation)->distinct()->pluck('district_id'),
-            'state_id' => District::query()->whereHas('locations', fn ($q) => $q->whereHas($relation))->distinct()->pluck('state_id'),
-            default => State::query()->whereHas('districts.locations', fn ($q) => $q->whereHas($relation))->distinct()->pluck('country_id'),
-        };
-    }
-
-    /**
-     * Determine whether the listed model stores the given tier itself.
-     */
-    private static function hasColumn(Model $model, string $column): bool
-    {
-        return Schema::connection($model->getConnectionName())->hasColumn($model->getTable(), $column);
+        return collect($models)
+            ->flatMap(fn (Model $model) => $model->newQuery()->whereNotNull($column)->distinct()->pluck($column))
+            ->unique()
+            ->values();
     }
 }

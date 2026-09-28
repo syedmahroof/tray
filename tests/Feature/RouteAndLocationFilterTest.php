@@ -128,23 +128,39 @@ test('projects can be filtered by location and route', function () {
         ->assertInertia(fn ($page) => $page->has('projects.data', 1));
 });
 
-test('visit reports can be filtered by location and route', function () {
-    $match = VisitReport::factory()->create([
+test('visit reports are filtered by the location and route of their linked entities', function () {
+    $project = Project::factory()->create([
         'branch_id' => $this->branch->id,
         'location_id' => $this->location->id,
+    ]);
+    $customer = Customer::factory()->create([
+        'branch_id' => $this->branch->id,
         'route_id' => $this->salesRoute->id,
     ]);
-    VisitReport::factory()->create(['branch_id' => $this->branch->id]);
+    $elsewhere = Builder::factory()->create([
+        'branch_id' => $this->branch->id,
+        'location_id' => $this->otherLocation->id,
+        'route_id' => $this->otherRoute->id,
+    ]);
+
+    $viaProject = VisitReport::factory()->create(['branch_id' => $this->branch->id]);
+    $viaProject->projects()->attach($project);
+    $viaCustomer = VisitReport::factory()->create(['branch_id' => $this->branch->id]);
+    $viaCustomer->customers()->attach($customer);
+    $unrelated = VisitReport::factory()->create(['branch_id' => $this->branch->id]);
+    $unrelated->builders()->attach($elsewhere);
 
     $this->actingAs($this->admin)
         ->get(route('visit-reports.index', ['location_id' => $this->location->id]))
         ->assertInertia(fn ($page) => $page
             ->has('visitReports.data', 1)
-            ->where('visitReports.data.0.id', $match->id));
+            ->where('visitReports.data.0.id', $viaProject->id));
 
     $this->actingAs($this->admin)
         ->get(route('visit-reports.index', ['route_id' => $this->salesRoute->id]))
-        ->assertInertia(fn ($page) => $page->has('visitReports.data', 1));
+        ->assertInertia(fn ($page) => $page
+            ->has('visitReports.data', 1)
+            ->where('visitReports.data.0.id', $viaCustomer->id));
 });
 
 test('the pickers offer every active location and route, used or not', function () {
@@ -212,21 +228,28 @@ test('builders can be filtered by district, state, and country', function () {
     }
 });
 
-test('visit reports are filtered by district through their location', function () {
-    $match = VisitReport::factory()->create([
+test('visit reports are filtered by district and state through their linked entities', function () {
+    $contact = Contact::factory()->create([
         'branch_id' => $this->branch->id,
-        'location_id' => $this->location->id,
+        'state_id' => $this->district->state_id,
+        'district_id' => $this->district->id,
     ]);
-    VisitReport::factory()->create([
+    $otherContact = Contact::factory()->create([
         'branch_id' => $this->branch->id,
-        'location_id' => $this->otherDistrictLocation->id,
+        'state_id' => $this->otherDistrict->state_id,
+        'district_id' => $this->otherDistrict->id,
     ]);
+
+    $match = VisitReport::factory()->create(['branch_id' => $this->branch->id]);
+    $match->contacts()->attach($contact);
+    VisitReport::factory()->create(['branch_id' => $this->branch->id])->contacts()->attach($otherContact);
 
     $this->actingAs($this->admin)
         ->get(route('visit-reports.index', ['district_id' => $this->district->id]))
         ->assertInertia(fn ($page) => $page
             ->has('visitReports.data', 1)
-            ->where('visitReports.data.0.id', $match->id));
+            ->where('visitReports.data.0.id', $match->id)
+            ->has('districts', 2));
 
     $this->actingAs($this->admin)
         ->get(route('visit-reports.index', ['state_id' => $this->district->state_id]))

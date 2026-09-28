@@ -20,6 +20,21 @@ class Country extends Model
     use HasFactory;
 
     /**
+     * The CRM's home country, India, which every country picker and new
+     * record defaults to.
+     */
+    public static function homeId(): ?int
+    {
+        $id = static::query()
+            ->where('code', 'IN')
+            ->orWhere('name', 'India')
+            ->orderByRaw("code = 'IN' desc")
+            ->value('id');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /**
      * @return HasMany<State, $this>
      */
     public function states(): HasMany

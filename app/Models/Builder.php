@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\DefaultsToHomeCountry;
 use Database\Factories\BuilderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,7 +39,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'is_active', 'assigned_to', 'created_by'])]
 class Builder extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, DefaultsToHomeCountry;
 
     /** @use HasFactory<BuilderFactory> */
     use HasFactory;

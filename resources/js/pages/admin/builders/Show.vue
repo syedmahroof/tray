@@ -249,8 +249,6 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Start Date</TableHead>
-                                    <TableHead>End Date</TableHead>
                                     <TableHead class="text-right"
                                         >Actions</TableHead
                                     >
@@ -279,12 +277,6 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                             {{ project.status }}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{{
-                                        project.start_date ?? '—'
-                                    }}</TableCell>
-                                    <TableCell>{{
-                                        project.end_date ?? '—'
-                                    }}</TableCell>
                                     <TableCell class="text-right">
                                         <Button
                                             variant="ghost"
@@ -300,7 +292,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                 </TableRow>
                                 <TableRow v-if="builder.projects.length === 0">
                                     <TableCell
-                                        colspan="5"
+                                        colspan="3"
                                         class="py-8 text-center text-muted-foreground"
                                     >
                                         No projects yet for this builder.

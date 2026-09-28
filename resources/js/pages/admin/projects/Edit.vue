@@ -297,28 +297,6 @@ const removeProjectContact = (key: number) => {
                             <InputError :message="errors.preferred_material" />
                         </div>
 
-                        <div class="grid gap-2">
-                            <Label for="start_date">Start Date</Label>
-                            <Input
-                                id="start_date"
-                                name="start_date"
-                                type="date"
-                                :default-value="project.start_date ?? undefined"
-                            />
-                            <InputError :message="errors.start_date" />
-                        </div>
-
-                        <div class="grid gap-2">
-                            <Label for="end_date">End Date</Label>
-                            <Input
-                                id="end_date"
-                                name="end_date"
-                                type="date"
-                                :default-value="project.end_date ?? undefined"
-                            />
-                            <InputError :message="errors.end_date" />
-                        </div>
-
                         <div
                             v-if="branches.length > 0"
                             class="grid gap-2 lg:col-span-2"
@@ -402,7 +380,7 @@ const removeProjectContact = (key: number) => {
                     <CardContent
                         class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
                     >
-                        <div class="grid gap-2 lg:col-span-2">
+                        <div class="grid gap-2 md:col-span-1 lg:col-span-3">
                             <Label for="address">Address</Label>
                             <Input
                                 id="address"
@@ -413,7 +391,18 @@ const removeProjectContact = (key: number) => {
                             <InputError :message="errors.address" />
                         </div>
 
-                        <div class="lg:col-span-2">
+                        <div class="grid gap-2">
+                            <Label for="pincode">Pincode</Label>
+                            <Input
+                                id="pincode"
+                                name="pincode"
+                                placeholder="Pincode"
+                                :default-value="project.pincode ?? undefined"
+                            />
+                            <InputError :message="errors.pincode" />
+                        </div>
+
+                        <div class="col-span-full">
                             <LocationSelect
                                 :countries="countries"
                                 :routes="routes"
@@ -428,28 +417,6 @@ const removeProjectContact = (key: number) => {
                                 <InputError :message="errors.state_id" />
                                 <InputError :message="errors.district_id" />
                             </div>
-                        </div>
-
-                        <div class="grid gap-2 lg:col-span-2">
-                            <Label for="location">Location</Label>
-                            <Input
-                                id="location"
-                                name="location"
-                                placeholder="Location area"
-                                :default-value="project.location ?? undefined"
-                            />
-                            <InputError :message="errors.location" />
-                        </div>
-
-                        <div class="grid gap-2 lg:col-span-2">
-                            <Label for="pincode">Pincode</Label>
-                            <Input
-                                id="pincode"
-                                name="pincode"
-                                placeholder="Pincode"
-                                :default-value="project.pincode ?? undefined"
-                            />
-                            <InputError :message="errors.pincode" />
                         </div>
                     </CardContent>
                 </Card>

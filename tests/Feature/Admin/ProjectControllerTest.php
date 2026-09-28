@@ -4,6 +4,7 @@ use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Contact;
+use App\Models\Location;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCategory;
@@ -40,13 +41,10 @@ test('managers can create, update, and delete a project within their own branch'
             'owner_name' => 'John Doe',
             'owner_phone' => '1234567890',
             'owner_email' => 'john@example.com',
-            'location' => 'Downtown',
             'pincode' => '123456',
             'expected_maturity' => '2026-12-31',
             'preferred_material' => 'Steel & Concrete',
             'assignee_id' => $assignee->id,
-            'start_date' => '2026-07-01',
-            'end_date' => '2026-12-31',
             'contacts' => [$contactA->id, $contactB->id],
             'project_contacts' => [
                 ['name' => 'Site Supervisor', 'role' => 'Supervisor', 'phone' => '1112223333', 'email' => 'supervisor@example.com'],
@@ -61,14 +59,11 @@ test('managers can create, update, and delete a project within their own branch'
     expect($project->owner_name)->toBe('John Doe');
     expect($project->owner_phone)->toBe('1234567890');
     expect($project->owner_email)->toBe('john@example.com');
-    expect($project->location)->toBe('Downtown');
     expect($project->pincode)->toBe('123456');
     expect($project->expected_maturity)->toBe('2026-12-31');
     expect($project->preferred_material)->toBe('Steel & Concrete');
     expect($project->assignee_id)->toBe($assignee->id);
     expect($project->created_by)->toBe($manager->id);
-    expect($project->start_date)->toBe('2026-07-01');
-    expect($project->end_date)->toBe('2026-12-31');
     expect($project->contacts->pluck('id')->toArray())->toEqualCanonicalizing([$contactA->id, $contactB->id]);
     expect($project->projectContacts->pluck('name')->toArray())->toEqualCanonicalizing(['Site Supervisor', 'Site Engineer']);
 
@@ -266,6 +261,31 @@ test('the project index can be filtered by a search term', function () {
             ->has('projects.data', 1)
             ->where('projects.data.0.name', 'Riverside Heights')
             ->where('filters.search', 'Riverside'));
+});
+
+test('the project search matches the selected location', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $kakkanad = Location::factory()->create(['name' => 'Kakkanad']);
+    Project::factory()->create(['name' => 'Riverside Heights', 'location_id' => $kakkanad->id]);
+    Project::factory()->create(['name' => 'Hilltop Gardens']);
+
+    $this->actingAs($admin)
+        ->get(route('projects.index', ['search' => 'Kakkanad']))
+        ->assertInertia(fn ($page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.name', 'Riverside Heights'));
+});
+
+test('the project page shows the selected location', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $kakkanad = Location::factory()->create(['name' => 'Kakkanad']);
+    $project = Project::factory()->create(['location_id' => $kakkanad->id]);
+
+    $this->actingAs($admin)
+        ->get(route('projects.show', $project))
+        ->assertInertia(fn ($page) => $page->where('project.location_master.name', 'Kakkanad'));
 });
 
 test('the project index exposes status count stats', function () {

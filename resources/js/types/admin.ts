@@ -212,8 +212,6 @@ export type Project = {
     preferred_material: string | null;
     assignee_id: number | null;
     created_by: number | null;
-    start_date: string | null;
-    end_date: string | null;
     created_at: string;
     contacts?: NamedOption[];
     project_contacts?: ProjectContact[];

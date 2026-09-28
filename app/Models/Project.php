@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\DefaultsToHomeCountry;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -35,8 +36,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $preferred_material
  * @property int|null $assignee_id
  * @property int|null $created_by
- * @property string|null $start_date
- * @property string|null $end_date
  * @property-read Builder|null $builder
  * @property-read ProjectCategory $projectCategory
  * @property-read Country|null $country
@@ -71,12 +70,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'preferred_material',
     'assignee_id',
     'created_by',
-    'start_date',
-    'end_date',
 ])]
 class Project extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, DefaultsToHomeCountry;
 
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;

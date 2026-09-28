@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\DefaultsToHomeCountry;
 use App\Models\Concerns\HasActivity;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -40,7 +41,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to', 'created_by'])]
 class Contact extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, DefaultsToHomeCountry;
     use HasActivity;
 
     /** @use HasFactory<ContactFactory> */

@@ -68,6 +68,7 @@ type ProjectDetail = Project & {
     country: Country | null;
     state: State | null;
     district: District | null;
+    location_master: NamedOption | null;
     assignee: NamedOption | null;
     creator: NamedOption | null;
     contacts: ContactWithDetails[];
@@ -232,22 +233,6 @@ const activeTab = useTabQuery(
                             </div>
                             <div>
                                 <p class="text-sm text-muted-foreground">
-                                    Start Date
-                                </p>
-                                <p class="text-sm font-medium">
-                                    {{ project.start_date ?? '—' }}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-muted-foreground">
-                                    End Date
-                                </p>
-                                <p class="text-sm font-medium">
-                                    {{ project.end_date ?? '—' }}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-muted-foreground">
                                     Expected Maturity
                                 </p>
                                 <p class="text-sm font-medium">
@@ -368,10 +353,10 @@ const activeTab = useTabQuery(
                             </div>
                             <div>
                                 <p class="text-sm text-muted-foreground">
-                                    Location / City
+                                    Location
                                 </p>
                                 <p class="text-sm font-medium">
-                                    {{ project.location ?? '—' }}
+                                    {{ project.location_master?.name ?? '—' }}
                                 </p>
                             </div>
                             <div>

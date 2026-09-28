@@ -11,7 +11,6 @@ use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\Route;
 use App\Models\User;
-use App\Models\VisitReport;
 use Database\Seeders\RolePermissionSeeder;
 
 beforeEach(function () {
@@ -96,26 +95,6 @@ test('a project stores its location and route', function () {
     expect($project->location_id)->toBe($this->location->id);
     expect($project->route_id)->toBe($this->salesRoute->id);
     expect($project->locationMaster->is($this->location))->toBeTrue();
-});
-
-test('a visit report stores its location and route', function () {
-    $builder = Builder::factory()->create(['branch_id' => $this->branch->id]);
-
-    $this->actingAs($this->admin)
-        ->post(route('visit-reports.store'), [
-            'visit_date' => '2026-06-01',
-            'visit_type' => 'Site Visit',
-            'objective' => 'Discuss the tower handover',
-            'branch_id' => $this->branch->id,
-            'builder_ids' => [$builder->id],
-            'location_id' => $this->location->id,
-            'route_id' => $this->salesRoute->id,
-        ])
-        ->assertRedirect();
-
-    $report = VisitReport::query()->latest('id')->firstOrFail();
-    expect($report->location_id)->toBe($this->location->id);
-    expect($report->route_id)->toBe($this->salesRoute->id);
 });
 
 test('a location outside the chosen district is rejected', function () {

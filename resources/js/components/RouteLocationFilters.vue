@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Combobox from '@/components/Combobox.vue';
+import { Label } from '@/components/ui/label';
 import type { PlaceFilterOptions, PlaceFilterValues } from '@/types';
 
-const props = defineProps<PlaceFilterOptions>();
+const props = withDefaults(
+    defineProps<
+        PlaceFilterOptions & {
+            /** Show a title above each picker. */
+            labelled?: boolean;
+        }
+    >(),
+    { labelled: false },
+);
 
 const place = defineModel<PlaceFilterValues>({ required: true });
 
@@ -144,9 +153,12 @@ const routeOptions = computed(() =>
 <template>
     <div
         v-if="countries.length > 0"
-        class="w-full sm:w-[160px]"
+        class="grid w-full gap-1.5 sm:w-[160px]"
         data-test="country-filter"
     >
+        <Label v-if="labelled" class="text-xs text-muted-foreground"
+            >Country</Label
+        >
         <Combobox
             v-model="selectedCountry"
             placeholder="All countries"
@@ -157,9 +169,12 @@ const routeOptions = computed(() =>
 
     <div
         v-if="states.length > 0"
-        class="w-full sm:w-[160px]"
+        class="grid w-full gap-1.5 sm:w-[160px]"
         data-test="state-filter"
     >
+        <Label v-if="labelled" class="text-xs text-muted-foreground"
+            >State</Label
+        >
         <Combobox
             v-model="selectedState"
             placeholder="All states"
@@ -170,9 +185,12 @@ const routeOptions = computed(() =>
 
     <div
         v-if="districts.length > 0"
-        class="w-full sm:w-[180px]"
+        class="grid w-full gap-1.5 sm:w-[180px]"
         data-test="district-filter"
     >
+        <Label v-if="labelled" class="text-xs text-muted-foreground"
+            >District</Label
+        >
         <Combobox
             v-model="selectedDistrict"
             placeholder="All districts"
@@ -181,7 +199,10 @@ const routeOptions = computed(() =>
         />
     </div>
 
-    <div class="w-full sm:w-[200px]" data-test="location-filter">
+    <div class="grid w-full gap-1.5 sm:w-[200px]" data-test="location-filter">
+        <Label v-if="labelled" class="text-xs text-muted-foreground"
+            >Location</Label
+        >
         <Combobox
             v-model="selectedLocation"
             placeholder="All locations"
@@ -190,7 +211,10 @@ const routeOptions = computed(() =>
         />
     </div>
 
-    <div class="w-full sm:w-[180px]" data-test="route-filter">
+    <div class="grid w-full gap-1.5 sm:w-[180px]" data-test="route-filter">
+        <Label v-if="labelled" class="text-xs text-muted-foreground"
+            >Route</Label
+        >
         <Combobox
             v-model="selectedRoute"
             placeholder="All routes"

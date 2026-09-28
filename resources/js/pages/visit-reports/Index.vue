@@ -33,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -424,112 +425,145 @@ const getDateStatus = (dateStr: string) => {
         <Card>
             <CardHeader class="border-b">
                 <div
-                    class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center"
+                    class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end"
                 >
-                    <div class="relative w-full max-w-sm">
-                        <Search
-                            class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <Input
-                            v-model="search"
-                            type="search"
-                            placeholder="Search visit reports…"
-                            class="px-9"
-                            data-test="search-input"
-                        />
+                    <div class="grid w-full max-w-sm gap-1.5">
+                        <Label class="text-xs text-muted-foreground"
+                            >Search</Label
+                        >
+                        <div class="relative w-full max-w-sm">
+                            <Search
+                                class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                            />
+                            <Input
+                                v-model="search"
+                                type="search"
+                                placeholder="Search visit reports…"
+                                class="px-9"
+                                data-test="search-input"
+                            />
+                        </div>
                     </div>
 
                     <!-- Visit Type Filter -->
-                    <Select
-                        v-model="visitType"
-                        @update:model-value="updateFilters"
-                    >
-                        <SelectTrigger class="w-full sm:w-[160px]">
-                            <SelectValue placeholder="Filter by Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem
-                                v-for="typeVal in visitTypes"
-                                :key="typeVal"
-                                :value="typeVal"
-                            >
-                                {{ typeVal }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div class="grid gap-1.5">
+                        <Label class="text-xs text-muted-foreground"
+                            >Visit Type</Label
+                        >
+                        <Select
+                            v-model="visitType"
+                            @update:model-value="updateFilters"
+                        >
+                            <SelectTrigger class="w-full sm:w-[160px]">
+                                <SelectValue placeholder="Filter by Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Types</SelectItem>
+                                <SelectItem
+                                    v-for="typeVal in visitTypes"
+                                    :key="typeVal"
+                                    :value="typeVal"
+                                >
+                                    {{ typeVal }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     <!-- Reported By Filter -->
-                    <Select
-                        v-model="userId"
-                        @update:model-value="updateFilters"
-                    >
-                        <SelectTrigger class="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by Reported By" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Reporters</SelectItem>
-                            <SelectItem
-                                v-for="user in users"
-                                :key="user.id"
-                                :value="String(user.id)"
-                            >
-                                {{ user.name }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div class="grid gap-1.5">
+                        <Label class="text-xs text-muted-foreground"
+                            >Reported By</Label
+                        >
+                        <Select
+                            v-model="userId"
+                            @update:model-value="updateFilters"
+                        >
+                            <SelectTrigger class="w-full sm:w-[180px]">
+                                <SelectValue
+                                    placeholder="Filter by Reported By"
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all"
+                                    >All Reporters</SelectItem
+                                >
+                                <SelectItem
+                                    v-for="user in users"
+                                    :key="user.id"
+                                    :value="String(user.id)"
+                                >
+                                    {{ user.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     <!-- Project Filter -->
-                    <Select
-                        v-model="projectId"
-                        @update:model-value="updateFilters"
-                    >
-                        <SelectTrigger class="w-full sm:w-[200px]">
-                            <SelectValue placeholder="Filter by Project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Projects</SelectItem>
-                            <SelectItem
-                                v-for="project in projects"
-                                :key="project.id"
-                                :value="String(project.id)"
-                            >
-                                {{ project.name }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div class="grid gap-1.5">
+                        <Label class="text-xs text-muted-foreground"
+                            >Project</Label
+                        >
+                        <Select
+                            v-model="projectId"
+                            @update:model-value="updateFilters"
+                        >
+                            <SelectTrigger class="w-full sm:w-[200px]">
+                                <SelectValue placeholder="Filter by Project" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all"
+                                    >All Projects</SelectItem
+                                >
+                                <SelectItem
+                                    v-for="project in projects"
+                                    :key="project.id"
+                                    :value="String(project.id)"
+                                >
+                                    {{ project.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     <!-- Date Filter -->
-                    <Select v-model="dateFilter">
-                        <SelectTrigger class="w-full sm:w-[160px]">
-                            <SelectValue placeholder="Select Date Range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="last_7_days"
-                                >Last 7 days</SelectItem
-                            >
-                            <SelectItem value="last_30_days"
-                                >Last 30 days</SelectItem
-                            >
-                            <SelectItem value="this_month"
-                                >This month</SelectItem
-                            >
-                            <SelectItem value="last_3_months"
-                                >Last 3 months</SelectItem
-                            >
-                            <SelectItem value="last_6_months"
-                                >Last 6 months</SelectItem
-                            >
-                            <SelectItem value="last_year">Last year</SelectItem>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div class="grid gap-1.5">
+                        <Label class="text-xs text-muted-foreground"
+                            >Visit Date</Label
+                        >
+                        <Select v-model="dateFilter">
+                            <SelectTrigger class="w-full sm:w-[160px]">
+                                <SelectValue placeholder="Select Date Range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="last_7_days"
+                                    >Last 7 days</SelectItem
+                                >
+                                <SelectItem value="last_30_days"
+                                    >Last 30 days</SelectItem
+                                >
+                                <SelectItem value="this_month"
+                                    >This month</SelectItem
+                                >
+                                <SelectItem value="last_3_months"
+                                    >Last 3 months</SelectItem
+                                >
+                                <SelectItem value="last_6_months"
+                                    >Last 6 months</SelectItem
+                                >
+                                <SelectItem value="last_year"
+                                    >Last year</SelectItem
+                                >
+                                <SelectItem value="all">All</SelectItem>
+                                <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     <!-- Custom Date Range -->
                     <div
                         v-if="dateFilter === 'custom'"
-                        class="flex items-center gap-1.5"
+                        class="flex h-9 items-center gap-1.5"
                     >
                         <CalendarDays class="h-4 w-4 text-[#16a34a]" />
                         <Input
@@ -556,6 +590,7 @@ const getDateStatus = (dateStr: string) => {
                         :districts="districts"
                         :locations="locations"
                         :routes="routes"
+                        labelled
                         @change="updateFilters"
                     />
 
