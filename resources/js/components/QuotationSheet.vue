@@ -34,9 +34,21 @@ const props = defineProps<{
     terms?: string | null;
 }>();
 
-const buyer = computed(
-    () => props.quotation.customer ?? props.quotation.contact,
-);
+/**
+ * Who the quotation is billed to: the customer, else the contact, else the
+ * builder or project it was raised on.
+ */
+const buyer = computed(() => {
+    const { customer, contact, builder, project } = props.quotation;
+
+    if (customer ?? contact ?? builder) {
+        return customer ?? contact ?? builder;
+    }
+
+    return project
+        ? { ...project, phone: project.owner_phone, email: project.owner_email }
+        : null;
+});
 
 const buyerAddress = computed(() =>
     (buyer.value?.address ?? '').split(/\r\n|\r|\n/).filter(Boolean),
@@ -46,9 +58,7 @@ const buyerGstin = computed(
     () => props.quotation.gstin ?? props.quotation.customer?.gst_number ?? null,
 );
 
-const buyerState = computed(
-    () => props.quotation.customer?.state ?? props.quotation.contact?.state,
-);
+const buyerState = computed(() => buyer.value?.state ?? null);
 
 /** The contact person, named separately when the quotation is on a customer. */
 const attention = computed(() =>

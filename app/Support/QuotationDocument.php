@@ -25,7 +25,7 @@ class QuotationDocument
      */
     public static function for(Quotation $quotation, string $host): array
     {
-        $quotation->loadMissing(['customer.state', 'contact.state', 'project', 'branch.brands', 'creator', 'items.product']);
+        $quotation->loadMissing(['customer.state', 'contact.state', 'project.state', 'builder.state', 'branch.brands', 'creator', 'items.product']);
 
         return [
             'quotation' => $quotation,

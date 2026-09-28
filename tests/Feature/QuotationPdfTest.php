@@ -3,6 +3,7 @@
 use App\Mail\QuotationMail;
 use App\Models\Branch;
 use App\Models\Brand;
+use App\Models\Builder;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Quotation;
@@ -332,4 +333,25 @@ test('a long quotation runs over several pages with the sign-off only once, at t
     expect($html)
         ->toContain('Line item number 4')
         ->toContain('Line item number 50');
+});
+
+test('a quotation without a customer or contact is billed to its builder', function () {
+    $builder = Builder::factory()->create([
+        'name' => 'Skyline Developers',
+        'address' => 'MG Road, Kochi',
+        'phone' => '9847000000',
+    ]);
+    $this->quotation->update(['customer_id' => null, 'contact_id' => null, 'builder_id' => $builder->id]);
+
+    $html = view('quotations.pdf', [
+        'quotation' => $this->quotation->fresh()->load(['customer.state', 'contact.state', 'project.state', 'builder.state', 'creator', 'items.product']),
+        'invoice' => new QuotationInvoice($this->quotation),
+        'company' => Branding::companyForHost('localhost'),
+        'logo' => null,
+    ])->render();
+
+    expect($html)
+        ->toContain('Skyline Developers')
+        ->toContain('MG Road, Kochi')
+        ->toContain('9847000000');
 });

@@ -53,7 +53,7 @@ class QuotationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => 'required|integer',
+            'customer_id' => 'required_without_all:contact_id,project_id,enquiry_id,builder_id|nullable|integer',
             'contact_id' => 'nullable|integer',
             'project_id' => 'nullable|integer',
             'enquiry_id' => 'nullable|integer',
@@ -103,7 +103,7 @@ class QuotationController extends Controller
     public function update(Request $request, Quotation $quotation)
     {
         $validated = $request->validate([
-            'customer_id' => 'required|integer',
+            'customer_id' => 'required_without_all:contact_id,project_id,enquiry_id,builder_id|nullable|integer',
             'contact_id' => 'nullable|integer',
             'project_id' => 'nullable|integer',
             'enquiry_id' => 'nullable|integer',

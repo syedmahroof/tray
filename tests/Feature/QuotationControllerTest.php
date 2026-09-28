@@ -163,6 +163,49 @@ test('a quotation requires at least one item', function () {
         ->assertSessionHasErrors('items');
 });
 
+test('a quotation can be raised on any single entity without a customer', function (string $field) {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $entityId = match ($field) {
+        'contact_id' => Contact::factory()->create(['branch_id' => $branch->id])->id,
+        'project_id' => Project::factory()->create(['branch_id' => $branch->id])->id,
+        'builder_id' => Builder::factory()->create(['branch_id' => $branch->id])->id,
+        'enquiry_id' => Enquiry::factory()->create(['branch_id' => $branch->id])->id,
+    };
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            $field => $entityId,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [['description' => 'Pipe', 'quantity' => 1, 'unit_price' => 100]],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $quotation = Quotation::query()->latest('id')->firstOrFail();
+    expect($quotation->customer_id)->toBeNull()
+        ->and($quotation->{$field})->toBe($entityId);
+})->with(['contact_id', 'project_id', 'builder_id', 'enquiry_id']);
+
+test('a quotation must be linked to at least one entity', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [['description' => 'Pipe', 'quantity' => 1, 'unit_price' => 100]],
+        ])
+        ->assertSessionHasErrors(['customer_id' => 'Link at least one customer, contact, project, builder, or enquiry.']);
+});
+
 test('updating a quotation re-syncs items and recomputes totals', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

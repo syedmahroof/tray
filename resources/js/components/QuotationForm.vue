@@ -59,7 +59,7 @@ const props = defineProps<{
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId?: number | null;
-    defaults?: (QuotationDefaults & { customer_id?: number }) | null;
+    defaults?: (QuotationDefaults & { customer_id?: number | null }) | null;
 }>();
 
 // Distinct GST rates for the per-line tax select box (e.g. 0, 5, 12, 18, 28).
@@ -316,17 +316,23 @@ const submit = () => {
                 </CardHeader>
                 <CardContent class="space-y-6">
                     <section class="space-y-4">
-                        <h3
-                            class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                        >
-                            Customer
-                        </h3>
+                        <div class="space-y-1">
+                            <h3
+                                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                            >
+                                Link Entities
+                            </h3>
+                            <p class="text-sm text-muted-foreground">
+                                Link at least one customer, contact, project,
+                                builder, or enquiry.
+                            </p>
+                        </div>
                         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             <div class="grid content-start gap-2">
-                                <Label>Customer *</Label>
+                                <Label>Customer</Label>
                                 <Combobox
                                     v-model="form.customer_id"
-                                    placeholder="Select a customer"
+                                    placeholder="Select a customer (optional)"
                                     :options="customerOptions"
                                 />
                                 <InputError
@@ -342,16 +348,6 @@ const submit = () => {
                                     :options="contactOptions"
                                 />
                                 <InputError :message="form.errors.contact_id" />
-                            </div>
-
-                            <div class="grid content-start gap-2">
-                                <Label for="gstin">Buyer GSTIN</Label>
-                                <Input
-                                    id="gstin"
-                                    v-model="form.gstin"
-                                    placeholder="e.g. 29ABCDE1234F1Z5"
-                                />
-                                <InputError :message="form.errors.gstin" />
                             </div>
 
                             <div class="grid content-start gap-2">
@@ -393,6 +389,16 @@ const submit = () => {
                             Quotation
                         </h3>
                         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <div class="grid content-start gap-2">
+                                <Label for="gstin">Buyer GSTIN</Label>
+                                <Input
+                                    id="gstin"
+                                    v-model="form.gstin"
+                                    placeholder="e.g. 29ABCDE1234F1Z5"
+                                />
+                                <InputError :message="form.errors.gstin" />
+                            </div>
+
                             <div class="grid content-start gap-2">
                                 <Label for="quotation_date"
                                     >Quotation Date *</Label

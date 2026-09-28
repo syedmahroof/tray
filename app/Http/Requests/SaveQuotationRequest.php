@@ -27,7 +27,7 @@ class SaveQuotationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id' => ['required', Rule::exists('customers', 'id')],
+            'customer_id' => ['required_without_all:contact_id,project_id,enquiry_id,builder_id', 'nullable', Rule::exists('customers', 'id')],
             'contact_id' => ['nullable', Rule::exists('contacts', 'id')],
             'project_id' => ['nullable', Rule::exists('projects', 'id')],
             'enquiry_id' => ['nullable', Rule::exists('enquiries', 'id')],
@@ -52,6 +52,18 @@ class SaveQuotationRequest extends FormRequest
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ];
+    }
+
+    /**
+     * Get the custom validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'customer_id.required_without_all' => __('Link at least one customer, contact, project, builder, or enquiry.'),
         ];
     }
 }

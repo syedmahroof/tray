@@ -11,16 +11,20 @@
     $brands ??= [];
     $buyer = $quotation->customer;
     $contact = $quotation->contact;
-    $buyerName = $buyer?->name ?? $contact?->name;
-    $buyerAddress = $buyer?->address ?? $contact?->address;
+    // Without a customer or contact, the builder or project is who the quotation is for.
+    $fallback = $quotation->builder ?? $quotation->project;
+    $buyerName = $buyer?->name ?? $contact?->name ?? $fallback?->name;
+    $buyerAddress = $buyer?->address ?? $contact?->address ?? $fallback?->address;
     $buyerGstin = $quotation->gstin ?: $buyer?->gst_number;
-    $buyerState = $buyer?->state?->name ?? $contact?->state?->name;
+    $buyerState = $buyer?->state?->name ?? $contact?->state?->name ?? $fallback?->state?->name;
     $buyerLines = preg_split('/\r\n|\r|\n/', (string) $buyerAddress, -1, PREG_SPLIT_NO_EMPTY);
 
     // The contact person is only named separately when the quotation is raised on a customer.
     $attention = $buyer !== null ? $contact : null;
-    $attentionPhone = $attention?->phone ?? ($attention === null ? ($buyer?->phone ?? $contact?->phone) : null);
-    $attentionEmail = $attention?->email ?? ($attention === null ? ($buyer?->email ?? $contact?->email) : null);
+    $fallbackPhone = $quotation->builder?->phone ?? $quotation->project?->owner_phone;
+    $fallbackEmail = $quotation->builder?->email ?? $quotation->project?->owner_email;
+    $attentionPhone = $attention?->phone ?? ($attention === null ? ($buyer?->phone ?? $contact?->phone ?? $fallbackPhone) : null);
+    $attentionEmail = $attention?->email ?? ($attention === null ? ($buyer?->email ?? $contact?->email ?? $fallbackEmail) : null);
 
     $sender = $quotation->creator;
     $terms = preg_split('/\r\n|\r|\n/', (string) \App\Support\QuotationDocument::terms($quotation), -1, PREG_SPLIT_NO_EMPTY);

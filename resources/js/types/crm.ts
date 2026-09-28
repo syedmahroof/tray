@@ -297,9 +297,23 @@ export type QuotationDetail = Quotation & {
               state: (NamedOption & { code: string | null }) | null;
           })
         | null;
-    project: NamedOption | null;
+    project:
+        | (NamedOption & {
+              address: string | null;
+              owner_phone: string | null;
+              owner_email: string | null;
+              state: (NamedOption & { code: string | null }) | null;
+          })
+        | null;
     enquiry: { id: number; contact: NamedOption | null } | null;
-    builder: NamedOption | null;
+    builder:
+        | (NamedOption & {
+              phone: string | null;
+              email: string | null;
+              address: string | null;
+              state: (NamedOption & { code: string | null }) | null;
+          })
+        | null;
     creator: NamedOption | null;
     branch: NamedOption;
     items: QuotationItem[];
