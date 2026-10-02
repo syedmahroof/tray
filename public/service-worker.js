@@ -57,7 +57,9 @@ self.addEventListener('fetch', (event) => {
             const networkResponse = fetch(request)
                 .then((response) => {
                     if (response.ok) {
-                        void caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+                        const responseToCache = response.clone();
+
+                        void caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
                     }
 
                     return response;
