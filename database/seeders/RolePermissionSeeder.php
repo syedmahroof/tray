@@ -20,7 +20,7 @@ class RolePermissionSeeder extends Seeder
         'builders', 'projects', 'products',
         'contacts', 'customers', 'enquiries',
         'notes', 'reminders', 'visit-reports',
-        'quotations', 'reports',
+        'quotations', 'sales-orders', 'purchase-orders', 'suppliers', 'reports',
     ];
 
     /**
@@ -64,7 +64,7 @@ class RolePermissionSeeder extends Seeder
                 'locations', 'routes',
                 'project-categories', 'product-categories', 'contact-types', 'brands',
                 'builders', 'projects', 'products',
-                'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations',
+                'contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations', 'sales-orders', 'purchase-orders', 'suppliers',
             ], self::ACTIONS),
             ...$this->permissionNames(['reports'], ['view']),
             'quotations.send',
@@ -82,7 +82,7 @@ class RolePermissionSeeder extends Seeder
             // Field staff meet missing localities first, so they may add one
             // straight from a location picker.
             ...$this->permissionNames(['locations'], ['view', 'create']),
-            ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations'], self::ACTIONS),
+            ...$this->permissionNames(['contacts', 'customers', 'enquiries', 'notes', 'reminders', 'visit-reports', 'quotations', 'sales-orders'], self::ACTIONS),
             'quotations.send',
             'products.price.view',
         ]);

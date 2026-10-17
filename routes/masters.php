@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProjectCategoryController;
 use App\Http\Controllers\Admin\RouteController as RouteMasterController;
 use App\Http\Controllers\Admin\StateController;
+use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\LocationLookupController;
 use Illuminate\Support\Facades\Route;
 
@@ -96,4 +97,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('store', 'permission:brands.create')
         ->middlewareFor('update', 'permission:brands.update')
         ->middlewareFor('destroy', 'permission:brands.delete');
+
+    Route::resource('suppliers', SupplierController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middlewareFor('index', 'permission:suppliers.view')
+        ->middlewareFor('store', 'permission:suppliers.create')
+        ->middlewareFor('update', 'permission:suppliers.update')
+        ->middlewareFor('destroy', 'permission:suppliers.delete');
 });

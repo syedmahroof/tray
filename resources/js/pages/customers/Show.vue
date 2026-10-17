@@ -8,10 +8,12 @@ import {
     User,
     Info,
     ClipboardList,
+    PackageCheck,
     ReceiptText,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
+import OrdersCard from '@/components/OrdersCard.vue';
 import PhoneLink from '@/components/PhoneLink.vue';
 import QuotationsCard from '@/components/QuotationsCard.vue';
 import { Button } from '@/components/ui/button';
@@ -25,10 +27,12 @@ import {
     show as showEnquiry,
 } from '@/routes/enquiries';
 import { create as createQuotation } from '@/routes/quotations';
+import { create as createSalesOrder } from '@/routes/sales-orders';
 import type {
     CustomerDetail,
     Enquiry,
     NamedOption,
+    OrderSummary,
     QuotationSummary,
 } from '@/types';
 
@@ -41,6 +45,7 @@ defineProps<{
     customer: CustomerDetail;
     quotations: QuotationSummary[];
     enquiries: CustomerEnquiry[];
+    salesOrders: OrderSummary[];
 }>();
 
 defineOptions({
@@ -55,7 +60,7 @@ defineOptions({
 const permissions = computed(() => usePage().props.auth.permissions);
 
 const activeTab = useTabQuery(
-    ['details', 'enquiries', 'quotations'],
+    ['details', 'enquiries', 'quotations', 'sales-orders'],
     'details',
 );
 </script>
@@ -108,6 +113,19 @@ const activeTab = useTabQuery(
                         v-if="quotations.length"
                         class="rounded-full bg-muted px-1.5 text-xs text-muted-foreground"
                         >{{ quotations.length }}</span
+                    >
+                </TabsTrigger>
+                <TabsTrigger
+                    v-if="permissions.includes('sales-orders.view')"
+                    value="sales-orders"
+                    class="flex items-center gap-1.5"
+                >
+                    <PackageCheck class="h-4 w-4 text-[#16a34a]" />
+                    Sales Orders
+                    <span
+                        v-if="salesOrders.length"
+                        class="rounded-full bg-muted px-1.5 text-xs text-muted-foreground"
+                        >{{ salesOrders.length }}</span
                     >
                 </TabsTrigger>
             </TabsList>
@@ -267,6 +285,22 @@ const activeTab = useTabQuery(
                         })
                     "
                     :can-create="permissions.includes('quotations.create')"
+                />
+            </TabsContent>
+
+            <TabsContent
+                v-if="permissions.includes('sales-orders.view')"
+                value="sales-orders"
+            >
+                <OrdersCard
+                    order-type="sale"
+                    :orders="salesOrders"
+                    :create-href="
+                        createSalesOrder.url({
+                            query: { customer_id: customer.id },
+                        })
+                    "
+                    :can-create="permissions.includes('sales-orders.create')"
                 />
             </TabsContent>
         </Tabs>

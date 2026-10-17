@@ -6,6 +6,7 @@ use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Customer;
 use App\Models\Enquiry;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\VisitReport;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 class GlobalSearchController extends Controller
 {
     /**
-     * Handle the incoming request to search builders, projects, products, contacts, customers, enquiries, and visit reports.
+     * Handle the incoming request to search builders, projects, products, contacts, customers, enquiries, visit reports, and the sales and purchase orders the user may view.
      */
     public function __invoke(Request $request): JsonResponse
     {
@@ -30,6 +31,7 @@ class GlobalSearchController extends Controller
                 'customers' => [],
                 'enquiries' => [],
                 'visit_reports' => [],
+                'orders' => [],
             ]);
         }
 
@@ -149,6 +151,31 @@ class GlobalSearchController extends Controller
                 'url' => route('visit-reports.show', $report),
             ]);
 
+        $orderTypes = array_keys(array_filter([
+            'sale' => $request->user()?->can('sales-orders.view'),
+            'purchase' => $request->user()?->can('purchase-orders.view'),
+        ]));
+
+        $orders = $orderTypes === [] ? collect() : Order::query()
+            ->whereIn('type', $orderTypes)
+            ->where(function ($q) use ($query) {
+                $q->where('number', 'like', "%{$query}%")
+                    ->orWhereHas('customer', fn ($sub) => $sub->where('name', 'like', "%{$query}%"))
+                    ->orWhereHas('supplier', fn ($sub) => $sub->where('name', 'like', "%{$query}%"));
+            })
+            ->with(['customer:id,name', 'supplier:id,name'])
+            ->latest('order_date')
+            ->limit(5)
+            ->get()
+            ->map(fn (Order $order) => [
+                'id' => $order->id,
+                'number' => $order->number,
+                'type' => $order->type,
+                'party_name' => $order->partyName(),
+                'status' => $order->status,
+                'url' => route($order->type === 'sale' ? 'sales-orders.show' : 'purchase-orders.show', $order),
+            ]);
+
         return response()->json([
             'projects' => $projects,
             'builders' => $builders,
@@ -157,6 +184,7 @@ class GlobalSearchController extends Controller
             'customers' => $customers,
             'enquiries' => $enquiries,
             'visit_reports' => $visitReports,
+            'orders' => $orders,
         ]);
     }
 }

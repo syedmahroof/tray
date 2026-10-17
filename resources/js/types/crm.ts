@@ -232,6 +232,97 @@ export type QuotationItem = {
 
 export type QuotationSupplyType = 'intra' | 'inter';
 
+export type OrderType = 'sale' | 'purchase';
+
+export type OrderStatus =
+    | 'draft'
+    | 'confirmed'
+    | 'partially_fulfilled'
+    | 'fulfilled'
+    | 'cancelled';
+
+export type OrderItem = {
+    id: number;
+    order_id: number;
+    product_id: number | null;
+    description: string;
+    hsn_code: string | null;
+    quantity: string;
+    unit_price: string;
+    tax_percentage: string;
+    tax_amount: string;
+    product: NamedOption | null;
+};
+
+export type Order = {
+    id: number;
+    branch_id: number;
+    type: OrderType;
+    number: string;
+    customer_id: number | null;
+    supplier_id: number | null;
+    gstin: string | null;
+    supply_type: QuotationSupplyType;
+    order_date: string;
+    expected_date: string | null;
+    status: OrderStatus;
+    subtotal: string;
+    discount: string;
+    tax_amount: string;
+    cgst_amount: string;
+    sgst_amount: string;
+    igst_amount: string;
+    total: string;
+    notes: string | null;
+    terms: string | null;
+    created_by: number | null;
+    created_at: string;
+};
+
+export type OrderListItem = Order & {
+    customer: NamedOption | null;
+    supplier: NamedOption | null;
+    creator: NamedOption | null;
+};
+
+export type Supplier = {
+    id: number;
+    name: string;
+    contact_person: string | null;
+    phone: string | null;
+    email: string | null;
+    gst_number: string | null;
+    address: string | null;
+    is_active: boolean;
+    purchase_orders_count?: number;
+};
+
+/** A customer or supplier in the order form's party picker. */
+export type OrderPartyOption = NamedOption & { gst_number: string | null };
+
+/** An order as listed on a customer's page. */
+export type OrderSummary = Pick<
+    Order,
+    'id' | 'number' | 'status' | 'total' | 'order_date'
+>;
+
+export type OrderDetail = Order & {
+    customer: (NamedOption & { gst_number: string | null }) | null;
+    supplier: Supplier | null;
+    creator: NamedOption | null;
+    branch: NamedOption;
+    items: OrderItem[];
+};
+
+export type OrderProductOption = NamedOption & {
+    code: string | null;
+    unit: string | null;
+    hsn_code: string | null;
+    price: string | null;
+    taxable_amount: string | null;
+    tax_percentage: string;
+};
+
 /** A product in the quotation line picker, with its ex-tax rates per branch. */
 export type QuotationProductOption = NamedOption & {
     price: string | null;

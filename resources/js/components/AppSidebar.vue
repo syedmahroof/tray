@@ -21,6 +21,7 @@ import {
     Shield,
     Tag,
     Tags,
+    Truck,
     UserRound,
     Users,
     Wallet,
@@ -57,10 +58,13 @@ import {
 } from '@/routes/products';
 import { index as projectCategoriesIndex } from '@/routes/project-categories';
 import { index as projectsIndex } from '@/routes/projects';
+import { index as purchaseOrdersIndex } from '@/routes/purchase-orders';
 import { index as quotationsIndex } from '@/routes/quotations';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as rolesIndex } from '@/routes/roles';
+import { index as suppliersIndex } from '@/routes/suppliers';
 import { index as routesIndex } from '@/routes/routes';
+import { index as salesOrdersIndex } from '@/routes/sales-orders';
 import { index as usersIndex } from '@/routes/users';
 import { index as visitReportsIndex } from '@/routes/visit-reports';
 import type { NavItem } from '@/types';
@@ -119,6 +123,12 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: routesIndex(),
             icon: RouteIcon,
             color: '#0284c7',
+        },
+        permissions.value.includes('suppliers.view') && {
+            title: 'Suppliers',
+            href: suppliersIndex(),
+            icon: Truck,
+            color: '#ea580c',
         },
     ]);
 
@@ -206,6 +216,8 @@ const catalogNavItems = computed<NavItem[]>(() => {
  */
 const analyticsSections: [key: string, title: string, permission: string][] = [
     ['quotations', 'Sales & Quotations', 'quotations.view'],
+    ['sales-orders', 'Sales Orders', 'sales-orders.view'],
+    ['purchase-orders', 'Purchase Orders', 'purchase-orders.view'],
     ['enquiries', 'Enquiries', 'enquiries.view'],
     ['visit-reports', 'Visit Reports', 'visit-reports.view'],
     ['team', 'Team Performance', 'reports.view'],
@@ -258,6 +270,18 @@ const crmNavItems = computed<NavItem[]>(() => {
             href: quotationsIndex(),
             icon: FileText,
             color: '#4f46e5',
+        },
+        permissions.value.includes('sales-orders.view') && {
+            title: 'Sales Orders',
+            href: salesOrdersIndex(),
+            icon: ClipboardList,
+            color: '#16a34a',
+        },
+        permissions.value.includes('purchase-orders.view') && {
+            title: 'Purchase Orders',
+            href: purchaseOrdersIndex(),
+            icon: Wallet,
+            color: '#ea580c',
         },
         analyticsItems.value.length > 0 && {
             title: 'Analytics',

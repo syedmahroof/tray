@@ -113,6 +113,14 @@ class Customer extends Model
     }
 
     /**
+     * @return HasMany<Order, $this>
+     */
+    public function salesOrders(): HasMany
+    {
+        return $this->hasMany(Order::class)->where('type', 'sale');
+    }
+
+    /**
      * @return HasMany<Enquiry, $this>
      */
     public function enquiries(): HasMany

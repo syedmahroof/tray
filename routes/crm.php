@@ -5,6 +5,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
@@ -121,6 +122,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('edit', 'permission:quotations.view')
         ->middlewareFor('update', 'permission:quotations.update')
         ->middlewareFor('destroy', 'permission:quotations.delete');
+
+    foreach (['sales-orders' => 'sale', 'purchase-orders' => 'purchase'] as $uri => $orderType) {
+        Route::patch("{$uri}/{order}/status", [OrderController::class, 'updateStatus'])
+            ->middleware("permission:{$uri}.update")
+            ->name("{$uri}.status");
+
+        Route::get("{$uri}/{order}/pdf", [OrderController::class, 'pdf'])
+            ->middleware("permission:{$uri}.view")
+            ->name("{$uri}.pdf");
+
+        Route::get("{$uri}/{order}/print", [OrderController::class, 'print'])
+            ->middleware("permission:{$uri}.view")
+            ->name("{$uri}.print");
+
+        Route::resource($uri, OrderController::class)
+            ->parameters([$uri => 'order'])
+            ->middlewareFor(['index', 'show'], "permission:{$uri}.view")
+            ->middlewareFor(['create', 'store'], "permission:{$uri}.create")
+            ->middlewareFor('edit', "permission:{$uri}.view")
+            ->middlewareFor('update', "permission:{$uri}.update")
+            ->middlewareFor('destroy', "permission:{$uri}.delete");
+    }
 
     Route::get('reports', [ReportController::class, 'index'])
         ->middleware('permission:reports.view')

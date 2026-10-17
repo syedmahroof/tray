@@ -9,6 +9,7 @@ import {
     IdCard,
     Loader2Icon,
     Package,
+    PackageCheck,
     Search,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -31,6 +32,15 @@ type VisitReportEntity = {
     url: string;
 };
 
+type OrderEntity = {
+    id: number;
+    number: string;
+    type: 'sale' | 'purchase';
+    party_name: string | null;
+    status: string;
+    url: string;
+};
+
 type SearchResults = {
     projects: Entity[];
     builders: Entity[];
@@ -39,6 +49,7 @@ type SearchResults = {
     customers: PersonEntity[];
     enquiries: EnquiryEntity[];
     visit_reports: VisitReportEntity[];
+    orders: OrderEntity[];
 };
 
 const emptyResults = (): SearchResults => ({
@@ -49,6 +60,7 @@ const emptyResults = (): SearchResults => ({
     customers: [],
     enquiries: [],
     visit_reports: [],
+    orders: [],
 });
 
 const query = ref('');
@@ -69,7 +81,8 @@ const totalResults = computed(
         results.value.products.length +
         results.value.customers.length +
         results.value.enquiries.length +
-        results.value.visit_reports.length,
+        results.value.visit_reports.length +
+        results.value.orders.length,
 );
 
 const performSearch = async (value: string) => {
@@ -388,6 +401,43 @@ onBeforeUnmount(() => {
                         <span class="shrink-0 text-xs text-muted-foreground">{{
                             report.visit_date
                         }}</span>
+                    </button>
+                </div>
+
+                <!-- Orders -->
+                <div v-if="results.orders.length" class="py-1">
+                    <p
+                        class="px-2 py-1 text-xs font-medium text-muted-foreground"
+                    >
+                        Orders
+                    </p>
+                    <button
+                        v-for="order in results.orders"
+                        :key="'order-' + order.id"
+                        type="button"
+                        class="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                        @click="navigateTo(order.url)"
+                    >
+                        <span class="flex min-w-0 items-center gap-2">
+                            <PackageCheck
+                                class="h-4 w-4 shrink-0"
+                                :class="
+                                    order.type === 'sale'
+                                        ? 'text-green-600'
+                                        : 'text-orange-500'
+                                "
+                            />
+                            <span class="font-medium">{{ order.number }}</span>
+                            <span
+                                class="truncate text-xs text-muted-foreground"
+                            >
+                                {{ order.party_name ?? '' }}
+                            </span>
+                        </span>
+                        <span
+                            class="shrink-0 text-xs text-muted-foreground capitalize"
+                            >{{ order.status.replaceAll('_', ' ') }}</span
+                        >
                     </button>
                 </div>
             </template>

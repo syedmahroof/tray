@@ -77,7 +77,7 @@ class CustomerController extends Controller
     /**
      * Display the given customer.
      */
-    public function show(Customer $customer): Response
+    public function show(Request $request, Customer $customer): Response
     {
         $customer->load(['country', 'state', 'district', 'location', 'route', 'assignee', 'branch']);
 
@@ -85,6 +85,9 @@ class CustomerController extends Controller
             'customer' => $customer,
             'quotations' => $customer->quotations()->latest()->get(['id', 'number', 'version', 'status', 'total', 'quotation_date', 'created_at']),
             'enquiries' => $customer->enquiries()->with(['contact', 'project'])->latest()->get(),
+            'salesOrders' => $request->user()->can('sales-orders.view')
+                ? $customer->salesOrders()->latest('order_date')->latest('id')->get(['id', 'number', 'status', 'total', 'order_date'])
+                : [],
         ]);
     }
 

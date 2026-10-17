@@ -10,8 +10,10 @@ use App\Support\Analytics\CustomerAnalytics;
 use App\Support\Analytics\EnquiryAnalytics;
 use App\Support\Analytics\ProductAnalytics;
 use App\Support\Analytics\ProjectAnalytics;
+use App\Support\Analytics\PurchaseOrderAnalytics;
 use App\Support\Analytics\QuotationAnalytics;
 use App\Support\Analytics\RouteLocationAnalytics;
+use App\Support\Analytics\SalesOrderAnalytics;
 use App\Support\Analytics\TeamAnalytics;
 use App\Support\Analytics\VisitReportAnalytics;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +35,8 @@ class AnalyticsController extends Controller
      */
     public const array SECTIONS = [
         'quotations' => [QuotationAnalytics::class, 'quotations.view'],
+        'sales-orders' => [SalesOrderAnalytics::class, 'sales-orders.view'],
+        'purchase-orders' => [PurchaseOrderAnalytics::class, 'purchase-orders.view'],
         'enquiries' => [EnquiryAnalytics::class, 'enquiries.view'],
         'visit-reports' => [VisitReportAnalytics::class, 'visit-reports.view'],
         'team' => [TeamAnalytics::class, 'reports.view'],
