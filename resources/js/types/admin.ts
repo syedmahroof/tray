@@ -14,6 +14,9 @@ export type Branch = {
     website?: string | null;
     gstin?: string | null;
     quotation_terms?: string | null;
+    /** The series this branch numbers its quotations in. */
+    quotation_prefix?: string | null;
+    quotation_next_number?: number;
     /** The brands shown under this branch's quotation footer. */
     brand_ids?: number[];
     /** The account this branch collects into, printed on its quotations. */

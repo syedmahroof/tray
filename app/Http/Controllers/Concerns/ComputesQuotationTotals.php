@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Models\Branch;
+use App\Models\Quotation;
+
 trait ComputesQuotationTotals
 {
     /**
@@ -70,10 +73,30 @@ trait ComputesQuotationTotals
     }
 
     /**
-     * Generate a sequential quotation number for a newly created quotation.
+     * Give a newly created quotation its number.
+     *
+     * A branch with its own series hands out its next number, skipping any
+     * already taken (for example after the series is reset), and moves the
+     * series on. The branch row is locked so two quotations raised at once
+     * cannot draw the same number. Branches without a series fall back to the
+     * company-wide QT-YYYY-NNNNN numbering.
      */
-    protected function generateQuotationNumber(int $id): string
+    protected function generateQuotationNumber(Quotation $quotation): string
     {
-        return 'QT-'.now()->format('Y').'-'.str_pad((string) $id, 5, '0', STR_PAD_LEFT);
+        $branch = Branch::query()->whereKey($quotation->branch_id)->lockForUpdate()->first();
+
+        if (! $branch?->hasQuotationSeries()) {
+            return 'QT-'.now()->format('Y').'-'.str_pad((string) $quotation->id, 5, '0', STR_PAD_LEFT);
+        }
+
+        $next = max(1, $branch->quotation_next_number);
+
+        while (Quotation::query()->withoutGlobalScopes()->where('number', $branch->quotationNumber($next))->exists()) {
+            $next++;
+        }
+
+        $branch->update(['quotation_next_number' => $next + 1]);
+
+        return $branch->quotationNumber($next);
     }
 }

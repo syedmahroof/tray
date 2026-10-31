@@ -33,6 +33,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $bank_branch
  * @property string|null $bank_ifsc
  * @property string|null $quotation_terms
+ * @property string|null $quotation_prefix
+ * @property int $quotation_next_number
  * @property bool $is_active
  * @property-read Collection<int, Brand> $brands
  */
@@ -40,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'code', 'address', 'city', 'is_active',
     'company_name', 'logo_path', 'letterhead_path', 'phone', 'mobile', 'email', 'website', 'gstin',
     'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms',
+    'quotation_prefix', 'quotation_next_number',
 ])]
 class Branch extends Model
 {
@@ -60,7 +63,25 @@ class Branch extends Model
     {
         return [
             'is_active' => 'boolean',
+            'quotation_next_number' => 'integer',
         ];
+    }
+
+    /**
+     * Whether this branch numbers its quotations in its own series.
+     */
+    public function hasQuotationSeries(): bool
+    {
+        return filled($this->quotation_prefix);
+    }
+
+    /**
+     * Render a number in this branch's quotation series, for example
+     * "BTCLT/QT/001". Numbers are padded to at least three digits.
+     */
+    public function quotationNumber(int $number): string
+    {
+        return $this->quotation_prefix.str_pad((string) $number, 3, '0', STR_PAD_LEFT);
     }
 
     /**

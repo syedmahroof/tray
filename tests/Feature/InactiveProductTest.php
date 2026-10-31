@@ -23,7 +23,8 @@ test('a product can be deactivated and reactivated from the admin form', functio
         ->post(route('products.store'), [
             'product_category_id' => $category->id,
             'name' => 'GI Clamp',
-            'is_active' => '1',
+            // The form's checkbox posts "on" when ticked.
+            'is_active' => 'on',
         ])
         ->assertRedirect(route('products.index'));
 

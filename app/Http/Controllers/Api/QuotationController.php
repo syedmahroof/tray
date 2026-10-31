@@ -91,7 +91,7 @@ class QuotationController extends Controller
                 ...$computed['totals'],
             ]);
 
-            $quotation->update(['number' => $this->generateQuotationNumber($quotation->id)]);
+            $quotation->update(['number' => $this->generateQuotationNumber($quotation)]);
             $quotation->items()->createMany($computed['rows']);
 
             return $quotation;

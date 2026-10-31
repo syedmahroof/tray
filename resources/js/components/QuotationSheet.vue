@@ -277,13 +277,7 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             <TableHead>Product</TableHead>
                             <TableHead class="w-24">HSN</TableHead>
                             <TableHead class="w-24 text-right">Qty</TableHead>
-                            <TableHead class="w-28 text-right">
-                                List Price
-                            </TableHead>
-                            <TableHead class="w-20 text-right">Disc.</TableHead>
-                            <TableHead class="w-28 text-right">
-                                Net Price
-                            </TableHead>
+                            <TableHead class="w-28 text-right">Price</TableHead>
                             <TableHead class="w-32 pr-6 text-right">
                                 Total
                             </TableHead>
@@ -323,16 +317,6 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             <TableCell
                                 class="text-right align-top tabular-nums"
                             >
-                                {{ money(line.rate) }}
-                            </TableCell>
-                            <TableCell
-                                class="text-right align-top tabular-nums"
-                            >
-                                {{ percent(line.discount_percent) }}
-                            </TableCell>
-                            <TableCell
-                                class="text-right align-top tabular-nums"
-                            >
                                 {{ money(line.net_rate) }}
                             </TableCell>
                             <TableCell
@@ -358,7 +342,7 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                                     {{ invoice.total_unit }}
                                 </span>
                             </TableCell>
-                            <TableCell colspan="4" />
+                            <TableCell colspan="2" />
                         </TableRow>
                     </TableFooter>
                 </Table>
@@ -378,27 +362,8 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                     </div>
 
                     <dl class="w-full space-y-2 text-sm md:w-80">
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">Sub-Total</dt>
-                            <dd class="tabular-nums">
-                                {{ money(invoice.subtotal) }}
-                            </dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">
-                                Discount
-                                <template v-if="invoice.discount_percent > 0">
-                                    ({{ percent(invoice.discount_percent) }})
-                                </template>
-                            </dt>
-                            <dd class="tabular-nums">
-                                − {{ money(invoice.discount) }}
-                            </dd>
-                        </div>
-                        <div
-                            class="flex justify-between gap-4 border-t pt-2 font-medium"
-                        >
-                            <dt>Pre-Tax Sub-Total</dt>
+                        <div class="flex justify-between gap-4 font-medium">
+                            <dt>Taxable Value</dt>
                             <dd class="tabular-nums">
                                 {{ money(invoice.taxable_value) }}
                             </dd>

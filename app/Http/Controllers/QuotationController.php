@@ -145,7 +145,7 @@ class QuotationController extends Controller
                 'created_by' => $request->user()->id,
             ]);
 
-            $quotation->update(['number' => $this->generateNumber($quotation->id)]);
+            $quotation->update(['number' => $this->generateQuotationNumber($quotation)]);
             $quotation->items()->createMany($computed['rows']);
 
             return $quotation;
@@ -490,13 +490,5 @@ class QuotationController extends Controller
             (float) $request->validated('discount', 0),
             $request->validated('supply_type', 'intra'),
         );
-    }
-
-    /**
-     * Generate a sequential quotation number.
-     */
-    private function generateNumber(int $id): string
-    {
-        return $this->generateQuotationNumber($id);
     }
 }

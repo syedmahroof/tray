@@ -126,8 +126,12 @@ test('the printed page follows the quotation letter layout', function () {
         ->toContain('Quotation Date')
         ->toContain('02 Sep 2026')
         ->toContain('QT-000001')
-        ->toContain('List Price')
-        ->toContain('Price after')
+        ->toContain('>Unit</th>')
+        ->toContain('>Price</th>')
+        ->not->toContain('List Price')
+        ->not->toContain('Price after')
+        ->not->toContain('Disc (%)')
+        ->not->toContain('UoM')
         ->toContain('Taxable Value')
         ->toContain('GST @ 9%')
         ->toContain('Rupees Three Hundred Seventy Six Only')
@@ -150,6 +154,23 @@ test('the quotation discount is spread across the lines as a percentage off list
     expect($line['discount_percent'])->toBe(35.0);
     expect($line['net_rate'])->toBe(81.25);
     expect($line['net_amount'])->toBe(81.25);
+});
+
+test('a discounted line prints its price after discount as the price', function () {
+    $this->quotation->update(['discount' => 111.56]);
+
+    $html = view('quotations.pdf', [
+        'quotation' => $this->quotation->load(['customer.state', 'contact.state', 'project', 'creator', 'items.product']),
+        'invoice' => new QuotationInvoice($this->quotation),
+        'company' => Branding::companyForHost('localhost'),
+        'logo' => null,
+    ])->render();
+
+    expect($html)
+        ->toContain('<td class="right">81.25</td>')
+        ->not->toContain('<td class="right">125.00</td>')
+        ->not->toContain('Sub-Total')
+        ->not->toContain('>Discount<');
 });
 
 test('the emailed copy is the same printed document', function () {

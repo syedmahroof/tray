@@ -88,33 +88,33 @@
         .meta .v { font-weight: bold; text-align: right; width: 1%; white-space: nowrap; }
 
         .box { border: 1px solid #d8dde5; }
-        .box .label { background: #f3f5f8; border-bottom: 1px solid #d8dde5; padding: 4px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
-        .box .body { padding: 7px 8px; }
+        .box .label { background: #f3f5f8; border-bottom: 1px solid #d8dde5; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
+        .box .body { padding: 5px 8px; }
         .box .name { font-size: 10px; font-weight: bold; }
-        .kv td { padding: 1.5px 0; }
+        .kv td { padding: 1px 0; }
         .kv .k { color: #6b7280; width: 34%; white-space: nowrap; padding-right: 6px; }
         .kv .v { font-weight: bold; }
 
-        .items { margin-top: 14px; }
-        .items th { background: #1f3a5f; color: #ffffff; font-size: 7.5px; font-weight: bold; padding: 6px 5px; text-align: center; }
+        .items { margin-top: 8px; }
+        .items th { background: #1f3a5f; color: #ffffff; font-size: 7.5px; font-weight: bold; padding: 4px 4px; text-align: center; }
         .items th.left { text-align: left; }
-        .items td { padding: 6px 5px; border-bottom: 1px solid #e5e8ee; font-size: 8.5px; }
+        .items td { padding: 2.5px 4px; border-bottom: 1px solid #e5e8ee; font-size: 8.5px; line-height: 1.3; }
         .items tr.alt td { background: #f8f9fb; }
         .items .product { font-weight: bold; }
         .items .detail { font-size: 7.5px; color: #6b7280; }
 
-        .summary { margin-top: 12px; }
-        .words { border-left: 3px solid #1f3a5f; background: #f3f5f8; padding: 6px 8px; margin-bottom: 10px; }
+        .summary { margin-top: 8px; }
+        .words { border-left: 3px solid #1f3a5f; background: #f3f5f8; padding: 4px 8px; margin-bottom: 6px; }
         .words .k { font-size: 7.5px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; }
         .words .v { font-weight: bold; font-size: 9px; }
 
-        .totals td { padding: 4px 8px; }
+        .totals td { padding: 2.5px 8px; }
         .totals .k { color: #4b5563; }
         .totals .v { text-align: right; font-weight: bold; white-space: nowrap; }
         .totals .sub td { border-top: 1px solid #d8dde5; }
-        .totals .grand td { background: #1f3a5f; color: #ffffff; font-size: 11px; font-weight: bold; padding: 7px 8px; }
+        .totals .grand td { background: #1f3a5f; color: #ffffff; font-size: 11px; font-weight: bold; padding: 5px 8px; }
 
-        .section { margin-top: 16px; }
+        .section { margin-top: 10px; }
         .section .heading { font-size: 8px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1px solid #d8dde5; padding-bottom: 3px; margin-bottom: 5px; }
         .terms td { padding: 1.5px 0; }
         .terms .n { width: 16px; color: #6b7280; }
@@ -217,7 +217,7 @@
         </tr>
     </table>
 
-    <table style="margin-top: 12px;">
+    <table style="margin-top: 8px;">
         <tr>
             <td style="width: 55%; padding-right: 8px;">
                 <div class="box">
@@ -291,14 +291,12 @@
         <thead>
             <tr>
                 <th style="width: 4%;">#</th>
-                <th class="left" style="width: 32%;">Product Name</th>
+                <th class="left" style="width: 53%;">Product Name</th>
                 <th style="width: 9%;">HSN Code</th>
                 <th style="width: 6%;">Qty</th>
-                <th style="width: 6%;">UoM</th>
-                <th style="width: 11%;">List Price</th>
-                <th style="width: 7%;">Disc (%)</th>
-                <th style="width: 11%;">Price after Disc.</th>
-                <th style="width: 14%;">Amount</th>
+                <th style="width: 6%;">Unit</th>
+                <th style="width: 10%;">Price</th>
+                <th style="width: 12%;">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -314,8 +312,6 @@
                     <td class="center">{{ $line['hsn'] }}</td>
                     <td class="center">{{ $invoice->quantity($line['quantity']) }}</td>
                     <td class="center">{{ strtoupper($line['unit']) }}</td>
-                    <td class="right">{{ $plain($line['rate']) }}</td>
-                    <td class="center">{{ $invoice->percent($line['discount_percent']) }}%</td>
                     <td class="right">{{ $plain($line['net_rate']) }}</td>
                     <td class="right strong">{{ $plain($line['net_amount']) }}</td>
                 </tr>
@@ -349,17 +345,8 @@
             </td>
             <td style="width: 45%;">
                 <table class="totals">
+                    {{-- Line prices already carry any discount, so the lines add up to the taxable value. --}}
                     <tr>
-                        <td class="k">Sub-Total</td>
-                        <td class="v">{{ $money($invoice->subtotal()) }}</td>
-                    </tr>
-                    @if ($invoice->discount() > 0)
-                        <tr>
-                            <td class="k">Discount</td>
-                            <td class="v">(-) {{ $money($invoice->discount()) }}</td>
-                        </tr>
-                    @endif
-                    <tr class="sub">
                         <td class="k strong">Taxable Value</td>
                         <td class="v">{{ $money($invoice->taxableValue()) }}</td>
                     </tr>
