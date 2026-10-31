@@ -21,6 +21,7 @@ import Heading from '@/components/Heading.vue';
 import MultiCombobox from '@/components/MultiCombobox.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import Thumbnail from '@/components/Thumbnail.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -323,6 +324,12 @@ const confirmDelete = (product: ProductListItem) => {
                                     >
                                         {{ product.name }}
                                     </Link>
+                                    <Badge
+                                        v-if="!product.is_active"
+                                        variant="secondary"
+                                    >
+                                        Inactive
+                                    </Badge>
                                 </div>
                             </TableCell>
                             <TableCell>

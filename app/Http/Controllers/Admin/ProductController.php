@@ -205,6 +205,7 @@ class ProductController extends Controller
         $attributes = $request->validated();
         $prices = $attributes['prices'] ?? [];
         unset($attributes['prices'], $attributes['price_reason'], $attributes['image'], $attributes['remove_image']);
+        $attributes['is_active'] = $request->boolean('is_active');
 
         $attributes['image_path'] = StoredImage::sync(null, $request->file('image'), false, 'products');
 
@@ -267,6 +268,7 @@ class ProductController extends Controller
         $attributes = $request->validated();
         $prices = $attributes['prices'] ?? [];
         unset($attributes['prices'], $attributes['price_reason'], $attributes['image'], $attributes['remove_image']);
+        $attributes['is_active'] = $request->boolean('is_active');
 
         $attributes['image_path'] = StoredImage::sync(
             $product->image_path,

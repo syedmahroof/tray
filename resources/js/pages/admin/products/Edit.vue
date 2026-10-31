@@ -7,6 +7,7 @@ import Heading from '@/components/Heading.vue';
 import ImageInput from '@/components/ImageInput.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -313,6 +314,19 @@ const brandOptions = computed(() =>
                 :current-url="product.image_url"
                 :error="errors.image"
             />
+
+            <Label for="is_active" class="flex items-center space-x-3">
+                <Checkbox
+                    id="is_active"
+                    name="is_active"
+                    :default-value="product.is_active"
+                />
+                <span>Active</span>
+            </Label>
+            <p class="-mt-4 text-sm text-muted-foreground">
+                Inactive products are hidden when picking products for new
+                quotations, orders, enquiries and projects.
+            </p>
 
             <BranchPriceEditor
                 v-if="canSetPrices && branches.length > 0"

@@ -189,7 +189,7 @@ class QuotationController extends Controller
 
         return Inertia::render('quotations/Edit', [
             'quotation' => $quotation,
-            ...$this->formData(),
+            ...$this->formData($quotation->items->pluck('product_id')),
         ]);
     }
 
@@ -388,9 +388,10 @@ class QuotationController extends Controller
     /**
      * Shared lookup data for the create/edit forms.
      *
+     * @param  iterable<int, int|null>  $keepProductIds  Inactive products the quotation already uses.
      * @return array<string, mixed>
      */
-    private function formData(): array
+    private function formData(iterable $keepProductIds = []): array
     {
         return [
             'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'rate_tier']),
@@ -402,7 +403,7 @@ class QuotationController extends Controller
                     'name' => "#{$enquiry->id} — ".($enquiry->contact?->name ?? __('Enquiry')),
                 ]),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
-            'products' => $this->productOptions(),
+            'products' => $this->productOptions($keepProductIds),
             'statuses' => Quotation::STATUSES,
             'rateTiers' => ProductBranchPrice::RATE_TIERS,
             'gstSlabs' => Product::GST_SLABS,
@@ -418,11 +419,13 @@ class QuotationController extends Controller
      * per branch so the form can price lines by the chosen rate tier. Branch
      * prices are branch-scoped, so a user only receives branches they can reach.
      *
+     * @param  iterable<int, int|null>  $keepProductIds
      * @return list<array<string, mixed>>
      */
-    private function productOptions(): array
+    private function productOptions(iterable $keepProductIds = []): array
     {
         return Product::query()
+            ->selectable($keepProductIds)
             ->with('branchPrices:id,product_id,branch_id,sr_rate,pr_rate,cr_rate')
             ->orderBy('name')
             ->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage'])

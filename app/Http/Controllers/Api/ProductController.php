@@ -14,6 +14,7 @@ class ProductController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $products = Product::query()
+            ->selectable()
             ->with(['productCategory', 'brand'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {

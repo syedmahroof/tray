@@ -30,6 +30,15 @@ class ProductFactory extends Factory
             'tax_percentage' => 18,
             'area_sqft' => fake()->randomFloat(2, 400, 4000),
             'description' => fake()->sentence(),
+            'is_active' => true,
         ];
+    }
+
+    /**
+     * Indicate that the product is no longer offered for new records.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (): array => ['is_active' => false]);
     }
 }

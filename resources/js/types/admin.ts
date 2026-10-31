@@ -282,6 +282,7 @@ export type Product = {
     area_sqft: string | null;
     description: string | null;
     image_url: string | null;
+    is_active: boolean;
     created_by: number | null;
     created_at: string;
 };

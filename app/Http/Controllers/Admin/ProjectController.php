@@ -185,7 +185,7 @@ class ProjectController extends Controller
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
-            'products' => Product::query()->orderBy('name')->get(['id', 'name']),
+            'products' => Product::query()->selectable()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -229,7 +229,7 @@ class ProjectController extends Controller
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
-            'products' => Product::query()->orderBy('name')->get(['id', 'name']),
+            'products' => Product::query()->selectable($project->products->modelKeys())->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

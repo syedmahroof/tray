@@ -32,7 +32,7 @@ class MetadataController extends Controller
             'contact_types' => ContactType::orderBy('name')->get(['id', 'name']),
             'projects' => Project::orderBy('name')->get(['id', 'name']),
             'project_categories' => ProjectCategory::orderBy('name')->get(['id', 'name']),
-            'products' => Product::orderBy('name')->get(['id', 'name']),
+            'products' => Product::selectable()->orderBy('name')->get(['id', 'name']),
             'builders' => Builder::orderBy('name')->get(['id', 'name']),
         ]);
     }

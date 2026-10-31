@@ -6,6 +6,8 @@ use App\Models\Scopes\BrandScope;
 use App\Support\StoredImage;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $area_sqft
  * @property string|null $description
  * @property string|null $image_path
+ * @property bool $is_active
  * @property-read string|null $image_url
  * @property int|null $created_by
  * @property-read ProductCategory $productCategory
@@ -39,7 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, ProductPriceHistory> $priceHistories
  * @property-read Collection<int, Project> $projects
  */
-#[Fillable(['product_category_id', 'brand_id', 'code', 'import_key', 'name', 'unit', 'hsn_code', 'price', 'taxable_amount', 'tax_type', 'tax_percentage', 'area_sqft', 'description', 'image_path', 'created_by'])]
+#[Fillable(['product_category_id', 'brand_id', 'code', 'import_key', 'name', 'unit', 'hsn_code', 'price', 'taxable_amount', 'tax_type', 'tax_percentage', 'area_sqft', 'description', 'image_path', 'is_active', 'created_by'])]
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
@@ -89,7 +92,25 @@ class Product extends Model
             'taxable_amount' => 'decimal:2',
             'tax_percentage' => 'decimal:2',
             'area_sqft' => 'decimal:2',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Products that may be picked for a record: the active ones, plus any
+     * inactive ones the record already uses so editing it keeps them.
+     *
+     * @param  Builder<Product>  $query
+     * @param  iterable<int, int|null>  $keepIds
+     */
+    #[Scope]
+    protected function selectable(Builder $query, iterable $keepIds = []): void
+    {
+        $keepIds = array_values(array_filter(collect($keepIds)->all()));
+
+        $query->where(fn (Builder $query) => $query
+            ->where($query->qualifyColumn('is_active'), true)
+            ->when($keepIds !== [], fn (Builder $query) => $query->orWhereIn($query->qualifyColumn('id'), $keepIds)));
     }
 
     /**

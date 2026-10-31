@@ -51,6 +51,7 @@ class SaveProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'image' => ['nullable', File::image()->max(2 * 1024)],
             'remove_image' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
 
             'price_reason' => ['nullable', 'string', 'max:255'],
             'prices' => ['sometimes', 'array'],
