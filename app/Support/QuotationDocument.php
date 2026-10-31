@@ -17,22 +17,32 @@ use Illuminate\Support\Facades\Storage;
 class QuotationDocument
 {
     /**
+     * The printable width of an A4 page between the side margins, in the
+     * renderer's CSS pixels (96 dpi).
+     */
+    public const int PRINT_WIDTH = 722;
+
+    /**
      * Everything the document is made of.
      *
      * @param  string  $host  the request host, which decides whose company
      *                        identity the document carries
-     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, letterhead: string|null, brands: list<array{name: string, logo: string|null}>}
+     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, letterhead: string|null, letterheadHeight: int|null, brands: list<array{name: string, logo: string|null}>}
      */
     public static function for(Quotation $quotation, string $host): array
     {
         $quotation->loadMissing(['customer.state', 'contact.state', 'project.state', 'builder.state', 'branch.brands', 'creator', 'items.product']);
+
+        $letterheadPath = self::letterheadPath($quotation);
+        $banner = $letterheadPath === null ? null : LetterheadBanner::from($letterheadPath);
 
         return [
             'quotation' => $quotation,
             'invoice' => new QuotationInvoice($quotation),
             'company' => self::company($quotation, $host),
             'logo' => self::logoPath($quotation, $host),
-            'letterhead' => self::letterheadPath($quotation),
+            'letterhead' => $banner?->path,
+            'letterheadHeight' => $banner?->printedHeight(self::PRINT_WIDTH),
             'brands' => self::brands($quotation),
         ];
     }

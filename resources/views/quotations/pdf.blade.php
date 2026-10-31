@@ -8,6 +8,11 @@
 
     $logo ??= null;
     $letterhead ??= null;
+    $letterheadHeight ??= null;
+    // The banner is printed at its real height (blank paper around it already
+    // cropped away), and the page starts just below it.
+    $bannerHeight = min($letterheadHeight ?? 110, 160);
+    $headerSpace = $letterhead ? $bannerHeight + 26 : 128;
     $brands ??= [];
     $buyer = $quotation->customer;
     $contact = $quotation->contact;
@@ -60,7 +65,7 @@
     <meta charset="utf-8">
     <title>{{ $quotation->number }}</title>
     <style>
-        @page { margin: {{ $letterhead ? '140px' : '128px' }} 36px {{ $footerHeight + 34 }}px; }
+        @page { margin: {{ $headerSpace }}px 36px {{ $footerHeight + 34 }}px; }
         * { font-family: DejaVu Sans, sans-serif; }
         body { font-size: 8.5px; line-height: 1.45; color: #1f2933; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
@@ -71,8 +76,8 @@
         .center { text-align: center; }
 
         /* The letterhead and footer repeat on every page. */
-        .header { position: fixed; top: {{ $letterhead ? '-122px' : '-110px' }}; left: 0; right: 0; }
-        .header img.banner { width: 100%; max-height: 110px; }
+        .header { position: fixed; top: -{{ $headerSpace - 18 }}px; left: 0; right: 0; }
+        .header img.banner { width: 100%; height: {{ $bannerHeight }}px; }
         .header .logo { max-height: 58px; max-width: 200px; }
         .header .company { font-size: 14px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.3px; }
         .header .contact { font-size: 8px; color: #4b5563; line-height: 1.55; }
@@ -82,10 +87,11 @@
         .footer .pageline { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid #d8dde5; padding-top: 5px; }
         .footer .page:after { content: "Page " counter(page); }
 
-        .doc-title { font-size: 20px; font-weight: bold; color: #1f3a5f; letter-spacing: 3px; }
-        .meta td { padding: 1.5px 0; font-size: 8.5px; }
-        .meta .k { color: #6b7280; text-align: right; padding-right: 10px; }
-        .meta .v { font-weight: bold; text-align: right; width: 1%; white-space: nowrap; }
+        .doc-title { font-size: 15px; font-weight: bold; color: #1f3a5f; letter-spacing: 3px; }
+        .meta { width: auto; margin-left: auto; }
+        .meta td { font-size: 8.5px; white-space: nowrap; vertical-align: bottom; }
+        .meta .k { color: #6b7280; padding: 0 4px 0 14px; }
+        .meta .v { font-weight: bold; }
 
         .box { border: 1px solid #d8dde5; }
         .box .label { background: #f3f5f8; border-bottom: 1px solid #d8dde5; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
@@ -193,25 +199,21 @@
 
     <table>
         <tr>
-            <td style="width: 50%; vertical-align: bottom;">
+            <td style="width: 30%; vertical-align: bottom;">
                 <div class="doc-title">QUOTATION</div>
             </td>
-            <td style="width: 50%;">
+            <td style="width: 70%; vertical-align: bottom;">
                 <table class="meta">
                     <tr>
                         <td class="k">Quotation No</td>
                         <td class="v">{{ $quotation->number }}@if ($quotation->version > 1) (Rev. {{ $quotation->version }})@endif</td>
-                    </tr>
-                    <tr>
                         <td class="k">Quotation Date</td>
                         <td class="v">{{ $date($quotation->quotation_date) }}</td>
-                    </tr>
-                    @if ($quotation->valid_until)
-                        <tr>
+                        @if ($quotation->valid_until)
                             <td class="k">Valid Until</td>
                             <td class="v">{{ $date($quotation->valid_until) }}</td>
-                        </tr>
-                    @endif
+                        @endif
+                    </tr>
                 </table>
             </td>
         </tr>
@@ -276,10 +278,6 @@
                                     <td class="v">{{ $company['gstin'] }}</td>
                                 </tr>
                             @endif
-                            <tr>
-                                <td class="k">Items</td>
-                                <td class="v">{{ count($lines) }}</td>
-                            </tr>
                         </table>
                     </div>
                 </div>

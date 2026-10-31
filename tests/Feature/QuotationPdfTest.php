@@ -296,6 +296,35 @@ test('a branch letterhead image heads the print in place of the logo and contact
         ->not->toContain('class="contact"');
 });
 
+test('blank paper around a letterhead banner is cropped before it is printed', function () {
+    Storage::fake('public');
+
+    // A 1200 x 300 banner whose artwork fills only rows 40 to 139.
+    $image = imagecreatetruecolor(1200, 300);
+    imagefill($image, 0, 0, imagecolorallocate($image, 255, 255, 255));
+    imagefilledrectangle($image, 100, 40, 1100, 139, imagecolorallocate($image, 20, 60, 200));
+    ob_start();
+    imagepng($image);
+    Storage::disk('public')->put('branch-letterheads/banner.png', (string) ob_get_clean());
+
+    $this->quotation->branch->update(['letterhead_path' => 'branch-letterheads/banner.png']);
+
+    $document = QuotationDocument::for($this->quotation->fresh(), 'localhost');
+
+    expect($document['letterhead'])->not->toBe(Storage::disk('public')->path('branch-letterheads/banner.png'));
+    [$width, $height] = getimagesize($document['letterhead']);
+    expect($width)->toBe(1200);
+    expect($height)->toBe(100);
+    // Printed across the page, the cropped banner is a twelfth as tall as it is wide.
+    expect($document['letterheadHeight'])->toBe((int) ceil(QuotationDocument::PRINT_WIDTH / 12));
+
+    $html = view('quotations.pdf', $document)->render();
+
+    expect($html)
+        ->toContain('height: '.$document['letterheadHeight'].'px;')
+        ->toContain('@page { margin: '.($document['letterheadHeight'] + 26).'px');
+});
+
 test('a quotation with its own terms prints them over the branch defaults', function () {
     $this->quotation->branch->update(['quotation_terms' => 'Branch default term']);
     $this->quotation->update(['terms' => 'Quotation specific term']);
