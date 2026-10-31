@@ -33,7 +33,14 @@
 
     $sender = $quotation->creator;
     $terms = preg_split('/\r\n|\r|\n/', (string) \App\Support\QuotationDocument::terms($quotation), -1, PREG_SPLIT_NO_EMPTY);
-    $terms = array_map(fn (string $term): string => preg_replace('/^\s*\d+[.)]\s*/', '', $term), $terms);
+    // "Payment : 30 days" prints as a label and value, so the colons line up down the list.
+    $terms = array_map(function (string $term): array {
+        $term = trim(preg_replace('/^\s*\d+[.)]\s*/', '', $term));
+
+        return preg_match('/^([^:]{1,30}?)\s*:\s*(.*)$/', $term, $parts)
+            ? ['label' => $parts[1], 'value' => $parts[2]]
+            : ['label' => null, 'value' => $term];
+    }, $terms);
 
     $lines = $invoice->lines();
     $roundOff = $invoice->roundOff();
@@ -97,6 +104,12 @@
         .box .label { background: #f3f5f8; border-bottom: 1px solid #d8dde5; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
         .box .body { padding: 5px 8px; }
         .box .name { font-size: 10px; font-weight: bold; }
+        .parties { margin-top: 8px; }
+        .parties td.label, .parties td.body { border: 1px solid #d8dde5; }
+        .parties td.label { background: #f3f5f8; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
+        .parties td.body { padding: 5px 8px; }
+        .parties td.gap { width: 2%; border: none; }
+        .parties .name { font-size: 10px; font-weight: bold; }
         .kv td { padding: 1px 0; }
         .kv .k { color: #6b7280; width: 34%; white-space: nowrap; padding-right: 6px; }
         .kv .v { font-weight: bold; }
@@ -124,6 +137,8 @@
         .section .heading { font-size: 8px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1px solid #d8dde5; padding-bottom: 3px; margin-bottom: 5px; }
         .terms td { padding: 1.5px 0; }
         .terms .n { width: 16px; color: #6b7280; }
+        .terms .k { width: 90px; font-weight: bold; white-space: nowrap; }
+        .terms .sep { width: 10px; }
 
         .signoff { position: absolute; bottom: 72px; left: 0; right: 0; }
         .signoff .line { border-top: 1px solid #1f2933; margin-top: 38px; padding-top: 3px; }
@@ -219,68 +234,62 @@
         </tr>
     </table>
 
-    <table style="margin-top: 8px;">
+    {{-- One row of cells, so both boxes stretch to the taller one. --}}
+    <table class="parties">
         <tr>
-            <td style="width: 55%; padding-right: 8px;">
-                <div class="box">
-                    <div class="label">Quotation To</div>
-                    <div class="body">
-                        <div class="name">M/s {{ $buyerName ?? '—' }}</div>
-                        @foreach ($buyerLines as $line)
-                            <div>{{ $line }}</div>
-                        @endforeach
-                        @if ($buyerState)
-                            <div>{{ $buyerState }}, India</div>
+            <td class="label" style="width: 54%;">Quotation To</td>
+            <td class="gap"></td>
+            <td class="label" style="width: 44%;">Quotation Details</td>
+        </tr>
+        <tr>
+            <td class="body">
+                <div class="name">M/s {{ $buyerName ?? '—' }}</div>
+                @foreach ($buyerLines as $line)
+                    <div>{{ $line }}</div>
+                @endforeach
+                @if ($buyerState)
+                    <div>{{ $buyerState }}, India</div>
+                @endif
+                @if ($buyerGstin)
+                    <div style="margin-top: 3px;"><span class="muted">GSTIN:</span> <span class="strong">{{ $buyerGstin }}</span></div>
+                @endif
+                @if ($quotation->project)
+                    <div style="margin-top: 3px;"><span class="muted">Project:</span> <span class="strong">{{ $quotation->project->name }}</span></div>
+                @endif
+                @if ($attention || $attentionPhone || $attentionEmail)
+                    <div style="margin-top: 5px;">
+                        @if ($attention)
+                            <span class="muted">Kind Attn:</span> <span class="strong">{{ $attention->name }}</span><br>
                         @endif
-                        @if ($buyerGstin)
-                            <div style="margin-top: 3px;"><span class="muted">GSTIN:</span> <span class="strong">{{ $buyerGstin }}</span></div>
+                        @if ($attentionPhone)
+                            <span class="muted">Mobile:</span> {{ $attentionPhone }}<br>
                         @endif
-                        @if ($attention || $attentionPhone || $attentionEmail)
-                            <div style="margin-top: 5px;">
-                                @if ($attention)
-                                    <span class="muted">Kind Attn:</span> <span class="strong">{{ $attention->name }}</span><br>
-                                @endif
-                                @if ($attentionPhone)
-                                    <span class="muted">Mobile:</span> {{ $attentionPhone }}<br>
-                                @endif
-                                @if ($attentionEmail)
-                                    <span class="muted">Email:</span> {{ $attentionEmail }}
-                                @endif
-                            </div>
+                        @if ($attentionEmail)
+                            <span class="muted">Email:</span> {{ $attentionEmail }}
                         @endif
                     </div>
-                </div>
+                @endif
             </td>
-            <td style="width: 45%; padding-left: 8px;">
-                <div class="box">
-                    <div class="label">Quotation Details</div>
-                    <div class="body">
-                        <table class="kv">
-                            @if ($quotation->project)
-                                <tr>
-                                    <td class="k">Project</td>
-                                    <td class="v">{{ $quotation->project->name }}</td>
-                                </tr>
-                            @endif
-                            @if ($sender)
-                                <tr>
-                                    <td class="k">Sales Contact</td>
-                                    <td class="v">{{ $sender->name }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="k">Email</td>
-                                    <td class="v">{{ $sender->email }}</td>
-                                </tr>
-                            @endif
-                            @if ($letterhead && ($company['gstin'] ?? null))
-                                <tr>
-                                    <td class="k">Our GSTIN</td>
-                                    <td class="v">{{ $company['gstin'] }}</td>
-                                </tr>
-                            @endif
-                        </table>
-                    </div>
-                </div>
+            <td class="gap"></td>
+            <td class="body">
+                <table class="kv">
+                    @if ($sender)
+                        <tr>
+                            <td class="k">Sales Contact</td>
+                            <td class="v">{{ $sender->name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="k">Email</td>
+                            <td class="v">{{ $sender->email }}</td>
+                        </tr>
+                    @endif
+                    @if ($letterhead && ($company['gstin'] ?? null))
+                        <tr>
+                            <td class="k">GSTIN</td>
+                            <td class="v">{{ $company['gstin'] }}</td>
+                        </tr>
+                    @endif
+                </table>
             </td>
         </tr>
     </table>
@@ -376,7 +385,13 @@
                 @foreach ($terms as $term)
                     <tr>
                         <td class="n">{{ $loop->iteration }}.</td>
-                        <td>{{ $term }}</td>
+                        @if ($term['label'] !== null)
+                            <td class="k">{{ $term['label'] }}</td>
+                            <td class="sep">:</td>
+                            <td>{{ $term['value'] }}</td>
+                        @else
+                            <td colspan="3">{{ $term['value'] }}</td>
+                        @endif
                     </tr>
                 @endforeach
             </table>

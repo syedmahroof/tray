@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Builder;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\State;
@@ -110,7 +111,7 @@ test('amounts are spelled out in rupees and paise', function () {
 });
 
 test('the printed page follows the quotation letter layout', function () {
-    $this->quotation->update(['terms' => "1. GST 18% Extra\nPayment Against Proforma Invoice"]);
+    $this->quotation->update(['terms' => "1. GST 18% Extra\nPayment Against Proforma Invoice\n3. Delivery Shedule : Within 7 days\n4. Freight Charge :", 'project_id' => Project::factory()->create(['name' => 'ILLAM'])->id]);
 
     $html = view('quotations.pdf', [
         'quotation' => $this->quotation->load(['customer.state', 'contact.state', 'project', 'creator', 'items.product']),
@@ -139,6 +140,11 @@ test('the printed page follows the quotation letter layout', function () {
         ->toContain('Terms and Conditions')
         ->toContain('GST 18% Extra')
         ->toContain('Payment Against Proforma Invoice')
+        ->toContain('<td class="k">Delivery Shedule</td>')
+        ->toContain('<td>Within 7 days</td>')
+        ->toContain('<td class="k">Freight Charge</td>')
+        ->toMatch('/<div class="name">M\/s [^<]*<\/div>((?!<td).)*Project:<\/span> <span class="strong">ILLAM</s')
+        ->not->toContain('Our GSTIN')
         ->toContain('Bank Details')
         ->toContain('BUILD TECH SUPPORTS');
 });
