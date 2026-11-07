@@ -329,7 +329,7 @@ class QuotationController extends Controller
             $revision = Quotation::create([
                 ...$quotation->only([
                     'branch_id', 'customer_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
-                    'gstin', 'supply_type', 'rate_tier', 'valid_until', 'subtotal', 'discount',
+                    'gstin', 'supply_type', 'rate_tier', 'valid_until', 'subtotal', 'discount', 'agent_commission',
                     'tax_percent', 'tax_amount', 'cgst_amount', 'sgst_amount',
                     'igst_amount', 'total', 'notes', 'terms',
                 ]),
@@ -347,6 +347,11 @@ class QuotationController extends Controller
                     'description' => $item->description,
                     'hsn_code' => $item->hsn_code,
                     'quantity' => $item->quantity,
+                    'rate_tier' => $item->rate_tier,
+                    'price_basis' => $item->price_basis,
+                    'list_price' => $item->list_price,
+                    'price_percent' => $item->price_percent,
+                    'base_price' => $item->base_price,
                     'unit_price' => $item->unit_price,
                     'tax_percentage' => $item->tax_percentage,
                     'tax_amount' => $item->tax_amount,
@@ -406,6 +411,7 @@ class QuotationController extends Controller
             'products' => $this->productOptions($keepProductIds),
             'statuses' => Quotation::STATUSES,
             'rateTiers' => ProductBranchPrice::RATE_TIERS,
+            'lineRateTiers' => QuotationItem::rateTiers(),
             'gstSlabs' => Product::GST_SLABS,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             // Users who cannot pick a branch quote from their own, so the form
@@ -416,7 +422,9 @@ class QuotationController extends Controller
 
     /**
      * Products for the line-item picker, each with its ex-tax SR / PR / CR rate
-     * per branch so the form can price lines by the chosen rate tier. Branch
+     * per branch so the form can price lines by the chosen rate tier, and the
+     * MRP or cost (with the tier percentages that imply any freight) that a
+     * line's percentage is stated against. Branch
      * prices are branch-scoped, so a user only receives branches they can reach.
      *
      * @param  iterable<int, int|null>  $keepProductIds
@@ -426,7 +434,7 @@ class QuotationController extends Controller
     {
         return Product::query()
             ->selectable($keepProductIds)
-            ->with('branchPrices:id,product_id,branch_id,sr_rate,pr_rate,cr_rate')
+            ->with('branchPrices:id,product_id,branch_id,cost,mrp,rate_basis,sr_discount,sr_rate,pr_discount,pr_rate,cr_discount,cr_rate')
             ->orderBy('name')
             ->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage'])
             ->map(fn (Product $product): array => [
@@ -436,6 +444,12 @@ class QuotationController extends Controller
                         'SR' => $price->sr_rate,
                         'PR' => $price->pr_rate,
                         'CR' => $price->cr_rate,
+                        'mrp' => $price->mrp,
+                        'cost' => $price->cost,
+                        'rate_basis' => $price->rate_basis,
+                        'sr_discount' => $price->sr_discount,
+                        'pr_discount' => $price->pr_discount,
+                        'cr_discount' => $price->cr_discount,
                     ],
                 ])->all(),
             ])
@@ -489,6 +503,7 @@ class QuotationController extends Controller
             $request->validated('items', []),
             (float) $request->validated('discount', 0),
             $request->validated('supply_type', 'intra'),
+            (float) $request->validated('agent_commission', 0),
         );
     }
 }

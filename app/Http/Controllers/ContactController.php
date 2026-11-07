@@ -37,7 +37,7 @@ class ContactController extends Controller
 
         return Inertia::render('contacts/Index', [
             'contacts' => Contact::query()
-                ->with(['contactType', 'assignee', 'creator'])
+                ->with(['contactType', 'assignee', 'creator', 'location:id,name', 'district:id,name'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")

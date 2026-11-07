@@ -8,6 +8,7 @@ import type {
     Branch,
     NamedOption,
     QuotationProductOption,
+    QuotationLineRateTier,
     RateTier,
 } from '@/types';
 
@@ -26,6 +27,7 @@ defineProps<{
     products: QuotationProductOption[];
     statuses: string[];
     rateTiers: Record<RateTier, string>;
+    lineRateTiers: Record<QuotationLineRateTier, string>;
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId: number | null;
@@ -76,6 +78,7 @@ defineOptions({
             :products="products"
             :statuses="statuses"
             :rate-tiers="rateTiers"
+            :line-rate-tiers="lineRateTiers"
             :gst-slabs="gstSlabs"
             :branches="branches"
             :default-branch-id="defaultBranchId"

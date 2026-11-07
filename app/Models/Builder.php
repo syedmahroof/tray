@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $contact_person
  * @property string|null $phone
  * @property string|null $email
+ * @property string|null $gst_number
  * @property string|null $address
  * @property int|null $country_id
  * @property int|null $state_id
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read User|null $assignee
  * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'is_active', 'assigned_to', 'created_by'])]
+#[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'gst_number', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'is_active', 'assigned_to', 'created_by'])]
 class Builder extends Model
 {
     use BelongsToBranch, DefaultsToHomeCountry;

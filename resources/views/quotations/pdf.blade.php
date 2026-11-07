@@ -20,7 +20,7 @@
     $fallback = $quotation->builder ?? $quotation->project;
     $buyerName = $buyer?->name ?? $contact?->name ?? $fallback?->name;
     $buyerAddress = $buyer?->address ?? $contact?->address ?? $fallback?->address;
-    $buyerGstin = $quotation->gstin ?: $buyer?->gst_number;
+    $buyerGstin = $quotation->gstin ?: ($buyer?->gst_number ?? $contact?->gst_number ?? $quotation->builder?->gst_number);
     $buyerState = $buyer?->state?->name ?? $contact?->state?->name ?? $fallback?->state?->name;
     $buyerLines = preg_split('/\r\n|\r|\n/', (string) $buyerAddress, -1, PREG_SPLIT_NO_EMPTY);
 
@@ -354,7 +354,7 @@
                 <table class="totals">
                     {{-- Line prices already carry any discount, so the lines add up to the taxable value. --}}
                     <tr>
-                        <td class="k strong">Taxable Value</td>
+                        <td class="k strong">Sub Total</td>
                         <td class="v">{{ $money($invoice->taxableValue()) }}</td>
                     </tr>
                     @foreach ($invoice->taxLines() as $tax)
@@ -409,13 +409,7 @@
     <div style="height: 86px;"></div>
     <table class="signoff">
         <tr>
-            <td style="width: 50%;">
-                @if ($sender)
-                    <div class="muted">Prepared by</div>
-                    <div class="strong">{{ $sender->name }}</div>
-                    <div>{{ $sender->email }}</div>
-                @endif
-            </td>
+            <td style="width: 50%;"></td>
             <td style="width: 15%;"></td>
             <td class="center" style="width: 35%;">
                 <div class="strong">For {{ $companyName }}</div>

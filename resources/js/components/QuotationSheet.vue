@@ -55,7 +55,12 @@ const buyerAddress = computed(() =>
 );
 
 const buyerGstin = computed(
-    () => props.quotation.gstin ?? props.quotation.customer?.gst_number ?? null,
+    () =>
+        props.quotation.gstin ||
+        props.quotation.customer?.gst_number ||
+        props.quotation.contact?.gst_number ||
+        props.quotation.builder?.gst_number ||
+        null,
 );
 
 const buyerState = computed(() => buyer.value?.state ?? null);
@@ -268,13 +273,13 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                 </CardTitle>
             </CardHeader>
             <CardContent class="px-0">
-                <Table class="min-w-[48rem]">
+                <Table class="min-w-[48rem] table-fixed">
                     <TableHeader>
                         <TableRow class="bg-muted/50 hover:bg-muted/50">
                             <TableHead class="w-12 pl-6 text-center"
                                 >#</TableHead
                             >
-                            <TableHead>Product</TableHead>
+                            <TableHead class="w-[24rem]">Product</TableHead>
                             <TableHead class="w-24">HSN</TableHead>
                             <TableHead class="w-24 text-right">Qty</TableHead>
                             <TableHead class="w-28 text-right">Price</TableHead>
@@ -290,7 +295,9 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             >
                                 {{ line.sl }}
                             </TableCell>
-                            <TableCell class="align-top whitespace-normal">
+                            <TableCell
+                                class="align-top break-words whitespace-normal"
+                            >
                                 <p class="font-medium">
                                     {{ line.description }}
                                 </p>
@@ -363,7 +370,7 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
 
                     <dl class="w-full space-y-2 text-sm md:w-80">
                         <div class="flex justify-between gap-4 font-medium">
-                            <dt>Taxable Value</dt>
+                            <dt>Sub Total</dt>
                             <dd class="tabular-nums">
                                 {{ money(invoice.taxable_value) }}
                             </dd>

@@ -95,6 +95,12 @@ const userOptions = computed(() =>
                             <Input id="email" name="email" type="email" />
                             <InputError :message="errors.email" />
                         </div>
+
+                        <div class="grid gap-2">
+                            <Label for="gst_number">GST Number</Label>
+                            <Input id="gst_number" name="gst_number" />
+                            <InputError :message="errors.gst_number" />
+                        </div>
                     </div>
 
                     <div class="grid gap-2">

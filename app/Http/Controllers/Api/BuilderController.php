@@ -101,6 +101,7 @@ class BuilderController extends Controller
             'contact_person' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:255',
+            'gst_number' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'country_id' => 'nullable|exists:countries,id',
             'state_id' => 'nullable|exists:states,id',

@@ -4,6 +4,7 @@ import type {
     Location,
     LocationWithDistrict,
     NamedOption,
+    RateBasis,
     RateTier,
     Route,
     State,
@@ -16,6 +17,7 @@ export type Contact = {
     name: string;
     phone: string | null;
     email: string | null;
+    gst_number: string | null;
     address: string | null;
     country_id: number | null;
     state_id: number | null;
@@ -29,6 +31,8 @@ export type Contact = {
 
 export type ContactListItem = Contact & {
     contact_type: NamedOption;
+    location: NamedOption | null;
+    district: NamedOption | null;
     assignee: NamedOption | null;
     creator: NamedOption | null;
 };
@@ -224,6 +228,15 @@ export type QuotationItem = {
     description: string;
     hsn_code: string | null;
     quantity: string;
+    rate_tier: QuotationLineRateTier | null;
+    /** What `price_percent` is stated against: off MRP, or on cost. */
+    price_basis: RateBasis | null;
+    /** The MRP, or the cost plus any freight. */
+    list_price: string | null;
+    price_percent: string | null;
+    /** The line's own price, before any agent commission. */
+    base_price: string | null;
+    /** The printed price, agent commission included. */
     unit_price: string;
     tax_percentage: string;
     tax_amount: string;
@@ -329,8 +342,24 @@ export type QuotationProductOption = NamedOption & {
     taxable_amount: string | null;
     hsn_code: string | null;
     tax_percentage: string;
-    rates: Record<number, Record<RateTier, string | null>>;
+    rates: Record<number, QuotationBranchRates>;
 };
+
+/**
+ * A product's pricing in one branch: the ex-tax rate per tier, and the MRP or
+ * cost (with the tier percentages that imply any freight) they come from.
+ */
+export type QuotationBranchRates = Record<RateTier, string | null> & {
+    mrp: string | null;
+    cost: string | null;
+    rate_basis: RateBasis | null;
+    sr_discount: string | null;
+    pr_discount: string | null;
+    cr_discount: string | null;
+};
+
+/** A line's price type: a branch rate tier, or a custom discount off MRP. */
+export type QuotationLineRateTier = RateTier | 'custom';
 
 export type Quotation = {
     id: number;
@@ -351,6 +380,7 @@ export type Quotation = {
     status: QuotationStatus;
     subtotal: string;
     discount: string;
+    agent_commission: string;
     tax_percent: string;
     tax_amount: string;
     cgst_amount: string;
@@ -385,6 +415,7 @@ export type QuotationDetail = Quotation & {
               phone: string | null;
               email: string | null;
               address: string | null;
+              gst_number: string | null;
               state: (NamedOption & { code: string | null }) | null;
           })
         | null;
@@ -402,6 +433,7 @@ export type QuotationDetail = Quotation & {
               phone: string | null;
               email: string | null;
               address: string | null;
+              gst_number: string | null;
               state: (NamedOption & { code: string | null }) | null;
           })
         | null;

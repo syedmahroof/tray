@@ -4,6 +4,7 @@ use App\Mail\QuotationMail;
 use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Builder;
+use App\Models\Contact;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Project;
@@ -133,7 +134,7 @@ test('the printed page follows the quotation letter layout', function () {
         ->not->toContain('Price after')
         ->not->toContain('Disc (%)')
         ->not->toContain('UoM')
-        ->toContain('Taxable Value')
+        ->toContain('Sub Total')
         ->toContain('GST @ 9%')
         ->toContain('Rupees Three Hundred Seventy Six Only')
         ->toContain('₹ 376.00')
@@ -146,7 +147,9 @@ test('the printed page follows the quotation letter layout', function () {
         ->toMatch('/<div class="name">M\/s [^<]*<\/div>((?!<td).)*Project:<\/span> <span class="strong">ILLAM</s')
         ->not->toContain('Our GSTIN')
         ->toContain('Bank Details')
-        ->toContain('BUILD TECH SUPPORTS');
+        ->toContain('BUILD TECH SUPPORTS')
+        ->toContain('Authorised Signatory')
+        ->not->toContain('Prepared by');
 });
 
 test('the quotation discount is spread across the lines as a percentage off list', function () {
@@ -411,3 +414,20 @@ test('a quotation without a customer or contact is billed to its builder', funct
         ->toContain('MG Road, Kochi')
         ->toContain('9847000000');
 });
+
+test('a quotation raised on a contact or builder prints their GST number', function (string $party) {
+    $record = $party === 'contact'
+        ? Contact::factory()->create(['gst_number' => '32CONTACT1234Z5'])
+        : Builder::factory()->create(['gst_number' => '32BUILDER1234Z5']);
+
+    $this->quotation->update(['customer_id' => null, 'gstin' => null, "{$party}_id" => $record->id]);
+
+    $html = view('quotations.pdf', [
+        'quotation' => $this->quotation->fresh()->load(['customer.state', 'contact.state', 'builder.state', 'project', 'creator', 'items.product']),
+        'invoice' => new QuotationInvoice($this->quotation),
+        'company' => Branding::companyForHost('localhost'),
+        'logo' => null,
+    ])->render();
+
+    expect($html)->toContain($record->gst_number);
+})->with(['contact', 'builder']);

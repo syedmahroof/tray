@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property string $name
  * @property string|null $phone
  * @property string|null $email
+ * @property string|null $gst_number
  * @property string|null $address
  * @property int|null $country_id
  * @property int|null $state_id
@@ -38,7 +39,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property-read User|null $assignee
  * @property-read User|null $creator
  */
-#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to', 'created_by'])]
+#[Fillable(['branch_id', 'contact_type_id', 'name', 'phone', 'email', 'gst_number', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'assigned_to', 'created_by'])]
 class Contact extends Model
 {
     use BelongsToBranch, DefaultsToHomeCountry;

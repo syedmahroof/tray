@@ -428,6 +428,7 @@ const confirmDelete = (contact: ContactListItem) => {
                             <TableHead>Name</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Contact</TableHead>
+                            <TableHead>Location</TableHead>
                             <TableHead>Assigned to</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
@@ -458,6 +459,15 @@ const confirmDelete = (contact: ContactListItem) => {
                                 <div><PhoneLink :phone="contact.phone" /></div>
                                 <div class="text-sm text-muted-foreground">
                                     {{ contact.email ?? '' }}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div>{{ contact.location?.name ?? '—' }}</div>
+                                <div
+                                    v-if="contact.district"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{ contact.district.name }}
                                 </div>
                             </TableCell>
                             <TableCell>{{
@@ -525,7 +535,7 @@ const confirmDelete = (contact: ContactListItem) => {
                         </TableRow>
                         <TableRow v-if="contacts.data.length === 0">
                             <TableCell
-                                :colspan="7"
+                                :colspan="8"
                                 class="text-center text-muted-foreground"
                             >
                                 No contacts yet.

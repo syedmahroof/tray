@@ -19,7 +19,6 @@ import {
     Route as RouteIcon,
     Shapes,
     Shield,
-    Tag,
     Tags,
     Truck,
     UserRound,
@@ -111,12 +110,6 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: contactTypesIndex(),
             icon: Contact,
             color: '#0d9488',
-        },
-        permissions.value.includes('brands.view') && {
-            title: 'Brands',
-            href: brandsIndex(),
-            icon: Tag,
-            color: '#e11d48',
         },
         permissions.value.includes('routes.view') && {
             title: 'Routes',

@@ -419,10 +419,35 @@ const createRevision = () => {
                     </span>
                 </div>
 
+                <div
+                    v-if="Number(quotation.agent_commission) > 0"
+                    class="flex justify-between gap-4"
+                >
+                    <span class="text-muted-foreground">
+                        Agent commission
+                        <span class="text-xs">(in prices, not printed)</span>
+                    </span>
+                    <span class="font-medium tabular-nums">
+                        ₹{{
+                            Number(quotation.agent_commission).toLocaleString(
+                                'en-IN',
+                                { minimumFractionDigits: 2 },
+                            )
+                        }}
+                    </span>
+                </div>
+
                 <div class="flex justify-between gap-4">
                     <span class="text-muted-foreground">Created by</span>
                     <span class="font-medium">
                         {{ quotation.creator?.name ?? '—' }}
+                    </span>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <span class="text-muted-foreground">Created on</span>
+                    <span class="font-medium tabular-nums">
+                        {{ formatDate(quotation.created_at) }}
                     </span>
                 </div>
 

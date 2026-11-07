@@ -4,6 +4,7 @@ use App\Models\Branch;
 use App\Models\Contact;
 use App\Models\ContactType;
 use App\Models\Enquiry;
+use App\Models\Location;
 use App\Models\User;
 use App\Models\VisitReport;
 use Database\Seeders\RolePermissionSeeder;
@@ -29,11 +30,13 @@ test('sales executives can create, update, and delete a contact within their own
             'contact_type_id' => $contactType->id,
             'name' => 'Jane Prospect',
             'phone' => '555-1234',
+            'gst_number' => '32ABCDE1234F1Z5',
         ])
         ->assertRedirect();
 
     $contact = Contact::where('name', 'Jane Prospect')->first();
     expect($contact)->not->toBeNull();
+    expect($contact->gst_number)->toBe('32ABCDE1234F1Z5');
     expect($contact->branch_id)->toBe($branch->id);
     expect($contact->created_by)->toBe($salesExecutive->id);
 
@@ -162,4 +165,17 @@ test('the contact index can be filtered by creator (super admin only) and create
         ->assertInertia(fn ($page) => $page
             ->has('contacts.data', 1)
             ->where('contacts.data.0.name', 'Created By Creator'));
+});
+
+test('the contact list shows each contact\'s location', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $location = Location::factory()->create(['name' => 'Kalpetta']);
+    Contact::factory()->create(['location_id' => $location->id, 'district_id' => $location->district_id]);
+
+    $this->actingAs($admin)
+        ->get(route('contacts.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('contacts.data.0.location.name', 'Kalpetta')
+            ->where('contacts.data.0.district.id', $location->district_id));
 });

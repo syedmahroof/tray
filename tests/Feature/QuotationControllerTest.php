@@ -103,7 +103,7 @@ test('the quotation form carries each product\'s rate per tier for the user\'s b
     Customer::factory()->create(['branch_id' => $branch->id, 'rate_tier' => 'CR']);
 
     app(SaveProductBranchPrice::class)->handle($product, $branch, [
-        'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
+        'mrp' => 200, 'cost' => 80, 'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
     ]);
 
     $this->actingAs($manager)
@@ -115,33 +115,107 @@ test('the quotation form carries each product\'s rate per tier for the user\'s b
             ->where('defaultBranchId', $branch->id)
             ->where("products.0.rates.{$branch->id}.SR", '100.00')
             ->where("products.0.rates.{$branch->id}.PR", '110.00')
-            ->where("products.0.rates.{$branch->id}.CR", '120.00'));
+            ->where("products.0.rates.{$branch->id}.CR", '120.00')
+            ->where('lineRateTiers.custom', 'Custom Price')
+            ->where("products.0.rates.{$branch->id}.mrp", '200.00')
+            ->where("products.0.rates.{$branch->id}.cost", '80.0000')
+            ->where("products.0.rates.{$branch->id}.rate_basis", 'mrp'));
 });
 
-test('a quotation keeps the chosen rate tier and rejects an unknown one', function () {
+test('each line keeps its own price type, and a custom line is its MRP less, or its cost plus, its percentage', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
     $customer = Customer::factory()->create(['branch_id' => $branch->id]);
 
-    $payload = fn (string $tier): array => [
+    $this->actingAs($manager)->post(route('quotations.store'), [
         'customer_id' => $customer->id,
-        'quotation_date' => '2026-09-10',
+        'quotation_date' => '2026-11-07',
         'status' => 'draft',
         'supply_type' => 'intra',
-        'rate_tier' => $tier,
+        'rate_tier' => 'PR',
         'items' => [
-            ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 110, 'tax_percentage' => 18],
+            ['description' => 'Off MRP', 'quantity' => 2, 'rate_tier' => 'custom', 'price_basis' => 'mrp', 'list_price' => 200, 'price_percent' => 36, 'unit_price' => 1, 'tax_percentage' => 18],
+            ['description' => 'On cost', 'quantity' => 1, 'rate_tier' => 'custom', 'price_basis' => 'cost', 'list_price' => 100, 'price_percent' => 20, 'unit_price' => 1, 'tax_percentage' => 18],
+            ['description' => 'Tier line', 'quantity' => 1, 'rate_tier' => 'SR', 'price_basis' => 'mrp', 'list_price' => 200, 'price_percent' => 10, 'unit_price' => 50, 'tax_percentage' => 18],
+            ['description' => 'Custom, no basis', 'quantity' => 1, 'rate_tier' => 'custom', 'price_basis' => null, 'list_price' => null, 'price_percent' => null, 'unit_price' => 70, 'tax_percentage' => 18],
         ],
-    ];
+    ])->assertRedirect();
 
-    $this->actingAs($manager)->post(route('quotations.store'), $payload('PR'))->assertRedirect();
+    $quotation = Quotation::with('items')->first();
+    [$offMrp, $onCost, $tier, $manual] = $quotation->items->all();
 
-    expect(Quotation::first()->rate_tier)->toBe('PR');
+    expect($quotation->rate_tier)->toBe('PR')
+        ->and($offMrp->rate_tier)->toBe('custom')
+        ->and($offMrp->price_basis)->toBe('mrp')
+        ->and($offMrp->list_price)->toBe('200.00')
+        ->and($offMrp->price_percent)->toBe('36.00')
+        ->and($offMrp->unit_price)->toBe('128.00')
+        ->and($onCost->price_basis)->toBe('cost')
+        ->and($onCost->unit_price)->toBe('120.00')
+        // A tier line keeps its own price; its basis is kept for reference.
+        ->and($tier->rate_tier)->toBe('SR')
+        ->and($tier->list_price)->toBe('200.00')
+        ->and($tier->unit_price)->toBe('50.00')
+        ->and($manual->rate_tier)->toBe('custom')
+        ->and($manual->price_basis)->toBeNull()
+        ->and($manual->unit_price)->toBe('70.00')
+        ->and($quotation->subtotal)->toBe('496.00');
 
     $this->actingAs($manager)
-        ->post(route('quotations.store'), $payload('XX'))
-        ->assertSessionHasErrors('rate_tier');
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-11-07',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [['description' => 'Item', 'quantity' => 1, 'rate_tier' => 'XX', 'unit_price' => 1]],
+        ])
+        ->assertSessionHasErrors('items.0.rate_tier');
+});
+
+test('an agent commission is spread into the line prices and kept off the printed quotation', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)->post(route('quotations.store'), [
+        'customer_id' => $customer->id,
+        'quotation_date' => '2026-11-07',
+        'status' => 'draft',
+        'supply_type' => 'intra',
+        'rate_tier' => 'PR',
+        'agent_commission' => 1000,
+        'items' => [
+            ['description' => 'Tray', 'quantity' => 10, 'rate_tier' => 'PR', 'unit_price' => 100, 'tax_percentage' => 18],
+            ['description' => 'Channel', 'quantity' => 1, 'rate_tier' => 'custom', 'price_basis' => 'mrp', 'list_price' => 5000, 'price_percent' => 40, 'unit_price' => 0, 'tax_percentage' => 18],
+        ],
+    ])->assertRedirect();
+
+    $quotation = Quotation::with('items')->first();
+    [$tray, $channel] = $quotation->items->all();
+
+    // The lines come to 1,000 + 3,000, so the 1,000 commission is a 25% markup.
+    expect($quotation->agent_commission)->toBe('1000.00')
+        ->and($tray->base_price)->toBe('100.00')
+        ->and($tray->unit_price)->toBe('125.00')
+        ->and($channel->base_price)->toBe('3000.00')
+        ->and($channel->unit_price)->toBe('3750.00')
+        ->and($quotation->subtotal)->toBe('5000.00')
+        ->and($quotation->total)->toBe('5900.00');
+
+    $this->actingAs($manager)
+        ->get(route('quotations.show', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('quotation.agent_commission', '1000.00')
+            ->where('invoice.lines.0.net_rate', 125)
+            ->missing('invoice.agent_commission'));
+
+    $this->actingAs($manager)
+        ->get(route('quotations.edit', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('quotation.items.0.base_price', '100.00')
+            ->where('quotation.items.1.price_percent', '40.00'));
 });
 
 test('a quotation requires at least one item', function () {

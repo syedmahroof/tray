@@ -203,6 +203,14 @@ const activeTab = useTabQuery(
                             </p>
                         </div>
                         <div>
+                            <p class="text-sm text-muted-foreground">
+                                GST Number
+                            </p>
+                            <p class="text-sm font-medium">
+                                {{ contact.gst_number ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
                             <p class="text-sm text-muted-foreground">Address</p>
                             <p class="text-sm font-medium">
                                 {{

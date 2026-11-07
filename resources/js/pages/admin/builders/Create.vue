@@ -81,6 +81,12 @@ const userOptions = computed(() =>
                 </div>
 
                 <div class="grid gap-2">
+                    <Label for="gst_number">GST Number</Label>
+                    <Input id="gst_number" name="gst_number" />
+                    <InputError :message="errors.gst_number" />
+                </div>
+
+                <div class="grid gap-2">
                     <Label for="address">Address</Label>
                     <Input id="address" name="address" />
                     <InputError :message="errors.address" />

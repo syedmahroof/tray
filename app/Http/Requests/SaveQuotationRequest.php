@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\ProductBranchPrice;
 use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,6 +40,7 @@ class SaveQuotationRequest extends FormRequest
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],
             'discount' => ['nullable', 'numeric', 'min:0'],
+            'agent_commission' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
             'branch_id' => [
@@ -50,6 +52,10 @@ class SaveQuotationRequest extends FormRequest
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.hsn_code' => ['nullable', 'string', 'max:20'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'items.*.rate_tier' => ['nullable', Rule::in(array_keys(QuotationItem::rateTiers()))],
+            'items.*.price_basis' => ['nullable', Rule::in(array_keys(ProductBranchPrice::RATE_BASES))],
+            'items.*.list_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.price_percent' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];

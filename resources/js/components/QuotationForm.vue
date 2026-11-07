@@ -24,12 +24,16 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { basisFor, impliedFreight, usesMrp } from '@/lib/products';
+import type { PriceBasis } from '@/lib/products';
 import { index, show, store, update } from '@/routes/quotations';
 import type {
     Branch,
     NamedOption,
     QuotationDetail,
+    QuotationLineRateTier,
     QuotationProductOption,
+    RateBasis,
     RateTier,
 } from '@/types';
 
@@ -56,6 +60,7 @@ const props = defineProps<{
     products: QuotationProductOption[];
     statuses: string[];
     rateTiers: Record<RateTier, string>;
+    lineRateTiers: Record<QuotationLineRateTier, string>;
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId?: number | null;
@@ -67,14 +72,31 @@ const gstRateOptions = computed(() =>
     [...new Set(Object.values(props.gstSlabs))].sort((a, b) => a - b),
 );
 
-const emptyItem = () => ({
+const emptyItem = (rateTier: QuotationLineRateTier = 'SR') => ({
     product_id: undefined as string | undefined,
     description: '',
     hsn_code: '',
     quantity: '1',
+    rate_tier: rateTier,
+    /** What the line's % is stated against: off MRP, or on cost. */
+    price_basis: '' as RateBasis | '',
+    /** The MRP, or the cost plus any freight, the % applies to. */
+    list_price: '',
+    price_percent: '',
+    /** The line's own price, before any agent commission is spread over it. */
     unit_price: '0',
     tax_percentage: '0',
 });
+
+type QuotationLine = ReturnType<typeof emptyItem>;
+
+/** A stored decimal as the form shows it: 36, not 36.00; blank when missing. */
+const plainNumber = (value?: string | null) =>
+    value === null || value === undefined || value === ''
+        ? ''
+        : String(Number(value));
+
+const roundTo2 = (value: number) => Math.round(value * 100) / 100;
 
 const idString = (value?: number | null) => (value ? String(value) : undefined);
 
@@ -106,6 +128,7 @@ const form = useForm({
         ? String(props.quotation.branch_id)
         : undefined,
     discount: props.quotation?.discount ?? '0',
+    agent_commission: plainNumber(props.quotation?.agent_commission) || '0',
     notes: props.quotation?.notes ?? '',
     terms: props.quotation?.terms ?? '',
     items:
@@ -117,10 +140,16 @@ const form = useForm({
                   description: item.description,
                   hsn_code: item.hsn_code ?? '',
                   quantity: item.quantity,
-                  unit_price: item.unit_price,
+                  rate_tier: (item.rate_tier ??
+                      props.quotation?.rate_tier ??
+                      'SR') as QuotationLineRateTier,
+                  price_basis: (item.price_basis ?? '') as RateBasis | '',
+                  list_price: item.list_price ?? '',
+                  price_percent: plainNumber(item.price_percent),
+                  unit_price: item.base_price ?? item.unit_price,
                   tax_percentage: String(Number(item.tax_percentage ?? 0)),
               }))
-            : [emptyItem()],
+            : [emptyItem((props.quotation?.rate_tier ?? 'SR') as RateTier)],
 });
 
 const customerOptions = computed(() =>
@@ -145,7 +174,7 @@ const productOptions = computed(() =>
     props.products.map((p) => ({ value: String(p.id), label: p.name })),
 );
 
-const addItem = () => form.items.push(emptyItem());
+const addItem = () => form.items.push(emptyItem(form.rate_tier));
 const removeItem = (index: number) => {
     if (form.items.length > 1) {
         form.items.splice(index, 1);
@@ -160,40 +189,203 @@ const pricingBranchId = computed(
     () => form.branch_id ?? idString(props.defaultBranchId),
 );
 
-/** The product's ex-tax rate for the chosen tier in the pricing branch. */
-const tierRate = (product: QuotationProductOption) => {
+const branchRates = (product: QuotationProductOption) => {
     const branchId = pricingBranchId.value;
 
-    return branchId
-        ? (product.rates[Number(branchId)]?.[form.rate_tier] ?? null)
-        : null;
+    return branchId ? (product.rates[Number(branchId)] ?? null) : null;
 };
 
-const hasTierRate = (productId: string | undefined) => {
-    const product = productFor(productId);
+/** The product's ex-tax rate for a tier in the pricing branch. */
+const tierRate = (product: QuotationProductOption, tier: RateTier) =>
+    branchRates(product)?.[tier] ?? null;
 
-    return product ? tierRate(product) !== null : true;
+/**
+ * What a product's tier % is worked out from in the pricing branch: its MRP,
+ * or its cost plus the freight its saved rates imply. Null when it has neither.
+ */
+const productBasis = (product: QuotationProductOption) => {
+    const row = branchRates(product);
+
+    if (!row) {
+        return null;
+    }
+
+    const basis: PriceBasis = {
+        mrp: row.mrp,
+        cost: row.cost,
+        rate_basis: row.rate_basis,
+        freight: impliedFreight(row),
+    };
+    const listPrice = basisFor(basis);
+
+    if (!listPrice) {
+        return null;
+    }
+
+    return {
+        priceBasis: (usesMrp(basis) ? 'mrp' : 'cost') as RateBasis,
+        listPrice,
+    };
 };
 
-const onProductSelect = (index: number) => {
-    const item = form.items[index];
+const isCustom = (item: QuotationLine) => item.rate_tier === 'custom';
+
+const listPriceOf = (item: QuotationLine) => parseFloat(item.list_price) || 0;
+
+/** A line has an MRP or cost for its % to apply to. */
+const hasListPrice = (item: QuotationLine) =>
+    item.price_basis !== '' && listPriceOf(item) > 0;
+
+/** The % that turns the line's list price into a price, or null below zero. */
+const percentOf = (item: QuotationLine, price: number) => {
+    const listPrice = listPriceOf(item);
+    const percentage =
+        item.price_basis === 'cost'
+            ? (price / listPrice - 1) * 100
+            : (1 - price / listPrice) * 100;
+
+    return percentage < 0 ? null : roundTo2(percentage);
+};
+
+/** Work a line's % out from its unit price, for every line with a list price. */
+const percentFromPrice = (item: QuotationLine) => {
+    if (!hasListPrice(item)) {
+        return;
+    }
+
+    const percentage = percentOf(item, parseFloat(item.unit_price) || 0);
+
+    item.price_percent = percentage === null ? '' : String(percentage);
+};
+
+/** Work a custom line's unit price out from its list price and %. */
+const priceFromPercent = (item: QuotationLine) => {
+    if (!hasListPrice(item)) {
+        return;
+    }
+
+    const percentage = parseFloat(item.price_percent) || 0;
+    const factor =
+        item.price_basis === 'cost'
+            ? 1 + percentage / 100
+            : 1 - percentage / 100;
+
+    item.unit_price = String(Math.max(0, roundTo2(listPriceOf(item) * factor)));
+};
+
+/**
+ * The % a custom line starts at: what the quotation's price type (the
+ * customer's own, when they have one) already gives this product.
+ */
+const defaultPercent = (
+    item: QuotationLine,
+    product: QuotationProductOption,
+) => {
+    const rate = tierRate(product, form.rate_tier);
+
+    return rate === null ? '0' : String(percentOf(item, Number(rate)) ?? 0);
+};
+
+/**
+ * Price a line from its own price type. A tier line takes the branch rate,
+ * keeping its price when there is none. A custom line takes the MRP or cost
+ * and, when asked to (or it has none yet), the customer's default %.
+ */
+const priceLine = (item: QuotationLine, resetPercent: boolean) => {
+    const product = productFor(item.product_id);
+    const basis = product ? productBasis(product) : null;
+
+    item.price_basis = basis?.priceBasis ?? '';
+    item.list_price = basis ? String(basis.listPrice) : '';
+
+    if (!isCustom(item)) {
+        const rate = product
+            ? tierRate(product, item.rate_tier as RateTier)
+            : null;
+
+        if (rate !== null) {
+            item.unit_price = rate;
+        }
+
+        item.price_percent = '';
+        percentFromPrice(item);
+
+        return;
+    }
+
+    if (!product || !basis) {
+        // Nothing to work a % from: the price is entered by hand.
+        item.price_percent = '';
+
+        return;
+    }
+
+    if (resetPercent || item.price_percent === '') {
+        item.price_percent = defaultPercent(item, product);
+    }
+
+    priceFromPercent(item);
+};
+
+const onLineTierChange = (item: QuotationLine, tier: unknown) => {
+    item.rate_tier = tier as QuotationLineRateTier;
+    priceLine(item, true);
+};
+
+const hasLineRate = (item: QuotationLine) => {
     const product = productFor(item.product_id);
 
+    if (!product) {
+        return true;
+    }
+
+    return isCustom(item)
+        ? productBasis(product) !== null
+        : tierRate(product, item.rate_tier as RateTier) !== null;
+};
+
+/** The cost and freight a cost-based line's % is on, as the line reads them. */
+const costLabel = (item: QuotationLine) => {
+    const product = productFor(item.product_id);
+    const cost = product ? Number(branchRates(product)?.cost ?? 0) : 0;
+    const freight = roundTo2(listPriceOf(item) - cost);
+
+    return cost > 0 && freight > 0
+        ? `cost ${amount(cost)} + ${amount(freight)} freight`
+        : `cost ${amount(listPriceOf(item))}`;
+};
+
+/**
+ * Picking a product fills the line from it. The description and HSN code follow
+ * the product when they are blank or still the previous product's, so switching
+ * products updates them while custom wording typed on the line is kept.
+ */
+const onProductSelect = (index: number, productId: string | undefined) => {
+    const item = form.items[index];
+    const previous = productFor(item.product_id);
+    const product = productFor(productId);
+
+    item.product_id = productId;
+
     if (product) {
-        if (!item.description) {
+        if (!item.description || item.description === previous?.name) {
             item.description = product.name;
         }
 
-        // The line's unit price is the taxable (pre-GST) value: the branch rate
-        // for the chosen tier, else the product's own taxable amount or price.
-        const base =
-            tierRate(product) ?? product.taxable_amount ?? product.price;
+        // The line's unit price is the taxable (pre-GST) value: its price type,
+        // else the product's own taxable amount or price.
+        const fallback = product.taxable_amount ?? product.price;
 
-        if (base) {
-            item.unit_price = base;
+        if (fallback) {
+            item.unit_price = fallback;
         }
 
-        if (product.hsn_code && !item.hsn_code) {
+        priceLine(item, true);
+
+        if (
+            product.hsn_code &&
+            (!item.hsn_code || item.hsn_code === (previous?.hsn_code ?? ''))
+        ) {
             item.hsn_code = product.hsn_code;
         }
 
@@ -202,17 +394,25 @@ const onProductSelect = (index: number) => {
 };
 
 /**
- * Switching the rate tier or branch re-prices every product line that has a
- * rate there. Lines without one keep their price rather than being zeroed.
+ * The quotation's price type is the default for its lines: changing it moves
+ * every tier line onto it. Custom lines keep the discount bargained on them.
  */
-watch([() => form.rate_tier, pricingBranchId], () => {
-    for (const item of form.items) {
-        const product = productFor(item.product_id);
-        const rate = product ? tierRate(product) : null;
-
-        if (rate !== null) {
-            item.unit_price = rate;
+watch(
+    () => form.rate_tier,
+    (tier) => {
+        for (const item of form.items) {
+            if (!isCustom(item)) {
+                item.rate_tier = tier;
+                priceLine(item, false);
+            }
         }
+    },
+);
+
+/** Another branch has its own rates and MRPs, so every line is re-priced. */
+watch(pricingBranchId, () => {
+    for (const item of form.items) {
+        priceLine(item, false);
     }
 });
 
@@ -234,8 +434,36 @@ watch(
     },
 );
 
+/** What the lines come to before any agent commission. */
+const baseSubtotal = computed(() =>
+    form.items.reduce(
+        (sum, item) =>
+            sum +
+            (parseFloat(item.quantity) || 0) *
+                (parseFloat(item.unit_price) || 0),
+        0,
+    ),
+);
+
+/** The agent's commission, spread over the lines in proportion to value. */
+const agentCommission = computed(() =>
+    baseSubtotal.value > 0
+        ? Math.max(parseFloat(form.agent_commission) || 0, 0)
+        : 0,
+);
+
+/** The unit price that prints: the line's own price plus its commission share. */
+const printedPrice = (item: { unit_price: string }) =>
+    roundTo2(
+        (parseFloat(item.unit_price) || 0) *
+            (1 +
+                (baseSubtotal.value > 0
+                    ? agentCommission.value / baseSubtotal.value
+                    : 0)),
+    );
+
 const lineTotal = (item: { quantity: string; unit_price: string }) =>
-    (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+    (parseFloat(item.quantity) || 0) * printedPrice(item);
 
 const lineTax = (item: {
     quantity: string;
@@ -526,7 +754,7 @@ const submit = () => {
                     <div class="space-y-1">
                         <CardTitle>Items</CardTitle>
                         <p class="text-sm text-muted-foreground">
-                            Priced at {{ form.rate_tier }} —
+                            New lines are priced at {{ form.rate_tier }} —
                             {{ rateTiers[form.rate_tier] }}
                         </p>
                     </div>
@@ -540,8 +768,8 @@ const submit = () => {
                     </Button>
                 </CardHeader>
                 <CardContent class="px-0">
-                    <!-- Fixed columns total 53rem, leaving Description 13rem at the minimum width. -->
-                    <Table class="min-w-[66rem] table-fixed">
+                    <!-- Fixed columns total 61rem, leaving Description 13rem at the minimum width. -->
+                    <Table class="min-w-[74rem] table-fixed">
                         <TableHeader>
                             <TableRow class="hover:bg-transparent">
                                 <TableHead class="w-10 pl-6">#</TableHead>
@@ -551,6 +779,7 @@ const submit = () => {
                                 <TableHead class="w-20 text-right"
                                     >Qty</TableHead
                                 >
+                                <TableHead class="w-32">Price Type</TableHead>
                                 <TableHead class="w-28 text-right"
                                     >Unit Price</TableHead
                                 >
@@ -576,12 +805,13 @@ const submit = () => {
                                 </TableCell>
                                 <TableCell>
                                     <Combobox
-                                        v-model="item.product_id"
+                                        :model-value="item.product_id"
                                         placeholder="Select product"
                                         content-class="w-[28rem] max-w-[90vw]"
                                         :options="productOptions"
                                         @update:model-value="
-                                            onProductSelect(index)
+                                            (value) =>
+                                                onProductSelect(index, value)
                                         "
                                     />
                                 </TableCell>
@@ -589,6 +819,7 @@ const submit = () => {
                                     <Input
                                         v-model="item.description"
                                         placeholder="Item description"
+                                        :data-test="`description-${index}`"
                                     />
                                     <InputError
                                         class="mt-1"
@@ -615,6 +846,100 @@ const submit = () => {
                                     />
                                 </TableCell>
                                 <TableCell class="whitespace-normal">
+                                    <Select
+                                        :model-value="item.rate_tier"
+                                        @update:model-value="
+                                            (tier) =>
+                                                onLineTierChange(item, tier)
+                                        "
+                                    >
+                                        <SelectTrigger
+                                            class="w-full"
+                                            :data-test="`line-tier-${index}`"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                v-for="(
+                                                    label, tier
+                                                ) in lineRateTiers"
+                                                :key="tier"
+                                                :value="tier"
+                                                :title="label"
+                                                :data-test="`line-tier-option-${tier}`"
+                                            >
+                                                {{
+                                                    tier === 'custom'
+                                                        ? 'Custom'
+                                                        : tier
+                                                }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <template v-if="hasListPrice(item)">
+                                        <div
+                                            v-if="isCustom(item)"
+                                            class="mt-2 flex items-center gap-1"
+                                        >
+                                            <span
+                                                v-if="
+                                                    item.price_basis === 'cost'
+                                                "
+                                                class="text-sm text-muted-foreground"
+                                                >+</span
+                                            >
+                                            <Input
+                                                v-model="item.price_percent"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                class="h-8 text-right tabular-nums"
+                                                :aria-label="
+                                                    item.price_basis === 'cost'
+                                                        ? 'Markup on cost'
+                                                        : 'Discount off MRP'
+                                                "
+                                                :data-test="`price-percent-${index}`"
+                                                @update:model-value="
+                                                    priceFromPercent(item)
+                                                "
+                                            />
+                                            <span
+                                                class="text-sm text-muted-foreground"
+                                                >%</span
+                                            >
+                                        </div>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground tabular-nums"
+                                            :data-test="`price-basis-${index}`"
+                                        >
+                                            <template v-if="!isCustom(item)">
+                                                {{
+                                                    item.price_basis === 'cost'
+                                                        ? '+'
+                                                        : ''
+                                                }}{{
+                                                    item.price_percent || '—'
+                                                }}%
+                                            </template>
+                                            {{
+                                                item.price_basis === 'cost'
+                                                    ? `on ${costLabel(item)}`
+                                                    : `off MRP ${amount(listPriceOf(item))}`
+                                            }}
+                                        </p>
+                                        <InputError
+                                            class="mt-1"
+                                            :message="
+                                                form.errors[
+                                                    `items.${index}.price_percent`
+                                                ]
+                                            "
+                                        />
+                                    </template>
+                                </TableCell>
+                                <TableCell class="whitespace-normal">
                                     <Input
                                         v-model="item.unit_price"
                                         type="number"
@@ -622,12 +947,27 @@ const submit = () => {
                                         step="0.01"
                                         class="text-right tabular-nums"
                                         :data-test="`unit-price-${index}`"
+                                        @update:model-value="
+                                            percentFromPrice(item)
+                                        "
                                     />
                                     <p
-                                        v-if="!hasTierRate(item.product_id)"
+                                        v-if="!hasLineRate(item)"
                                         class="mt-1 text-right text-xs text-amber-600"
                                     >
-                                        No {{ form.rate_tier }} rate here
+                                        {{
+                                            isCustom(item)
+                                                ? 'No MRP or cost — enter price'
+                                                : `No ${item.rate_tier} rate here`
+                                        }}
+                                    </p>
+                                    <p
+                                        v-if="agentCommission > 0"
+                                        class="mt-1 text-right text-xs text-muted-foreground tabular-nums"
+                                        :data-test="`printed-price-${index}`"
+                                    >
+                                        {{ amount(printedPrice(item)) }} with
+                                        agent
                                     </p>
                                 </TableCell>
                                 <TableCell>
@@ -747,6 +1087,33 @@ const submit = () => {
                         </div>
                         <InputError
                             :message="form.errors.discount"
+                            class="text-right"
+                        />
+                        <div class="flex items-center justify-between gap-4">
+                            <Label
+                                for="agent_commission"
+                                class="font-normal text-muted-foreground"
+                            >
+                                Agent commission
+                            </Label>
+                            <Input
+                                id="agent_commission"
+                                v-model="form.agent_commission"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="h-8 w-32 text-right tabular-nums"
+                                data-test="agent-commission"
+                            />
+                        </div>
+                        <p
+                            v-if="agentCommission > 0"
+                            class="text-right text-xs text-muted-foreground"
+                        >
+                            Spread into the item prices; not printed.
+                        </p>
+                        <InputError
+                            :message="form.errors.agent_commission"
                             class="text-right"
                         />
                         <div

@@ -156,6 +156,7 @@ export type Builder = {
     contact_person: string | null;
     phone: string | null;
     email: string | null;
+    gst_number: string | null;
     address: string | null;
     country_id: number | null;
     state_id: number | null;

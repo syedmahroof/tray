@@ -31,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property string $subtotal
  * @property string $discount
+ * @property string $agent_commission
  * @property string $tax_percent
  * @property string $tax_amount
  * @property string $cgst_amount
@@ -52,7 +53,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'branch_id', 'number', 'version', 'parent_id', 'customer_id', 'contact_id', 'project_id',
     'enquiry_id', 'builder_id', 'gstin', 'supply_type', 'rate_tier', 'quotation_date',
-    'valid_until', 'status', 'subtotal', 'discount', 'tax_percent', 'tax_amount',
+    'valid_until', 'status', 'subtotal', 'discount', 'agent_commission', 'tax_percent', 'tax_amount',
     'cgst_amount', 'sgst_amount', 'igst_amount', 'total', 'notes', 'terms',
     'created_by',
 ])]
@@ -78,6 +79,7 @@ class Quotation extends Model
             'valid_until' => 'date:Y-m-d',
             'subtotal' => 'decimal:2',
             'discount' => 'decimal:2',
+            'agent_commission' => 'decimal:2',
             'tax_percent' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'cgst_amount' => 'decimal:2',

@@ -342,10 +342,10 @@ const sendEmail = () => {
                         <TableRow>
                             <TableHead>Number</TableHead>
                             <TableHead>Contact</TableHead>
-                            <TableHead>Date</TableHead>
+                            <TableHead>Quote Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead class="text-right">Total</TableHead>
-                            <TableHead>Created</TableHead>
+                            <TableHead>Created On</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>

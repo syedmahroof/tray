@@ -24,12 +24,14 @@ test('managers can create a builder which is auto-assigned to their own branch',
     $this->actingAs($manager)
         ->post(route('builders.store'), [
             'name' => 'Acme Developers',
+            'gst_number' => '32AAACA1234B1Z9',
             'is_active' => true,
         ])
         ->assertRedirect(route('builders.index'));
 
     $builder = Builder::where('name', 'Acme Developers')->first();
     expect($builder)->not->toBeNull();
+    expect($builder->gst_number)->toBe('32AAACA1234B1Z9');
     expect($builder->branch_id)->toBe($branch->id);
     expect($builder->created_by)->toBe($manager->id);
 });
