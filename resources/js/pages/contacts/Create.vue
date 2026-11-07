@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDefaultAssignee } from '@/composables/useDefaultAssignee';
 import { create, index, store } from '@/routes/contacts';
 import type { Branch, Country, NamedOption, Route } from '@/types';
 
@@ -36,6 +37,9 @@ defineOptions({
     },
 });
 
+/** Non-admins create records assigned to themselves by default. */
+const assignedTo = useDefaultAssignee();
+
 const userOptions = computed(() =>
     props.users.map((user) => ({ value: String(user.id), label: user.name })),
 );
@@ -53,12 +57,12 @@ const userOptions = computed(() =>
 
         <Form
             v-bind="store.form()"
-            class="max-w-3xl space-y-6"
+            class="space-y-6"
             v-slot="{ errors, processing }"
         >
             <Card>
                 <CardContent class="space-y-6 pt-6">
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div class="grid gap-2">
                             <Label for="name">Name</Label>
                             <Input id="name" name="name" required autofocus />
@@ -114,6 +118,7 @@ const userOptions = computed(() =>
                     <div class="grid gap-2">
                         <Label for="assigned_to">Assigned to</Label>
                         <Combobox
+                            v-model="assignedTo"
                             name="assigned_to"
                             placeholder="Select a user"
                             :options="userOptions"

@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDefaultAssignee } from '@/composables/useDefaultAssignee';
 import { RATE_TIERS, RATE_TIER_KEYS } from '@/lib/products';
 import { create, index, store } from '@/routes/customers';
 import type { Branch, Country, NamedOption, Route } from '@/types';
@@ -34,6 +35,9 @@ defineOptions({
         ],
     },
 });
+
+/** Non-admins create records assigned to themselves by default. */
+const assignedTo = useDefaultAssignee();
 
 const userOptions = computed(() =>
     props.users.map((user) => ({ value: String(user.id), label: user.name })),
@@ -122,6 +126,7 @@ const userOptions = computed(() =>
             <div class="grid gap-2">
                 <Label for="assigned_to">Assigned to</Label>
                 <Combobox
+                    v-model="assignedTo"
                     name="assigned_to"
                     placeholder="Select a user"
                     :options="userOptions"

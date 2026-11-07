@@ -15,13 +15,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useDefaultAssignee } from '@/composables/useDefaultAssignee';
 import { create, index, store } from '@/routes/enquiries';
 import {
-    contactOptionLabel,
-    type Branch,
-    type ContactSelectOption,
-    type NamedOption,
+    contactOptionLabel
+    
+    
+    
 } from '@/types';
+import type {Branch, ContactSelectOption, NamedOption} from '@/types';
 
 const props = defineProps<{
     customers: NamedOption[];
@@ -62,6 +64,9 @@ const projectOptions = computed(() =>
         label: project.name,
     })),
 );
+/** Non-admins create records assigned to themselves by default. */
+const assignedTo = useDefaultAssignee();
+
 const userOptions = computed(() =>
     props.users.map((user) => ({ value: String(user.id), label: user.name })),
 );
@@ -177,6 +182,7 @@ const productOptions = computed(() =>
             <div class="grid gap-2">
                 <Label for="assigned_to">Assigned to</Label>
                 <Combobox
+                    v-model="assignedTo"
                     name="assigned_to"
                     placeholder="Select a user"
                     :options="userOptions"

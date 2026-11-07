@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Admin\SaveDistrictRequest;
 use App\Http\Requests\Admin\SaveLocationRequest;
+use App\Http\Requests\Admin\SaveRouteRequest;
 use App\Http\Requests\Admin\SaveStateRequest;
 use App\Models\Country;
 use App\Models\District;
 use App\Models\Location;
+use App\Models\Route;
 use App\Models\State;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,5 +87,18 @@ class LocationLookupController extends Controller
         ]);
 
         return response()->json($location->only(['id', 'name']), 201);
+    }
+
+    /**
+     * Store a route from the location picker, returning it for the picker.
+     */
+    public function storeRoute(SaveRouteRequest $request): JsonResponse
+    {
+        $route = Route::create([
+            ...$request->validated(),
+            'is_active' => true,
+        ]);
+
+        return response()->json($route->only(['id', 'name']), 201);
     }
 }

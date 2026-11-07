@@ -3,6 +3,11 @@
  * one takes focus off it instead, so the value stays put and the page scrolls.
  */
 export function initializeNumberInputWheelGuard(): void {
+    // Server-side rendering has no DOM to guard.
+    if (typeof document === 'undefined') {
+        return;
+    }
+
     document.addEventListener(
         'wheel',
         (event) => {

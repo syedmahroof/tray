@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import Combobox from '@/components/Combobox.vue';
 import InputError from '@/components/InputError.vue';
+import ProductCombobox from '@/components/ProductCombobox.vue';
+import QuickCustomerDialog from '@/components/QuickCustomerDialog.vue';
+import type { QuickCustomer } from '@/components/QuickCustomerDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -152,9 +155,46 @@ const form = useForm({
             : [emptyItem((props.quotation?.rate_tier ?? 'SR') as RateTier)],
 });
 
+/** Customers created on the spot from this form, e.g. one-time parties. */
+const addedCustomers = ref<QuickCustomer[]>([]);
+
+const allCustomers = computed(() => [
+    ...props.customers,
+    ...addedCustomers.value.map((customer) => ({
+        ...customer,
+        rate_tier: customer.rate_tier as RateTier | null,
+    })),
+]);
+
 const customerOptions = computed(() =>
-    props.customers.map((c) => ({ value: String(c.id), label: c.name })),
+    allCustomers.value.map((c) => ({ value: String(c.id), label: c.name })),
 );
+
+const canCreateCustomer = computed(() =>
+    usePage().props.auth.permissions.includes('customers.create'),
+);
+const isCreatingCustomer = ref(false);
+const newCustomerName = ref('');
+
+const startCustomerCreate = (term: string) => {
+    newCustomerName.value = term;
+    isCreatingCustomer.value = true;
+};
+
+/** Select the party just created and carry its GSTIN onto the quotation. */
+const onCustomerCreated = (customer: QuickCustomer) => {
+    addedCustomers.value.push(customer);
+    form.customer_id = String(customer.id);
+
+    if (customer.gst_number && !form.gstin) {
+        form.gstin = customer.gst_number;
+    }
+
+    // A branch picked for the party is the natural one for its quotation too.
+    if (!form.branch_id && customer.branch_id && props.branches.length > 0) {
+        form.branch_id = String(customer.branch_id);
+    }
+};
 const contactOptions = computed(() =>
     props.contacts.map((c) => ({
         value: String(c.id),
@@ -170,9 +210,6 @@ const enquiryOptions = computed(() =>
 const builderOptions = computed(() =>
     props.builders.map((b) => ({ value: String(b.id), label: b.name })),
 );
-const productOptions = computed(() =>
-    props.products.map((p) => ({ value: String(p.id), label: p.name })),
-);
 
 const addItem = () => form.items.push(emptyItem(form.rate_tier));
 const removeItem = (index: number) => {
@@ -181,8 +218,16 @@ const removeItem = (index: number) => {
     }
 };
 
+/**
+ * Every product the form has seen: the ones the quotation already uses, plus
+ * each one picked from a search, so lines can be priced without a refetch.
+ */
+const knownProducts = reactive(
+    new Map(props.products.map((product) => [String(product.id), product])),
+);
+
 const productFor = (productId: string | undefined) =>
-    props.products.find((p) => String(p.id) === productId);
+    productId ? knownProducts.get(productId) : undefined;
 
 /** The branch whose rates price the lines: the chosen one, else the user's own. */
 const pricingBranchId = computed(
@@ -360,9 +405,13 @@ const costLabel = (item: QuotationLine) => {
  * the product when they are blank or still the previous product's, so switching
  * products updates them while custom wording typed on the line is kept.
  */
-const onProductSelect = (index: number, productId: string | undefined) => {
+const onProductSelect = (index: number, picked: QuotationProductOption) => {
     const item = form.items[index];
     const previous = productFor(item.product_id);
+    const productId = String(picked.id);
+
+    knownProducts.set(productId, picked);
+
     const product = productFor(productId);
 
     item.product_id = productId;
@@ -424,7 +473,7 @@ watch(pricingBranchId, () => {
 watch(
     () => form.customer_id,
     (customerId) => {
-        const tier = props.customers.find(
+        const tier = allCustomers.value.find(
             (customer) => String(customer.id) === customerId,
         )?.rate_tier;
 
@@ -562,6 +611,12 @@ const submit = () => {
                                     v-model="form.customer_id"
                                     placeholder="Select a customer (optional)"
                                     :options="customerOptions"
+                                    :create-label="
+                                        canCreateCustomer
+                                            ? 'Add a new customer'
+                                            : undefined
+                                    "
+                                    @create="startCustomerCreate"
                                 />
                                 <InputError
                                     :message="form.errors.customer_id"
@@ -804,14 +859,16 @@ const submit = () => {
                                     {{ index + 1 }}
                                 </TableCell>
                                 <TableCell>
-                                    <Combobox
+                                    <ProductCombobox
                                         :model-value="item.product_id"
+                                        :selected-label="
+                                            productFor(item.product_id)?.name
+                                        "
                                         placeholder="Select product"
                                         content-class="w-[28rem] max-w-[90vw]"
-                                        :options="productOptions"
-                                        @update:model-value="
-                                            (value) =>
-                                                onProductSelect(index, value)
+                                        @select="
+                                            (product) =>
+                                                onProductSelect(index, product)
                                         "
                                     />
                                 </TableCell>
@@ -1180,6 +1237,14 @@ const submit = () => {
                     {{ quotation ? 'Save Changes' : 'Create Quotation' }}
                 </Button>
             </div>
+
+            <QuickCustomerDialog
+                v-model:open="isCreatingCustomer"
+                :initial-name="newCustomerName"
+                :branch-id="form.branch_id"
+                :branches="branches"
+                @created="onCustomerCreated"
+            />
         </div>
     </form>
 </template>

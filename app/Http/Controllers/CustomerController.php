@@ -9,6 +9,7 @@ use App\Models\Route;
 use App\Models\User;
 use App\Support\BranchAccess;
 use App\Support\RouteLocationFilter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -72,6 +73,22 @@ class CustomerController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Customer created.')]);
 
         return to_route('customers.show', $customer);
+    }
+
+    /**
+     * Create a customer on the spot from another form (e.g. a quotation for a
+     * one-time party), returning it for that form's picker.
+     */
+    public function quickStore(SaveCustomerRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $customer = Customer::create([
+            'assigned_to' => $user->hasAnyRole(['Super Admin', 'Admin']) ? null : $user->id,
+            ...array_filter($request->validated(), fn ($value) => $value !== null),
+        ]);
+
+        return response()->json($customer->only(['id', 'name', 'rate_tier', 'gst_number', 'branch_id']), 201);
     }
 
     /**

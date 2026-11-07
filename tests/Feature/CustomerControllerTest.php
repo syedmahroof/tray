@@ -132,3 +132,39 @@ test('the customer index can be filtered by assignee', function () {
             ->where('customers.data.0.name', 'Assigned Amy')
             ->where('filters.assigned_to', (string) $assignee->id));
 });
+
+test('a one-time party can be added on the spot from the quotation form', function () {
+    $branch = Branch::factory()->create();
+    $salesExecutive = User::factory()->create(['branch_id' => $branch->id]);
+    $salesExecutive->assignRole('Sales Executive');
+
+    $this->actingAs($salesExecutive)
+        ->postJson(route('customers.quick-store'), [
+            'name' => 'Walk-in Party',
+            'phone' => '9876543210',
+            'gst_number' => '32ABCDE1234F1Z5',
+            'address' => '',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('name', 'Walk-in Party')
+        ->assertJsonPath('gst_number', '32ABCDE1234F1Z5');
+
+    expect(Customer::where('name', 'Walk-in Party')->first())
+        ->branch_id->toBe($branch->id)
+        ->assigned_to->toBe($salesExecutive->id)
+        ->phone->toBe('9876543210');
+});
+
+test('an admin must pick the branch for an on-the-spot customer', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+
+    $this->actingAs($admin)
+        ->postJson(route('customers.quick-store'), ['name' => 'Walk-in Party'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('branch_id');
+
+    $this->actingAs(User::factory()->create())
+        ->postJson(route('customers.quick-store'), ['name' => 'Walk-in Party'])
+        ->assertForbidden();
+});

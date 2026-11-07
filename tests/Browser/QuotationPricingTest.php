@@ -183,3 +183,33 @@ test('changing a line\'s product again updates its description', function () {
     $page->assertValue('[data-test="description-0"]', 'Custom tray wording');
     $page->assertNoJavaScriptErrors();
 });
+
+test('the product picker searches as you type and loads more products on scroll', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $brand = Brand::factory()->create();
+    Product::factory()->count(40)->sequence(fn ($sequence) => ['name' => sprintf('Tray Fitting %02d', $sequence->index + 1)])->create(['brand_id' => $brand->id]);
+    Product::factory()->create(['name' => 'Slotted Channel 1.2 MM', 'brand_id' => $brand->id]);
+    $manager->brands()->sync([$brand->id]);
+
+    $this->actingAs($manager);
+
+    $page = visit('/quotations/create');
+    $page->click('Select product');
+
+    // Only the first page is loaded; scrolling to the end fetches the next.
+    $page->assertSee('Tray Fitting 01');
+    $page->assertDontSee('Tray Fitting 35');
+    $page->script('const list = document.querySelector(\'[role="listbox"]\'); list.scrollTop = list.scrollHeight; list.dispatchEvent(new Event("scroll"));');
+    $page->assertSee('Tray Fitting 35');
+
+    // Typing narrows the list from the server.
+    $page->type('[data-test="product-search"]', 'slotted');
+    $page->assertSee('Slotted Channel 1.2 MM');
+    $page->assertDontSee('Tray Fitting 01');
+    $page->click('Slotted Channel 1.2 MM');
+    $page->assertValue('[data-test="description-0"]', 'Slotted Channel 1.2 MM');
+    $page->assertNoJavaScriptErrors();
+});

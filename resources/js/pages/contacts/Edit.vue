@@ -55,12 +55,12 @@ const userOptions = computed(() =>
 
         <Form
             v-bind="update.form(props.contact.id)"
-            class="max-w-3xl space-y-6"
+            class="space-y-6"
             v-slot="{ errors, processing }"
         >
             <Card>
                 <CardContent class="space-y-6 pt-6">
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div class="grid gap-2">
                             <Label for="name">Name</Label>
                             <Input

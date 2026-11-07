@@ -65,10 +65,10 @@ test('inactive products are not offered on the quotation form', function () {
     Product::factory()->inactive()->create(['name' => 'Retired Cover']);
 
     $this->actingAs($this->admin)
-        ->get(route('quotations.create'))
-        ->assertInertia(fn ($page) => $page
-            ->has('products', 1)
-            ->where('products.0.name', 'Active Cover'));
+        ->getJson(route('quotations.products', ['search' => 'Cover']))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'Active Cover');
 });
 
 test('editing a quotation keeps the inactive products it already uses', function () {
@@ -86,9 +86,8 @@ test('editing a quotation keeps the inactive products it already uses', function
     $this->actingAs($this->admin)
         ->get(route('quotations.edit', $quotation))
         ->assertInertia(fn ($page) => $page
-            ->has('products', 2)
-            ->where('products.0.name', 'Active Cover')
-            ->where('products.1.name', 'Retired Cover'));
+            ->has('products', 1)
+            ->where('products.0.name', 'Retired Cover'));
 });
 
 test('inactive products are hidden from order, enquiry and project pickers', function () {

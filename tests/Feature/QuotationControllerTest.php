@@ -94,17 +94,12 @@ test('an inter-state quotation applies IGST instead of CGST and SGST', function 
     expect((float) $quotation->total)->toBe(1180.0);
 });
 
-test('the quotation form carries each product\'s rate per tier for the user\'s branches', function () {
+test('the quotation form loads no products until they are searched for', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);
     $manager->assignRole('Manager');
-    $product = Product::factory()->create(['tax_percentage' => 18, 'brand_id' => Brand::factory()]);
-    $manager->brands()->sync([$product->brand_id]);
+    Product::factory()->create(['brand_id' => Brand::factory()]);
     Customer::factory()->create(['branch_id' => $branch->id, 'rate_tier' => 'CR']);
-
-    app(SaveProductBranchPrice::class)->handle($product, $branch, [
-        'mrp' => 200, 'cost' => 80, 'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
-    ]);
 
     $this->actingAs($manager)
         ->get(route('quotations.create'))
@@ -112,14 +107,61 @@ test('the quotation form carries each product\'s rate per tier for the user\'s b
             ->component('quotations/Create')
             ->where('customers.0.rate_tier', 'CR')
             ->where('rateTiers.PR', 'Project Rate')
-            ->where('defaultBranchId', $branch->id)
-            ->where("products.0.rates.{$branch->id}.SR", '100.00')
-            ->where("products.0.rates.{$branch->id}.PR", '110.00')
-            ->where("products.0.rates.{$branch->id}.CR", '120.00')
             ->where('lineRateTiers.custom', 'Custom Price')
-            ->where("products.0.rates.{$branch->id}.mrp", '200.00')
-            ->where("products.0.rates.{$branch->id}.cost", '80.0000')
-            ->where("products.0.rates.{$branch->id}.rate_basis", 'mrp'));
+            ->where('defaultBranchId', $branch->id)
+            ->has('products', 0));
+});
+
+test('the product search returns matching products a page at a time, with their rates per branch', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $brand = Brand::factory()->create();
+    $manager->brands()->sync([$brand->id]);
+
+    $tray = Product::factory()->create(['name' => 'Cable Tray 100 MM', 'tax_percentage' => 18, 'brand_id' => $brand->id]);
+    Product::factory()->count(35)->sequence(fn ($sequence) => ['name' => sprintf('Cable Tray Bend %02d', $sequence->index)])->create(['brand_id' => $brand->id]);
+    Product::factory()->create(['name' => 'Slotted Channel', 'brand_id' => $brand->id]);
+    Product::factory()->create(['name' => 'Cable Tray Retired', 'brand_id' => $brand->id, 'is_active' => false]);
+
+    app(SaveProductBranchPrice::class)->handle($tray, $branch, [
+        'mrp' => 200, 'cost' => 80, 'sr_rate' => 100, 'pr_rate' => 110, 'cr_rate' => 120,
+    ]);
+
+    $this->actingAs($manager)
+        ->getJson(route('quotations.products', ['search' => 'cable tray']))
+        ->assertOk()
+        ->assertJsonCount(30, 'data')
+        ->assertJsonPath('next_page', 2)
+        ->assertJsonPath('data.0.name', 'Cable Tray 100 MM')
+        ->assertJsonPath("data.0.rates.{$branch->id}.PR", '110.00')
+        ->assertJsonPath("data.0.rates.{$branch->id}.mrp", '200.00')
+        ->assertJsonPath("data.0.rates.{$branch->id}.cost", '80.0000')
+        ->assertJsonPath("data.0.rates.{$branch->id}.rate_basis", 'mrp');
+
+    $this->actingAs($manager)
+        ->getJson(route('quotations.products', ['search' => 'cable tray', 'page' => 2]))
+        ->assertJsonCount(6, 'data')
+        ->assertJsonPath('next_page', null)
+        ->assertJsonMissing(['name' => 'Cable Tray Retired'])
+        ->assertJsonMissing(['name' => 'Slotted Channel']);
+});
+
+test('the edit form preloads only the products its lines use', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $brand = Brand::factory()->create();
+    $manager->brands()->sync([$brand->id]);
+    [$used] = Product::factory()->count(3)->create(['brand_id' => $brand->id])->all();
+    $quotation = Quotation::factory()->create(['branch_id' => $branch->id]);
+    $quotation->items()->create(['product_id' => $used->id, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 10]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.edit', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->has('products', 1)
+            ->where('products.0.id', $used->id));
 });
 
 test('each line keeps its own price type, and a custom line is its MRP less, or its cost plus, its percentage', function () {

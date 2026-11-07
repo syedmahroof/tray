@@ -228,3 +228,26 @@ test('a location can be added from the visit report form, where locations are li
     $page->assertSee('Kakkanad — Ernakulam')
         ->assertNoJavaScriptErrors();
 });
+
+test('a route can be added from the builder form without leaving it', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Branch::factory()->create(['name' => 'Head Office']);
+    Country::factory()->create(['name' => 'India', 'code' => 'IN']);
+    Route::factory()->create(['name' => 'Kochi North']);
+
+    $this->actingAs($admin);
+
+    $page = visit('/builders/create');
+    $page->click('Select a route');
+    $page->click('Add a new route');
+    $page->assertSee('New route');
+    $page->fill('#new-place-name', 'Kochi South');
+    $page->click('[data-test="create-place"]');
+
+    // The new route is selected in place, still on the builder form.
+    $page->assertSee('Kochi South');
+    $page->assertPathIs('/builders/create');
+    $page->assertValue('input[type="hidden"][name="route_id"]', (string) Route::where('name', 'Kochi South')->value('id'));
+    $page->assertNoJavaScriptErrors();
+});

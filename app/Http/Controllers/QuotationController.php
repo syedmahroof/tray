@@ -20,6 +20,8 @@ use App\Support\BranchAccess;
 use App\Support\QuotationDocument;
 use App\Support\QuotationInvoice;
 use Barryvdh\DomPDF\PDF as PdfDocument;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +37,11 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 class QuotationController extends Controller
 {
     use ComputesQuotationTotals;
+
+    /**
+     * How many products the line-item picker loads at a time.
+     */
+    private const int PRODUCT_PAGE_SIZE = 30;
 
     /**
      * Display a listing of quotations.
@@ -421,39 +428,91 @@ class QuotationController extends Controller
     }
 
     /**
-     * Products for the line-item picker, each with its ex-tax SR / PR / CR rate
-     * per branch so the form can price lines by the chosen rate tier, and the
-     * MRP or cost (with the tier percentages that imply any freight) that a
-     * line's percentage is stated against. Branch
-     * prices are branch-scoped, so a user only receives branches they can reach.
+     * One page of active products for the line-item picker, matching what was
+     * typed, so the form never has to load the whole catalogue.
+     */
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+
+        $page = $this->productOptionsQuery()
+            ->selectable()
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
+                foreach (preg_split('/\s+/', $search) as $term) {
+                    $query->where('name', 'like', '%'.$term.'%');
+                }
+            }))
+            ->simplePaginate(self::PRODUCT_PAGE_SIZE);
+
+        return response()->json([
+            'data' => $page->getCollection()->map(fn (Product $product): array => $this->productOption($product))->values(),
+            'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null,
+        ]);
+    }
+
+    /**
+     * The products a quotation's lines already use, so the edit form can show
+     * and price them without searching. Every other product is searched for.
      *
-     * @param  iterable<int, int|null>  $keepProductIds
+     * @param  iterable<int, int|null>  $productIds
      * @return list<array<string, mixed>>
      */
-    private function productOptions(iterable $keepProductIds = []): array
+    private function productOptions(iterable $productIds = []): array
+    {
+        $productIds = array_values(array_filter(collect($productIds)->all()));
+
+        if ($productIds === []) {
+            return [];
+        }
+
+        return $this->productOptionsQuery()
+            ->whereKey($productIds)
+            ->get()
+            ->map(fn (Product $product): array => $this->productOption($product))
+            ->all();
+    }
+
+    /**
+     * Products as the picker reads them, alphabetically, with their branch
+     * prices. Branch prices are branch-scoped, so a user only receives
+     * branches they can reach.
+     *
+     * @return EloquentBuilder<Product>
+     */
+    private function productOptionsQuery(): EloquentBuilder
     {
         return Product::query()
-            ->selectable($keepProductIds)
             ->with('branchPrices:id,product_id,branch_id,cost,mrp,rate_basis,sr_discount,sr_rate,pr_discount,pr_rate,cr_discount,cr_rate')
             ->orderBy('name')
-            ->get(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage'])
-            ->map(fn (Product $product): array => [
-                ...$product->only(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
-                'rates' => $product->branchPrices->mapWithKeys(fn (ProductBranchPrice $price): array => [
-                    $price->branch_id => [
-                        'SR' => $price->sr_rate,
-                        'PR' => $price->pr_rate,
-                        'CR' => $price->cr_rate,
-                        'mrp' => $price->mrp,
-                        'cost' => $price->cost,
-                        'rate_basis' => $price->rate_basis,
-                        'sr_discount' => $price->sr_discount,
-                        'pr_discount' => $price->pr_discount,
-                        'cr_discount' => $price->cr_discount,
-                    ],
-                ])->all(),
-            ])
-            ->all();
+            ->select(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']);
+    }
+
+    /**
+     * A product for the line-item picker, with its ex-tax SR / PR / CR rate per
+     * branch so the form can price lines by their rate tier, and the MRP or
+     * cost (with the tier percentages that imply any freight) that a line's
+     * percentage is stated against.
+     *
+     * @return array<string, mixed>
+     */
+    private function productOption(Product $product): array
+    {
+        return [
+            ...$product->only(['id', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+            'rates' => $product->branchPrices->mapWithKeys(fn (ProductBranchPrice $price): array => [
+                $price->branch_id => [
+                    'SR' => $price->sr_rate,
+                    'PR' => $price->pr_rate,
+                    'CR' => $price->cr_rate,
+                    'mrp' => $price->mrp,
+                    'cost' => $price->cost,
+                    'rate_basis' => $price->rate_basis,
+                    'sr_discount' => $price->sr_discount,
+                    'pr_discount' => $price->pr_discount,
+                    'cr_discount' => $price->cr_discount,
+                ],
+            ])->all(),
+        ];
     }
 
     /**

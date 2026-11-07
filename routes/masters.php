@@ -27,6 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('location/districts/{district}/locations', [LocationLookupController::class, 'storeLocation'])
         ->middleware('permission:locations.create')
         ->name('location.locations.store');
+    Route::post('location/routes', [LocationLookupController::class, 'storeRoute'])
+        ->middleware('permission:routes.create')
+        ->name('location.routes.store');
 
     Route::resource('countries', CountryController::class)
         ->except('show')

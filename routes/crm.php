@@ -32,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('update', 'permission:contacts.update')
         ->middlewareFor('destroy', 'permission:contacts.delete');
 
+    Route::post('customers/quick', [CustomerController::class, 'quickStore'])
+        ->middleware('permission:customers.create')
+        ->name('customers.quick-store');
+
     Route::resource('customers', CustomerController::class)
         ->middlewareFor(['index', 'show'], 'permission:customers.view')
         ->middlewareFor(['create', 'store'], 'permission:customers.create')
@@ -111,6 +115,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('quotations.revise');
 
     Route::permanentRedirect('quotations/analytics', '/analytics/quotations')->name('quotations.analytics');
+
+    Route::get('quotations/products', [QuotationController::class, 'products'])
+        ->middleware('permission:quotations.create|quotations.update')
+        ->name('quotations.products');
 
     Route::get('quotations/export', [QuotationController::class, 'export'])
         ->middleware('permission:quotations.view')

@@ -172,15 +172,26 @@ const countryOptions = computed(() => toOptions(props.countries));
 const stateOptions = computed(() => toOptions(states.value));
 const districtOptions = computed(() => toOptions(districts.value));
 const locationOptions = computed(() => toOptions(locations.value));
-const routeOptions = computed(() => toOptions(props.routes));
+/** Kept locally so a route added from here shows up without a page reload. */
+const routes = ref<Place[]>([...props.routes]);
+
+watch(
+    () => props.routes,
+    (value) => {
+        routes.value = [...value];
+    },
+);
+
+const routeOptions = computed(() => toOptions(routes.value));
 
 /** The tiers a missing place can be added at, without leaving this form. */
-type Tier = 'state' | 'district' | 'location';
+type Tier = 'state' | 'district' | 'location' | 'route';
 
 const tierLabels: Record<Tier, string> = {
     state: 'state',
     district: 'district',
     location: 'location',
+    route: 'route',
 };
 
 const permissions = computed(() => usePage().props.auth.permissions);
@@ -192,10 +203,12 @@ const canCreate = (tier: Tier) => permissions.value.includes(`${tier}s.create`);
  * not add one or has not picked its parent yet.
  */
 const createLabelFor = (tier: Tier): string | undefined => {
+    // Routes are shared across every district, so they need no parent.
     const parentPicked = {
         state: countryId.value,
         district: stateId.value,
         location: districtId.value,
+        route: 'shared',
     }[tier];
 
     return parentPicked && canCreate(tier)
@@ -233,6 +246,8 @@ const createEndpoint = computed(() => {
             return `/location/states/${stateId.value}/districts`;
         case 'location':
             return `/location/districts/${districtId.value}/locations`;
+        case 'route':
+            return '/location/routes';
         default:
             return null;
     }
@@ -271,6 +286,13 @@ const selectCreated = (tier: Tier, created: Place) => {
     if (tier === 'district') {
         districts.value = [...districts.value, created].sort(byName);
         districtId.value = String(created.id);
+
+        return;
+    }
+
+    if (tier === 'route') {
+        routes.value = [...routes.value, created].sort(byName);
+        routeId.value = String(created.id);
 
         return;
     }
@@ -356,10 +378,12 @@ const submitCreate = () => {
                     placeholder="Select a route"
                     empty-text="No routes yet."
                     :options="routeOptions"
-                    :disabled="routes.length === 0"
+                    :disabled="routes.length === 0 && !canCreate('route')"
+                    :create-label="createLabelFor('route')"
+                    @create="openCreate('route', $event)"
                 />
                 <p
-                    v-if="routes.length === 0"
+                    v-if="routes.length === 0 && !canCreate('route')"
                     class="text-xs text-muted-foreground"
                 >
                     No routes yet. Add them under
