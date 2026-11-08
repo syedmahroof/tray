@@ -32,6 +32,9 @@ use Illuminate\Support\Carbon;
  * @property string $subtotal
  * @property string $discount
  * @property string $agent_commission
+ * @property string $freight
+ * @property string $freight_tax_percent
+ * @property string|null $site_address
  * @property string $tax_percent
  * @property string $tax_amount
  * @property string $cgst_amount
@@ -40,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property string $total
  * @property string|null $notes
  * @property string|null $terms
+ * @property string|null $details
  * @property int|null $created_by
  * @property-read Contact|null $contact
  * @property-read Project|null $project
@@ -53,12 +57,17 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'branch_id', 'number', 'version', 'parent_id', 'customer_id', 'contact_id', 'project_id',
     'enquiry_id', 'builder_id', 'gstin', 'supply_type', 'rate_tier', 'quotation_date',
-    'valid_until', 'status', 'subtotal', 'discount', 'agent_commission', 'tax_percent', 'tax_amount',
+    'valid_until', 'status', 'subtotal', 'discount', 'agent_commission', 'freight', 'freight_tax_percent', 'site_address', 'tax_percent', 'tax_amount',
     'cgst_amount', 'sgst_amount', 'igst_amount', 'total', 'notes', 'terms',
-    'created_by',
+    'details', 'created_by',
 ])]
 class Quotation extends Model
 {
+    /**
+     * The GST rate freight is charged at unless the quotation says otherwise.
+     */
+    public const float DEFAULT_FREIGHT_TAX_PERCENT = 18.0;
+
     use BelongsToBranch;
 
     /** @use HasFactory<QuotationFactory> */
@@ -80,6 +89,8 @@ class Quotation extends Model
             'subtotal' => 'decimal:2',
             'discount' => 'decimal:2',
             'agent_commission' => 'decimal:2',
+            'freight' => 'decimal:2',
+            'freight_tax_percent' => 'decimal:2',
             'tax_percent' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'cgst_amount' => 'decimal:2',

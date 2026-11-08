@@ -43,6 +43,7 @@ import type {
 type ContactOption = NamedOption & {
     phone: string | null;
     email: string | null;
+    gst_number?: string | null;
     contact_type: NamedOption | null;
 };
 
@@ -55,11 +56,16 @@ type QuotationDefaults = {
 
 const props = defineProps<{
     quotation?: QuotationDetail | null;
-    customers: { id: number; name: string; rate_tier?: RateTier | null }[];
+    customers: {
+        id: number;
+        name: string;
+        rate_tier?: RateTier | null;
+        gst_number?: string | null;
+    }[];
     contacts: ContactOption[];
-    projects: NamedOption[];
+    projects: (NamedOption & { address?: string | null })[];
     enquiries: NamedOption[];
-    builders: NamedOption[];
+    builders: (NamedOption & { gst_number?: string | null })[];
     products: QuotationProductOption[];
     statuses: string[];
     rateTiers: Record<RateTier, string>;
@@ -67,6 +73,8 @@ const props = defineProps<{
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId?: number | null;
+    /** What the details box and the terms start as, per branch id. */
+    branchDefaults?: Record<string, { details: string; terms: string }>;
     defaults?: (QuotationDefaults & { customer_id?: number | null }) | null;
 }>();
 
@@ -103,6 +111,12 @@ const roundTo2 = (value: number) => Math.round(value * 100) / 100;
 
 const idString = (value?: number | null) => (value ? String(value) : undefined);
 
+/** The details and terms a new quotation starts with, from its branch. */
+const startingDefaults =
+    props.branchDefaults?.[
+        String(props.quotation?.branch_id ?? props.defaultBranchId ?? '')
+    ];
+
 const form = useForm({
     customer_id: idString(
         props.quotation?.customer_id ?? props.defaults?.customer_id,
@@ -133,7 +147,12 @@ const form = useForm({
     discount: props.quotation?.discount ?? '0',
     agent_commission: plainNumber(props.quotation?.agent_commission) || '0',
     notes: props.quotation?.notes ?? '',
-    terms: props.quotation?.terms ?? '',
+    terms: props.quotation?.terms ?? startingDefaults?.terms ?? '',
+    details: props.quotation?.details ?? startingDefaults?.details ?? '',
+    site_address: props.quotation?.site_address ?? '',
+    freight: plainNumber(props.quotation?.freight) || '0',
+    freight_tax_percent:
+        plainNumber(props.quotation?.freight_tax_percent) || '18',
     items:
         props.quotation?.items && props.quotation.items.length
             ? props.quotation.items.map((item) => ({
@@ -181,14 +200,11 @@ const startCustomerCreate = (term: string) => {
     isCreatingCustomer.value = true;
 };
 
-/** Select the party just created and carry its GSTIN onto the quotation. */
+/** Select the party just created. */
 const onCustomerCreated = (customer: QuickCustomer) => {
     addedCustomers.value.push(customer);
+    // Its GSTIN follows through the suggestion watcher below.
     form.customer_id = String(customer.id);
-
-    if (customer.gst_number && !form.gstin) {
-        form.gstin = customer.gst_number;
-    }
 
     // A branch picked for the party is the natural one for its quotation too.
     if (!form.branch_id && customer.branch_id && props.branches.length > 0) {
@@ -459,11 +475,61 @@ watch(
 );
 
 /** Another branch has its own rates and MRPs, so every line is re-priced. */
-watch(pricingBranchId, () => {
+watch(pricingBranchId, (branchId, previousBranchId) => {
     for (const item of form.items) {
         priceLine(item, false);
     }
+
+    // Untouched details and terms follow the branch; edited ones are kept.
+    const previous = props.branchDefaults?.[previousBranchId ?? ''];
+    const next = props.branchDefaults?.[branchId ?? ''];
+
+    for (const field of ['details', 'terms'] as const) {
+        if (form[field].trim() === '' || form[field] === previous?.[field]) {
+            form[field] = next?.[field] ?? '';
+        }
+    }
 });
+
+/**
+ * The buyer GSTIN the linked records suggest: the customer's, else the
+ * contact's, else the builder's.
+ */
+const suggestedGstin = computed(() => {
+    const byId = <T extends { id: number }>(list: T[], id?: string) =>
+        id ? list.find((record) => String(record.id) === id) : undefined;
+
+    return (
+        byId(allCustomers.value, form.customer_id)?.gst_number ||
+        byId(props.contacts, form.contact_id)?.gst_number ||
+        byId(props.builders, form.builder_id)?.gst_number ||
+        ''
+    );
+});
+
+/** The project is the site, so its address is where the goods go. */
+const suggestedSiteAddress = computed(
+    () =>
+        props.projects.find((project) => String(project.id) === form.project_id)
+            ?.address ?? '',
+);
+
+/**
+ * Linking a record fills in what it knows, unless the field has been typed
+ * into: an empty field, or one still holding the last suggestion, follows.
+ */
+const followSuggestion = (
+    field: 'gstin' | 'site_address',
+    suggestion: () => string,
+) =>
+    watch(suggestion, (next, previous) => {
+        if (form[field].trim() === '' || form[field] === previous) {
+            form[field] = next;
+        }
+    });
+
+followSuggestion('gstin', () => suggestedGstin.value);
+followSuggestion('site_address', () => suggestedSiteAddress.value);
 
 /**
  * Choosing a customer who has a price type of their own switches the
@@ -552,15 +618,26 @@ const taxAmount = computed(() =>
     }, 0),
 );
 
+// Freight is charged on top of the lines and taxed at its own rate.
+const freightValue = computed(() => Math.max(parseFloat(form.freight) || 0, 0));
+const freightTax = computed(
+    () =>
+        (freightValue.value * (parseFloat(form.freight_tax_percent) || 0)) /
+        100,
+);
+const totalTax = computed(() => taxAmount.value + freightTax.value);
+
 const isInterState = computed(() => form.supply_type === 'inter');
 const cgstAmount = computed(() =>
-    isInterState.value ? 0 : taxAmount.value / 2,
+    isInterState.value ? 0 : totalTax.value / 2,
 );
 const sgstAmount = computed(() =>
-    isInterState.value ? 0 : taxAmount.value / 2,
+    isInterState.value ? 0 : totalTax.value / 2,
 );
-const igstAmount = computed(() => (isInterState.value ? taxAmount.value : 0));
-const total = computed(() => taxable.value + taxAmount.value);
+const igstAmount = computed(() => (isInterState.value ? totalTax.value : 0));
+const total = computed(
+    () => taxable.value + freightValue.value + totalTax.value,
+);
 
 const amount = (value: number) =>
     value.toLocaleString('en-IN', {
@@ -680,6 +757,21 @@ const submit = () => {
                                     placeholder="e.g. 29ABCDE1234F1Z5"
                                 />
                                 <InputError :message="form.errors.gstin" />
+                            </div>
+
+                            <div
+                                class="grid content-start gap-2 sm:col-span-2 lg:row-span-2"
+                            >
+                                <Label for="site_address">Site Address</Label>
+                                <Textarea
+                                    id="site_address"
+                                    v-model="form.site_address"
+                                    rows="3"
+                                    placeholder="Where the goods are delivered"
+                                />
+                                <InputError
+                                    :message="form.errors.site_address"
+                                />
                             </div>
 
                             <div class="grid content-start gap-2">
@@ -1093,6 +1185,20 @@ const submit = () => {
                         <CardTitle>Notes &amp; Terms</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid content-start gap-2 sm:col-span-2">
+                            <Label for="details">Quotation details</Label>
+                            <Textarea
+                                id="details"
+                                v-model="form.details"
+                                rows="3"
+                                placeholder="Sales Contact: Name&#10;Email: sales@example.com&#10;GSTIN: 32ABCDE1234F1Z5"
+                            />
+                            <p class="text-xs text-muted-foreground">
+                                Printed in the Quotation Details box, one
+                                "Label: value" per line.
+                            </p>
+                            <InputError :message="form.errors.details" />
+                        </div>
                         <div class="grid content-start gap-2">
                             <Label for="notes">Notes</Label>
                             <Textarea
@@ -1173,6 +1279,54 @@ const submit = () => {
                             :message="form.errors.agent_commission"
                             class="text-right"
                         />
+                        <div class="flex items-center justify-between gap-4">
+                            <Label
+                                for="freight"
+                                class="font-normal text-muted-foreground"
+                            >
+                                Freight
+                            </Label>
+                            <div class="flex items-center gap-2">
+                                <Select v-model="form.freight_tax_percent">
+                                    <SelectTrigger
+                                        class="h-8 w-20"
+                                        aria-label="GST on freight"
+                                        data-test="freight-tax"
+                                    >
+                                        <SelectValue placeholder="GST" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="rate in gstRateOptions"
+                                            :key="rate"
+                                            :value="String(rate)"
+                                        >
+                                            {{ rate }}%
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    id="freight"
+                                    v-model="form.freight"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="h-8 w-32 text-right tabular-nums"
+                                    data-test="freight"
+                                />
+                            </div>
+                        </div>
+                        <p
+                            v-if="freightValue > 0"
+                            class="text-right text-xs text-muted-foreground"
+                        >
+                            Taxed at {{ form.freight_tax_percent }}% GST:
+                            {{ money(freightTax) }}
+                        </p>
+                        <InputError
+                            :message="form.errors.freight"
+                            class="text-right"
+                        />
                         <div
                             v-if="discountValue > 0"
                             class="flex items-center justify-between gap-4"
@@ -1214,7 +1368,7 @@ const submit = () => {
                         <div class="flex items-center justify-between gap-4">
                             <span class="text-muted-foreground">Total Tax</span>
                             <span class="font-medium tabular-nums">{{
-                                money(taxAmount)
+                                money(totalTax)
                             }}</span>
                         </div>
                         <div

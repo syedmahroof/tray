@@ -288,6 +288,10 @@ export type Order = {
     total: string;
     notes: string | null;
     terms: string | null;
+    details?: string | null;
+    site_address?: string | null;
+    freight?: string;
+    freight_tax_percent?: string;
     created_by: number | null;
     created_at: string;
 };
@@ -389,6 +393,10 @@ export type Quotation = {
     total: string;
     notes: string | null;
     terms: string | null;
+    details?: string | null;
+    site_address?: string | null;
+    freight?: string;
+    freight_tax_percent?: string;
     created_by: number | null;
     created_at: string;
 };
@@ -475,6 +483,9 @@ export type QuotationInvoice = {
     discount: number;
     discount_percent: number;
     taxable_value: number;
+    freight: number;
+    freight_tax_percent: number;
+    taxable_total: number;
     tax_lines: { label: string; rate: number; amount: number }[];
     tax_total: number;
     round_off: number;

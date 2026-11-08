@@ -281,57 +281,58 @@ test('a branch letterhead replaces the company details it fills in', function ()
         ->not->toContain('BUILD TECH SUPPORTS');
 });
 
-test('a branch letterhead image heads the print in place of the logo and contact lines', function () {
+test('a branch background is printed under every page in place of the logo, contact lines and brand strip', function () {
     Storage::fake('public');
     $logo = UploadedFile::fake()->image('logo.png')->store('branch-logos', 'public');
-    $letterhead = UploadedFile::fake()->image('letterhead.png', 1200, 200)->store('branch-letterheads', 'public');
+    $background = UploadedFile::fake()->image('background.png', 1414, 2000)->store('branch-quotation-backgrounds', 'public');
+    $brand = Brand::factory()->create(['name' => 'Zoloto Valves']);
 
+    $this->quotation->branch->brands()->attach($brand);
     $this->quotation->branch->update([
         'logo_path' => $logo,
-        'letterhead_path' => $letterhead,
-        'website' => 'www.pipelineproductsindia.com',
+        'quotation_background_path' => $background,
+        'gstin' => '32ABCDE1234F1Z5',
+        'address' => "12/345 Mavoor Road\nKozhikode",
+        'phone' => '0495 2700000',
     ]);
 
     $document = QuotationDocument::for($this->quotation->fresh(), 'localhost');
 
-    expect($document['letterhead'])->toBe(Storage::disk('public')->path($letterhead));
-    expect($document['logo'])->toBe(Storage::disk('public')->path($logo));
+    expect($document['background'])->toBe(Storage::disk('public')->path($background));
 
     $html = view('quotations.pdf', $document)->render();
 
     expect($html)
-        ->toContain(Storage::disk('public')->path($letterhead))
+        ->toContain('class="background"')
+        ->toContain(Storage::disk('public')->path($background))
         ->not->toContain(Storage::disk('public')->path($logo))
-        ->not->toContain('class="contact"');
+        ->not->toContain('class="contact"')
+        ->not->toContain('Brands we deal in')
+        // The company address sits in the top right corner of the header.
+        ->toContain('class="address"')
+        ->toContain('<div>12/345 Mavoor Road</div>')
+        ->toContain('<div>Kozhikode</div>')
+        ->toContain('<div>Ph: 0495 2700000</div>')
+        ->not->toContain('<div class="company">')
+        // The branch GSTIN moves into the details box, as the contact lines are not printed.
+        ->toContain('32ABCDE1234F1Z5');
+
+    QuotationDocument::render($this->quotation->fresh(), 'localhost')->output();
 });
 
-test('blank paper around a letterhead banner is cropped before it is printed', function () {
+test('the old letterhead banner is no longer printed on quotations', function () {
     Storage::fake('public');
+    $letterhead = UploadedFile::fake()->image('letterhead.png', 1200, 200)->store('branch-letterheads', 'public');
 
-    // A 1200 x 300 banner whose artwork fills only rows 40 to 139.
-    $image = imagecreatetruecolor(1200, 300);
-    imagefill($image, 0, 0, imagecolorallocate($image, 255, 255, 255));
-    imagefilledrectangle($image, 100, 40, 1100, 139, imagecolorallocate($image, 20, 60, 200));
-    ob_start();
-    imagepng($image);
-    Storage::disk('public')->put('branch-letterheads/banner.png', (string) ob_get_clean());
-
-    $this->quotation->branch->update(['letterhead_path' => 'branch-letterheads/banner.png']);
+    $this->quotation->branch->update(['letterhead_path' => $letterhead]);
 
     $document = QuotationDocument::for($this->quotation->fresh(), 'localhost');
 
-    expect($document['letterhead'])->not->toBe(Storage::disk('public')->path('branch-letterheads/banner.png'));
-    [$width, $height] = getimagesize($document['letterhead']);
-    expect($width)->toBe(1200);
-    expect($height)->toBe(100);
-    // Printed across the page, the cropped banner is a twelfth as tall as it is wide.
-    expect($document['letterheadHeight'])->toBe((int) ceil(QuotationDocument::PRINT_WIDTH / 12));
-
-    $html = view('quotations.pdf', $document)->render();
-
-    expect($html)
-        ->toContain('height: '.$document['letterheadHeight'].'px;')
-        ->toContain('@page { margin: '.($document['letterheadHeight'] + 26).'px');
+    expect($document['background'])->toBeNull();
+    expect(view('quotations.pdf', $document)->render())
+        ->not->toContain(Storage::disk('public')->path($letterhead))
+        ->not->toContain('class="background"')
+        ->toContain('class="header"');
 });
 
 test('a quotation with its own terms prints them over the branch defaults', function () {
@@ -431,3 +432,69 @@ test('a quotation raised on a contact or builder prints their GST number', funct
 
     expect($html)->toContain($record->gst_number);
 })->with(['contact', 'builder']);
+
+test('the quotation details box prints the quotation\'s own lines, else the branch\'s, else the sender and GSTIN', function () {
+    $sender = User::factory()->create(['name' => 'Anu Sales', 'email' => 'anu@example.com']);
+    $this->quotation->update(['created_by' => $sender->id]);
+    $this->quotation->branch->update(['gstin' => '32ABCDE1234F1Z5', 'quotation_details' => null]);
+
+    expect(QuotationDocument::details($this->quotation->fresh()))->toBe([
+        ['label' => 'Sales Contact', 'value' => 'Anu Sales'],
+        ['label' => 'Email', 'value' => 'anu@example.com'],
+        ['label' => 'GSTIN', 'value' => '32ABCDE1234F1Z5'],
+    ]);
+
+    $this->quotation->branch->update(['quotation_details' => "Sales Desk: Calicut Office\nMobile: 98470 00000"]);
+
+    expect(QuotationDocument::details($this->quotation->fresh()))->toBe([
+        ['label' => 'Sales Desk', 'value' => 'Calicut Office'],
+        ['label' => 'Mobile', 'value' => '98470 00000'],
+    ]);
+
+    $this->quotation->update(['details' => "Sales Contact: Rahul\nDelivery from our Kozhikode godown"]);
+
+    $html = view('quotations.pdf', QuotationDocument::for($this->quotation->fresh(), 'localhost'))->render();
+
+    expect($html)
+        ->toContain('<td class="k">Sales Contact</td>')
+        ->toContain('<td class="v">Rahul</td>')
+        ->toContain('<td class="v" colspan="2">Delivery from our Kozhikode godown</td>')
+        ->not->toContain('Calicut Office')
+        ->not->toContain('anu@example.com');
+});
+
+test('the print shows freight above the tax, the site address, and only the page number in the footer', function () {
+    $this->quotation->update([
+        'freight' => 250,
+        'freight_tax_percent' => 18,
+        'site_address' => "Plot 4, Infopark Phase 2\nKakkanad",
+    ]);
+
+    $html = view('quotations.pdf', QuotationDocument::for($this->quotation->fresh(), 'localhost'))->render();
+
+    expect($html)
+        ->toContain('<td class="k">Freight</td>')
+        ->toContain('Site Address:</span> Plot 4, Infopark Phase 2, Kakkanad')
+        ->not->toContain('&middot; Quotation QT-000001');
+});
+
+test('bank details sit beside the totals, and terms and notes share a row of boxes', function () {
+    $this->quotation->branch->update(['bank_name' => 'Federal Bank', 'bank_account_number' => '123456']);
+    $this->quotation->update(['terms' => 'Payment: 30 days', 'notes' => 'Prices firm for this order']);
+
+    $html = view('quotations.pdf', QuotationDocument::for($this->quotation->fresh(), 'localhost'))->render();
+
+    expect($html)
+        ->toMatch('/class="summary"[^>]*>\s*<tr>\s*<td class="bank" style="width: 55%;">\s*<div class="label">Bank Details<\/div>.*?<table class="totals">/s')
+        ->toMatch('/class="notes-terms"[^>]*>\s*<tr>\s*<td class="label" style="width: 64%;">Terms and Conditions<\/td>\s*<td class="gap"><\/td>\s*<td class="label">Notes<\/td>/s');
+});
+
+test('an address pasted with Word or PDF line separators keeps its line breaks', function () {
+    $this->quotation->branch->update(['address' => "59/4699, Panchavadi Arcade,\u{2028}M.N. Road, Calicut\r\nKerala", 'city' => null]);
+
+    expect($this->quotation->branch->fresh()->letterhead()['address'])->toBe([
+        '59/4699, Panchavadi Arcade,',
+        'M.N. Road, Calicut',
+        'Kerala',
+    ]);
+});

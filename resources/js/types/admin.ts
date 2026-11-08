@@ -8,12 +8,16 @@ export type Branch = {
     company_name?: string | null;
     logo_url?: string | null;
     letterhead_url?: string | null;
+    /** The full-page background this branch's quotations are printed on. */
+    quotation_background_url?: string | null;
     phone?: string | null;
     mobile?: string | null;
     email?: string | null;
     website?: string | null;
     gstin?: string | null;
     quotation_terms?: string | null;
+    /** The standard lines of this branch's "Quotation Details" box. */
+    quotation_details?: string | null;
     /** The series this branch numbers its quotations in. */
     quotation_prefix?: string | null;
     quotation_next_number?: number;
@@ -225,6 +229,7 @@ export type Project = {
 export type ProjectListItem = Project & {
     builder: NamedOption | null;
     location_master: Location | null;
+    district?: NamedOption | null;
     route: Route | null;
     project_category: NamedOption;
     assignee: NamedOption | null;

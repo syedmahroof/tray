@@ -31,6 +31,7 @@ defineProps<{
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId: number | null;
+    branchDefaults: Record<string, { details: string; terms: string }>;
     defaults: {
         customer_id: number | null;
         contact_id: number | null;
@@ -82,6 +83,7 @@ defineOptions({
             :gst-slabs="gstSlabs"
             :branches="branches"
             :default-branch-id="defaultBranchId"
+            :branch-defaults="branchDefaults"
             :defaults="defaults"
         />
     </div>

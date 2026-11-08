@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string|null $logo_url
  * @property string|null $letterhead_path
  * @property-read string|null $letterhead_url
+ * @property string|null $quotation_background_path
+ * @property-read string|null $quotation_background_url
  * @property string|null $phone
  * @property string|null $mobile
  * @property string|null $email
@@ -33,6 +35,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $bank_branch
  * @property string|null $bank_ifsc
  * @property string|null $quotation_terms
+ * @property string|null $quotation_details
  * @property string|null $quotation_prefix
  * @property int $quotation_next_number
  * @property bool $is_active
@@ -40,8 +43,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'name', 'code', 'address', 'city', 'is_active',
-    'company_name', 'logo_path', 'letterhead_path', 'phone', 'mobile', 'email', 'website', 'gstin',
-    'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms',
+    'company_name', 'logo_path', 'letterhead_path', 'quotation_background_path', 'phone', 'mobile', 'email', 'website', 'gstin',
+    'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms', 'quotation_details',
     'quotation_prefix', 'quotation_next_number',
 ])]
 class Branch extends Model
@@ -52,7 +55,7 @@ class Branch extends Model
     /**
      * @var list<string>
      */
-    protected $appends = ['logo_url', 'letterhead_url'];
+    protected $appends = ['logo_url', 'letterhead_url', 'quotation_background_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -105,6 +108,17 @@ class Branch extends Model
     }
 
     /**
+     * The public URL of the full-page background the branch's quotations are
+     * printed on.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function quotationBackgroundUrl(): Attribute
+    {
+        return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['quotation_background_path'] ?? null));
+    }
+
+    /**
      * The company identity this branch prints on its paperwork. Each branch
      * stands on its own: a detail left blank is left off the page rather
      * than borrowed from another company, and the name falls back to the
@@ -114,7 +128,8 @@ class Branch extends Model
      */
     public function letterhead(): array
     {
-        $address = preg_split('/\r\n|\r|\n/', (string) $this->address, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        // \R also catches the line separators text pasted from Word or a PDF carries.
+        $address = array_values(array_filter(array_map('trim', preg_split('/\R/u', (string) $this->address) ?: []), 'filled'));
 
         if (filled($this->city)) {
             $address[] = $this->city;

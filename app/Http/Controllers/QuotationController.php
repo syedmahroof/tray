@@ -6,6 +6,7 @@ use App\Exports\GenericSheetExport;
 use App\Http\Controllers\Concerns\ComputesQuotationTotals;
 use App\Http\Requests\SaveQuotationRequest;
 use App\Mail\QuotationMail;
+use App\Models\Branch;
 use App\Models\Builder;
 use App\Models\Contact;
 use App\Models\Customer;
@@ -178,6 +179,7 @@ class QuotationController extends Controller
             'invoice' => (new QuotationInvoice($quotation))->toArray(),
             'company' => QuotationDocument::company($quotation, request()->getHost()),
             'terms' => QuotationDocument::terms($quotation),
+            'printedDetails' => QuotationDocument::details($quotation),
             'shareUrl' => URL::signedRoute('quotations.shared', $quotation),
             'statuses' => Quotation::STATUSES,
             'versions' => Quotation::query()
@@ -192,7 +194,10 @@ class QuotationController extends Controller
      */
     public function edit(Quotation $quotation): Response
     {
-        $quotation->load(['items.product']);
+        $quotation->load(['items.product', 'branch', 'creator']);
+        // Quotations raised before the details box was editable show what they printed with.
+        $quotation->details ??= QuotationDocument::defaultDetails($quotation->branch, $quotation->creator);
+        $quotation->terms = QuotationDocument::terms($quotation);
 
         return Inertia::render('quotations/Edit', [
             'quotation' => $quotation,
@@ -336,9 +341,9 @@ class QuotationController extends Controller
             $revision = Quotation::create([
                 ...$quotation->only([
                     'branch_id', 'customer_id', 'contact_id', 'project_id', 'enquiry_id', 'builder_id',
-                    'gstin', 'supply_type', 'rate_tier', 'valid_until', 'subtotal', 'discount', 'agent_commission',
+                    'gstin', 'supply_type', 'rate_tier', 'valid_until', 'subtotal', 'discount', 'agent_commission', 'freight', 'freight_tax_percent', 'site_address',
                     'tax_percent', 'tax_amount', 'cgst_amount', 'sgst_amount',
-                    'igst_amount', 'total', 'notes', 'terms',
+                    'igst_amount', 'total', 'notes', 'terms', 'details',
                 ]),
                 'number' => "{$rootNumber}-R{$nextVersion}",
                 'version' => $nextVersion,
@@ -406,15 +411,15 @@ class QuotationController extends Controller
     private function formData(iterable $keepProductIds = []): array
     {
         return [
-            'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'rate_tier']),
-            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email']),
-            'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'rate_tier', 'gst_number']),
+            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email', 'gst_number']),
+            'projects' => Project::query()->orderBy('name')->get(['id', 'name', 'address']),
             'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
                 ->map(fn (Enquiry $enquiry): array => [
                     'id' => $enquiry->id,
                     'name' => "#{$enquiry->id} — ".($enquiry->contact?->name ?? __('Enquiry')),
                 ]),
-            'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
+            'builders' => Builder::query()->orderBy('name')->get(['id', 'name', 'gst_number']),
             'products' => $this->productOptions($keepProductIds),
             'statuses' => Quotation::STATUSES,
             'rateTiers' => ProductBranchPrice::RATE_TIERS,
@@ -424,6 +429,19 @@ class QuotationController extends Controller
             // Users who cannot pick a branch quote from their own, so the form
             // needs it to look up branch rates.
             'defaultBranchId' => request()->user()?->branch_id,
+            // What the details box and the terms start as, for each branch the
+            // quotation can be raised from.
+            'branchDefaults' => Branch::query()
+                ->whereIn('id', BranchAccess::canChooseBranch()
+                    ? BranchAccess::options()->pluck('id')->all()
+                    : array_filter([request()->user()?->branch_id]))
+                ->get()
+                ->mapWithKeys(fn (Branch $branch): array => [
+                    $branch->id => [
+                        'details' => QuotationDocument::defaultDetails($branch, request()->user()),
+                        'terms' => (string) $branch->quotation_terms,
+                    ],
+                ]),
         ];
     }
 
@@ -563,6 +581,8 @@ class QuotationController extends Controller
             (float) $request->validated('discount', 0),
             $request->validated('supply_type', 'intra'),
             (float) $request->validated('agent_commission', 0),
+            (float) $request->validated('freight', 0),
+            (float) $request->validated('freight_tax_percent', Quotation::DEFAULT_FREIGHT_TAX_PERCENT),
         );
     }
 }

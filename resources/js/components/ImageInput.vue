@@ -18,8 +18,18 @@ const props = withDefaults(
         error?: string;
         /** Preview a wide image, such as a banner, uncropped. */
         wide?: boolean;
+        /** Preview a full page, such as an A4 background, uncropped. */
+        page?: boolean;
+        /** The largest upload the server accepts, in megabytes. */
+        maxMegabytes?: number;
     }>(),
-    { currentUrl: null, error: undefined, wide: false },
+    {
+        currentUrl: null,
+        error: undefined,
+        wide: false,
+        page: false,
+        maxMegabytes: 2,
+    },
 );
 
 const input = ref<HTMLInputElement | null>(null);
@@ -69,14 +79,20 @@ onBeforeUnmount(releasePreview);
         >
             <div
                 class="flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted"
-                :class="wide ? 'h-24 w-full' : 'size-20'"
+                :class="
+                    wide
+                        ? 'h-24 w-full'
+                        : page
+                          ? 'h-48 w-34 bg-white'
+                          : 'size-20'
+                "
             >
                 <img
                     v-if="shown"
                     :src="shown"
                     :alt="label"
                     class="size-full"
-                    :class="wide ? 'object-contain' : 'object-cover'"
+                    :class="wide || page ? 'object-contain' : 'object-cover'"
                 />
                 <ImagePlus v-else class="size-6 text-muted-foreground" />
             </div>
@@ -91,7 +107,7 @@ onBeforeUnmount(releasePreview);
                     @change="onChange"
                 />
                 <p class="text-xs text-muted-foreground">
-                    PNG, JPG or WebP, up to 2 MB.
+                    PNG, JPG or WebP, up to {{ maxMegabytes }} MB.
                 </p>
                 <button
                     v-if="shown"

@@ -33,6 +33,7 @@ defineProps<{
     gstSlabs: Record<string, number>;
     branches: Branch[];
     defaultBranchId: number | null;
+    branchDefaults: Record<string, { details: string; terms: string }>;
 }>();
 
 defineOptions({
@@ -82,6 +83,7 @@ defineOptions({
             :gst-slabs="gstSlabs"
             :branches="branches"
             :default-branch-id="defaultBranchId"
+            :branch-defaults="branchDefaults"
         />
     </div>
 </template>

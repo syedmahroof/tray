@@ -260,6 +260,59 @@ test('a branch keeps a letterhead image apart from its logo', function () {
     expect($branch->fresh()->letterhead_path)->toBeNull();
 });
 
+test('a branch keeps a quotation background image', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $branch = Branch::factory()->create(['code' => 'CAL']);
+
+    $this->actingAs($admin)
+        ->put(route('branches.update', $branch), [
+            'name' => $branch->name,
+            'code' => 'CAL',
+            'quotation_background' => UploadedFile::fake()->image('background.png', 1414, 2000),
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    $background = $branch->refresh()->quotation_background_path;
+
+    expect($background)->toStartWith('branch-quotation-backgrounds/');
+    Storage::disk('public')->assertExists($background);
+
+    $this->actingAs($admin)
+        ->get(route('branches.edit', $branch))
+        ->assertInertia(fn ($page) => $page
+            ->where('branch.quotation_background_url', Storage::disk('public')->url($background)));
+
+    $this->actingAs($admin)
+        ->put(route('branches.update', $branch), [
+            'name' => $branch->name,
+            'code' => 'CAL',
+            'remove_quotation_background' => true,
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    Storage::disk('public')->assertMissing($background);
+    expect($branch->fresh()->quotation_background_path)->toBeNull();
+});
+
+test('a branch keeps its standard quotation details', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $branch = Branch::factory()->create(['code' => 'CAL']);
+
+    $this->actingAs($admin)
+        ->put(route('branches.update', $branch), [
+            'name' => $branch->name,
+            'code' => 'CAL',
+            'quotation_details' => "Sales Desk: Calicut\nMobile: 98470 00000",
+        ])
+        ->assertRedirect(route('branches.index'));
+
+    expect($branch->fresh()->quotation_details)->toBe("Sales Desk: Calicut\nMobile: 98470 00000");
+});
+
 test('a branch keeps the brands it deals in', function () {
     $admin = User::factory()->create();
     $admin->assignRole('Admin');

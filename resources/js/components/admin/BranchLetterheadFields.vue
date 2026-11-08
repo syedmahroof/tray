@@ -38,16 +38,32 @@ defineProps<{
 
         <div class="grid gap-2">
             <ImageInput
+                id="quotation_background"
+                name="quotation_background"
+                label="Quotation background"
+                :current-url="branch?.quotation_background_url"
+                :error="errors.quotation_background"
+                :max-megabytes="5"
+                page
+            />
+            <p class="text-sm text-muted-foreground">
+                A full A4 page with the header and footer artwork (logo, brands)
+                already on it. Quotations are printed on top of it, in place of
+                the logo, contact lines and brand strip.
+            </p>
+        </div>
+
+        <div class="grid gap-2">
+            <ImageInput
                 id="letterhead"
                 name="letterhead"
-                label="Letterhead image"
+                label="Order letterhead image"
                 :current-url="branch?.letterhead_url"
                 :error="errors.letterhead"
                 wide
             />
             <p class="text-sm text-muted-foreground">
-                A ready-made header banner. When set, it is printed across the
-                top of quotations in place of the logo, email and website.
+                A header banner printed across the top of orders.
             </p>
         </div>
 
@@ -143,6 +159,23 @@ defineProps<{
                 </p>
             </div>
             <InputError :message="errors.brands" />
+        </div>
+
+        <div class="grid gap-2">
+            <Label for="quotation_details">Default quotation details</Label>
+            <Textarea
+                id="quotation_details"
+                name="quotation_details"
+                rows="4"
+                placeholder="Sales Contact: Name&#10;Mobile: 98470 00000&#10;Email: sales@example.com&#10;GSTIN: 32ABCDE1234F1Z5"
+                :default-value="branch?.quotation_details ?? undefined"
+            />
+            <p class="text-sm text-muted-foreground">
+                Printed in the Quotation Details box, one "Label: value" per
+                line, and editable on each quotation. Leave blank to show the
+                person raising it and this branch's GSTIN.
+            </p>
+            <InputError :message="errors.quotation_details" />
         </div>
 
         <div class="grid gap-2">

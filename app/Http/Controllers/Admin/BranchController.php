@@ -53,10 +53,11 @@ class BranchController extends Controller
     public function store(SaveBranchRequest $request): RedirectResponse
     {
         $branch = Branch::create([
-            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(null, $request->file('logo'), false, 'branch-logos'),
             'letterhead_path' => StoredImage::sync(null, $request->file('letterhead'), false, 'branch-letterheads'),
+            'quotation_background_path' => StoredImage::sync(null, $request->file('quotation_background'), false, 'branch-quotation-backgrounds'),
         ]);
 
         $branch->brands()->sync($request->validated('brands', []));
@@ -86,7 +87,7 @@ class BranchController extends Controller
     public function update(SaveBranchRequest $request, Branch $branch): RedirectResponse
     {
         $branch->update([
-            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(
                 $branch->logo_path,
@@ -99,6 +100,12 @@ class BranchController extends Controller
                 $request->file('letterhead'),
                 $request->boolean('remove_letterhead'),
                 'branch-letterheads',
+            ),
+            'quotation_background_path' => StoredImage::sync(
+                $branch->quotation_background_path,
+                $request->file('quotation_background'),
+                $request->boolean('remove_quotation_background'),
+                'branch-quotation-backgrounds',
             ),
         ]);
 
@@ -122,6 +129,7 @@ class BranchController extends Controller
 
         StoredImage::delete($branch->logo_path);
         StoredImage::delete($branch->letterhead_path);
+        StoredImage::delete($branch->quotation_background_path);
         $branch->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch deleted.')]);

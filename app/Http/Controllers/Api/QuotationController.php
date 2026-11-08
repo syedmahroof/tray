@@ -63,9 +63,13 @@ class QuotationController extends Controller
             'quotation_date' => 'nullable|date',
             'valid_until' => 'nullable|date',
             'discount' => 'nullable|numeric|min:0',
+            'freight' => 'nullable|numeric|min:0',
+            'freight_tax_percent' => 'nullable|numeric|min:0|max:100',
+            'site_address' => 'nullable|string|max:1000',
             'status' => 'required|string|in:draft,sent,approved,rejected,expired',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
+            'details' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.description' => 'required|string|max:255',
@@ -77,7 +81,13 @@ class QuotationController extends Controller
 
         $items = $validated['items'];
         $supplyType = $validated['supply_type'] ?? 'intra';
-        $computed = $this->computeQuotationTotals($items, (float) ($validated['discount'] ?? 0), $supplyType);
+        $computed = $this->computeQuotationTotals(
+            $items,
+            (float) ($validated['discount'] ?? 0),
+            $supplyType,
+            freight: (float) ($validated['freight'] ?? 0),
+            freightTaxPercent: (float) ($validated['freight_tax_percent'] ?? Quotation::DEFAULT_FREIGHT_TAX_PERCENT),
+        );
 
         $quotation = DB::transaction(function () use ($request, $validated, $supplyType, $computed) {
             $quotation = Quotation::create([
@@ -113,9 +123,13 @@ class QuotationController extends Controller
             'quotation_date' => 'nullable|date',
             'valid_until' => 'nullable|date',
             'discount' => 'nullable|numeric|min:0',
+            'freight' => 'nullable|numeric|min:0',
+            'freight_tax_percent' => 'nullable|numeric|min:0|max:100',
+            'site_address' => 'nullable|string|max:1000',
             'status' => 'required|string|in:draft,sent,approved,rejected,expired',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
+            'details' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.description' => 'required|string|max:255',
@@ -127,7 +141,13 @@ class QuotationController extends Controller
 
         $items = $validated['items'];
         $supplyType = $validated['supply_type'] ?? 'intra';
-        $computed = $this->computeQuotationTotals($items, (float) ($validated['discount'] ?? 0), $supplyType);
+        $computed = $this->computeQuotationTotals(
+            $items,
+            (float) ($validated['discount'] ?? 0),
+            $supplyType,
+            freight: (float) ($validated['freight'] ?? 0),
+            freightTaxPercent: (float) ($validated['freight_tax_percent'] ?? Quotation::DEFAULT_FREIGHT_TAX_PERCENT),
+        );
 
         DB::transaction(function () use ($validated, $supplyType, $computed, $quotation) {
             $quotation->update([

@@ -260,6 +260,111 @@ test('an agent commission is spread into the line prices and kept off the printe
             ->where('quotation.items.1.price_percent', '40.00'));
 });
 
+test('the quotation details start from the branch, can be edited per quotation and carry into a revision', function () {
+    $branch = Branch::factory()->create(['gstin' => '32ABCDE1234F1Z5', 'quotation_details' => "Sales Desk: Calicut\nMobile: 98470 00000"]);
+    $manager = User::factory()->create(['branch_id' => $branch->id, 'name' => 'Anu Sales']);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.create'))
+        ->assertInertia(fn ($page) => $page
+            ->where("branchDefaults.{$branch->id}.details", "Sales Desk: Calicut\nMobile: 98470 00000"));
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-11-08',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'details' => "Sales Contact: Anu Sales\nMobile: 90000 11111",
+            'items' => [['description' => 'Item A', 'quantity' => 1, 'unit_price' => 100, 'tax_percentage' => 18]],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $quotation = Quotation::firstOrFail();
+
+    expect($quotation->details)->toBe("Sales Contact: Anu Sales\nMobile: 90000 11111");
+
+    $this->actingAs($manager)
+        ->get(route('quotations.show', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('printedDetails.1', ['label' => 'Mobile', 'value' => '90000 11111']));
+
+    $this->actingAs($manager)->post(route('quotations.revise', $quotation))->assertRedirect();
+
+    expect(Quotation::where('version', 2)->firstOrFail()->details)->toBe($quotation->details);
+});
+
+test('a quotation raised before details were editable opens with what it printed', function () {
+    $branch = Branch::factory()->create(['gstin' => '32ABCDE1234F1Z5']);
+    $manager = User::factory()->create(['branch_id' => $branch->id, 'name' => 'Anu Sales', 'email' => 'anu@example.com']);
+    $manager->assignRole('Manager');
+    $quotation = Quotation::factory()->create(['branch_id' => $branch->id, 'created_by' => $manager->id, 'details' => null]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.edit', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('quotation.details', "Sales Contact: Anu Sales\nEmail: anu@example.com\nGSTIN: 32ABCDE1234F1Z5"));
+});
+
+test('freight is added on top of the lines and taxed at its own rate, and a site address is kept', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-11-08',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'site_address' => "Plot 4, Infopark Phase 2\nKakkanad",
+            'freight' => 500,
+            'freight_tax_percent' => 18,
+            'items' => [['description' => 'Item A', 'quantity' => 2, 'unit_price' => 1000, 'tax_percentage' => 12]],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $quotation = Quotation::firstOrFail();
+
+    expect($quotation->site_address)->toBe("Plot 4, Infopark Phase 2\nKakkanad");
+    expect((float) $quotation->subtotal)->toBe(2000.0);
+    expect((float) $quotation->freight)->toBe(500.0);
+    // 12% on the 2000 of goods (240) plus 18% on the 500 freight (90).
+    expect((float) $quotation->tax_amount)->toBe(330.0);
+    expect((float) $quotation->cgst_amount)->toBe(165.0);
+    expect((float) $quotation->sgst_amount)->toBe(165.0);
+    expect((float) $quotation->total)->toBe(2830.0);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.show', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('invoice.freight', 500)
+            ->where('invoice.taxable_total', 2500));
+});
+
+test('a new quotation starts with its branch terms, which can be edited, and old ones open with what they printed', function () {
+    $branch = Branch::factory()->create(['quotation_terms' => "Payment: 30 days\nDelivery: 2 weeks"]);
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->get(route('quotations.create'))
+        ->assertInertia(fn ($page) => $page
+            ->where("branchDefaults.{$branch->id}.terms", "Payment: 30 days\nDelivery: 2 weeks"));
+
+    $quotation = Quotation::factory()->create(['branch_id' => $branch->id, 'terms' => null]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.edit', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('quotation.terms', "Payment: 30 days\nDelivery: 2 weeks"));
+});
+
 test('a quotation requires at least one item', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

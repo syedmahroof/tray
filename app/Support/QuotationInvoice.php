@@ -84,6 +84,27 @@ final readonly class QuotationInvoice
     }
 
     /**
+     * The freight charged on top of the lines, before tax.
+     */
+    public function freight(): float
+    {
+        return (float) $this->quotation->freight;
+    }
+
+    public function freightTaxPercent(): float
+    {
+        return (float) $this->quotation->freight_tax_percent;
+    }
+
+    /**
+     * Everything the tax is charged on: the discounted lines plus freight.
+     */
+    public function taxableTotal(): float
+    {
+        return round($this->taxableValue() + $this->freight(), 2);
+    }
+
+    /**
      * The tax lines this quotation carries, as the invoice states them.
      *
      * @return list<array{label: string, rate: float, amount: float}>
@@ -169,6 +190,10 @@ final readonly class QuotationInvoice
             $groups[$key]['taxable'] += (float) $item->quantity * (float) $item->unit_price * $share;
         }
 
+        if ($this->freight() > 0) {
+            $groups['freight'] = ['hsn' => 'Freight', 'taxable' => $this->freight(), 'rate' => $this->freightTaxPercent()];
+        }
+
         return array_values(array_map(function (array $group): array {
             $taxable = round($group['taxable'], 2);
             $rate = $group['rate'];
@@ -198,6 +223,9 @@ final readonly class QuotationInvoice
             'discount' => $this->discount(),
             'discount_percent' => $this->discountPercent(),
             'taxable_value' => $this->taxableValue(),
+            'freight' => $this->freight(),
+            'freight_tax_percent' => $this->freightTaxPercent(),
+            'taxable_total' => $this->taxableTotal(),
             'tax_lines' => $this->taxLines(),
             'tax_total' => $this->taxTotal(),
             'round_off' => $this->roundOff(),

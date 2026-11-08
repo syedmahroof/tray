@@ -41,8 +41,12 @@ class SaveQuotationRequest extends FormRequest
             'status' => ['required', Rule::in(Quotation::STATUSES)],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'agent_commission' => ['nullable', 'numeric', 'min:0'],
+            'freight' => ['nullable', 'numeric', 'min:0'],
+            'freight_tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'site_address' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
+            'details' => ['nullable', 'string', 'max:2000'],
             'branch_id' => [
                 Rule::requiredIf(BranchAccess::canChooseBranch()), 'nullable',
                 Rule::exists('branches', 'id'),

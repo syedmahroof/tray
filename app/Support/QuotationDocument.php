@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Quotation;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as PdfDocument;
 use Illuminate\Support\Facades\Storage;
@@ -17,32 +19,22 @@ use Illuminate\Support\Facades\Storage;
 class QuotationDocument
 {
     /**
-     * The printable width of an A4 page between the side margins, in the
-     * renderer's CSS pixels (96 dpi).
-     */
-    public const int PRINT_WIDTH = 722;
-
-    /**
      * Everything the document is made of.
      *
      * @param  string  $host  the request host, which decides whose company
      *                        identity the document carries
-     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, letterhead: string|null, letterheadHeight: int|null, brands: list<array{name: string, logo: string|null}>}
+     * @return array{quotation: Quotation, invoice: QuotationInvoice, company: array<string, mixed>, logo: string|null, background: string|null, brands: list<array{name: string, logo: string|null}>}
      */
     public static function for(Quotation $quotation, string $host): array
     {
         $quotation->loadMissing(['customer.state', 'contact.state', 'project.state', 'builder.state', 'branch.brands', 'creator', 'items.product']);
-
-        $letterheadPath = self::letterheadPath($quotation);
-        $banner = $letterheadPath === null ? null : LetterheadBanner::from($letterheadPath);
 
         return [
             'quotation' => $quotation,
             'invoice' => new QuotationInvoice($quotation),
             'company' => self::company($quotation, $host),
             'logo' => self::logoPath($quotation, $host),
-            'letterhead' => $banner?->path,
-            'letterheadHeight' => $banner?->printedHeight(self::PRINT_WIDTH),
+            'background' => self::backgroundPath($quotation),
             'brands' => self::brands($quotation),
         ];
     }
@@ -90,12 +82,13 @@ class QuotationDocument
     }
 
     /**
-     * The raising branch's letterhead banner as a file on disk. When there is
-     * one it heads the page in place of the logo and contact lines.
+     * The raising branch's full-page background as a file on disk. When there
+     * is one, every page is printed on it, and its artwork takes the place of
+     * the logo, contact lines and brand strip.
      */
-    public static function letterheadPath(Quotation $quotation): ?string
+    public static function backgroundPath(Quotation $quotation): ?string
     {
-        return self::storedFile($quotation->branch?->letterhead_path);
+        return self::storedFile($quotation->branch?->quotation_background_path);
     }
 
     /**
@@ -130,6 +123,44 @@ class QuotationDocument
     public static function terms(Quotation $quotation): ?string
     {
         return filled($quotation->terms) ? $quotation->terms : $quotation->branch?->quotation_terms;
+    }
+
+    /**
+     * The lines printed in the "Quotation Details" box, each read as a label
+     * and value when it has one ("Email: sales@example.com"). The quotation's
+     * own lines win; otherwise the raising branch's standard ones are used.
+     *
+     * @return list<array{label: string|null, value: string}>
+     */
+    public static function details(Quotation $quotation): array
+    {
+        $text = filled($quotation->details)
+            ? $quotation->details
+            : self::defaultDetails($quotation->branch, $quotation->creator);
+
+        return array_values(array_map(
+            fn (string $line): array => preg_match('/^([^:]{1,30}?)\s*:\s*(.*)$/', trim($line), $parts)
+                ? ['label' => $parts[1], 'value' => $parts[2]]
+                : ['label' => null, 'value' => trim($line)],
+            preg_split('/\R/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [],
+        ));
+    }
+
+    /**
+     * The details a new quotation starts with: the branch's standard lines,
+     * or, when it keeps none, the person sending it and the branch GSTIN.
+     */
+    public static function defaultDetails(?Branch $branch, ?User $sender): string
+    {
+        if (filled($branch?->quotation_details)) {
+            return $branch->quotation_details;
+        }
+
+        return implode("\n", array_filter([
+            $sender ? 'Sales Contact: '.$sender->name : null,
+            filled($sender?->email) ? 'Email: '.$sender->email : null,
+            filled($branch?->gstin) ? 'GSTIN: '.$branch->gstin : null,
+        ]));
     }
 
     /**

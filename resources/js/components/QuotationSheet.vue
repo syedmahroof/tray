@@ -32,6 +32,8 @@ const props = defineProps<{
     invoice: QuotationInvoice;
     company: CompanyProfile;
     terms?: string | null;
+    /** The lines printed in the Quotation Details box. */
+    printedDetails?: { label: string | null; value: string }[];
 }>();
 
 /**
@@ -106,6 +108,10 @@ const details = computed(() =>
         ],
         ['Project', props.quotation.project?.name ?? ''],
         ['Sent By', props.quotation.creator?.name ?? ''],
+        ...(props.printedDetails ?? []).map(({ label, value }) => [
+            label ?? '',
+            value,
+        ]),
         [
             'Supply',
             props.quotation.supply_type === 'inter'
@@ -227,6 +233,12 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             <dt class="text-muted-foreground">GSTIN</dt>
                             <dd class="font-medium">{{ buyerGstin }}</dd>
                         </template>
+                        <template v-if="quotation.site_address">
+                            <dt class="text-muted-foreground">Site</dt>
+                            <dd class="whitespace-pre-line">
+                                {{ quotation.site_address }}
+                            </dd>
+                        </template>
                         <template v-if="buyerState">
                             <dt class="text-muted-foreground">State</dt>
                             <dd>
@@ -250,8 +262,8 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                 <CardContent class="pt-4 text-sm">
                     <dl class="grid grid-cols-[7rem_1fr] gap-x-2 gap-y-2">
                         <template
-                            v-for="[label, value] in details"
-                            :key="label"
+                            v-for="([label, value], index) in details"
+                            :key="index"
                         >
                             <dt class="text-muted-foreground">{{ label }}</dt>
                             <dd class="font-medium">{{ value }}</dd>
@@ -373,6 +385,21 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             <dt>Sub Total</dt>
                             <dd class="tabular-nums">
                                 {{ money(invoice.taxable_value) }}
+                            </dd>
+                        </div>
+                        <div
+                            v-if="invoice.freight > 0"
+                            class="flex justify-between gap-4"
+                        >
+                            <dt class="text-muted-foreground">
+                                Freight
+                                <span class="text-xs"
+                                    >(GST
+                                    {{ invoice.freight_tax_percent }}%)</span
+                                >
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{ money(invoice.freight) }}
                             </dd>
                         </div>
                         <div

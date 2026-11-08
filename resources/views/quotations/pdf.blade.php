@@ -3,17 +3,15 @@
     /** @var \App\Support\QuotationInvoice $invoice */
     /** @var array<string, mixed> $company */
     /** @var string|null $logo */
-    /** @var string|null $letterhead */
+    /** @var string|null $background */
     /** @var list<array{name: string, logo: string|null}> $brands */
 
     $logo ??= null;
-    $letterhead ??= null;
-    $letterheadHeight ??= null;
-    // The banner is printed at its real height (blank paper around it already
-    // cropped away), and the page starts just below it.
-    $bannerHeight = min($letterheadHeight ?? 110, 160);
-    $headerSpace = $letterhead ? $bannerHeight + 26 : 128;
-    $brands ??= [];
+    $background ??= null;
+    // A background carries its own header and brand strip, so the page is
+    // printed on it with room left clear for that artwork at the top and foot.
+    $headerSpace = $background ? 118 : 128;
+    $brands = $background ? [] : ($brands ?? []);
     $buyer = $quotation->customer;
     $contact = $quotation->contact;
     // Without a customer or contact, the builder or project is who the quotation is for.
@@ -22,7 +20,7 @@
     $buyerAddress = $buyer?->address ?? $contact?->address ?? $fallback?->address;
     $buyerGstin = $quotation->gstin ?: ($buyer?->gst_number ?? $contact?->gst_number ?? $quotation->builder?->gst_number);
     $buyerState = $buyer?->state?->name ?? $contact?->state?->name ?? $fallback?->state?->name;
-    $buyerLines = preg_split('/\r\n|\r|\n/', (string) $buyerAddress, -1, PREG_SPLIT_NO_EMPTY);
+    $buyerLines = preg_split('/\R/u', (string) $buyerAddress, -1, PREG_SPLIT_NO_EMPTY);
 
     // The contact person is only named separately when the quotation is raised on a customer.
     $attention = $buyer !== null ? $contact : null;
@@ -31,8 +29,7 @@
     $attentionPhone = $attention?->phone ?? ($attention === null ? ($buyer?->phone ?? $contact?->phone ?? $fallbackPhone) : null);
     $attentionEmail = $attention?->email ?? ($attention === null ? ($buyer?->email ?? $contact?->email ?? $fallbackEmail) : null);
 
-    $sender = $quotation->creator;
-    $terms = preg_split('/\r\n|\r|\n/', (string) \App\Support\QuotationDocument::terms($quotation), -1, PREG_SPLIT_NO_EMPTY);
+    $terms = preg_split('/\R/u', (string) \App\Support\QuotationDocument::terms($quotation), -1, PREG_SPLIT_NO_EMPTY);
     // "Payment : 30 days" prints as a label and value, so the colons line up down the list.
     $terms = array_map(function (string $term): array {
         $term = trim(preg_replace('/^\s*\d+[.)]\s*/', '', $term));
@@ -47,6 +44,7 @@
     $companyName = $company['name'] ?? config('app.name');
     $companyPhones = implode(', ', array_filter([$company['phone'] ?? null, $company['mobile'] ?? null]));
     $bank = $company['bank'] ?? [];
+    $hasBank = filled($bank['name'] ?? null);
     $bankRows = array_filter([
         'Account Name' => $companyName,
         'Bank' => $bank['name'] ?? null,
@@ -59,11 +57,13 @@
     $plain = fn (float $value): string => \Illuminate\Support\Number::format($value, 2, locale: 'en_IN');
     $date = fn (?\Carbon\CarbonInterface $value): string => $value?->format('d M Y') ?? '';
     // The rate is read off the amount charged, as the stored rate can lag behind it.
-    $taxRate = fn (float $amount): float => $invoice->taxableValue() > 0 ? round($amount / $invoice->taxableValue() * 100, 2) : 0.0;
+    $taxRate = fn (float $amount): float => $invoice->taxableTotal() > 0 ? round($amount / $invoice->taxableTotal() * 100, 2) : 0.0;
     // Room kept at the foot of every page for the brand strip and page line.
     $hasBrandLogos = collect($brands)->contains(fn (array $brand): bool => filled($brand['logo']));
     $brandRows = $brands === [] ? 0 : (int) ceil(count($brands) / ($hasBrandLogos ? 8 : 10));
     $footerHeight = 30 + ($brandRows > 0 ? 18 + $brandRows * ($hasBrandLogos ? 38 : 20) : 0);
+    // Lifts the page line clear of a background's own footer artwork.
+    $footerLift = $background ? 22 : 0;
     $inWords = 'Rupees '.ucwords(str_replace('-', ' ', (string) (new NumberFormatter('en_IN', NumberFormatter::SPELLOUT))->format($invoice->total()))).' Only';
 @endphp
 <!DOCTYPE html>
@@ -72,7 +72,7 @@
     <meta charset="utf-8">
     <title>{{ $quotation->number }}</title>
     <style>
-        @page { margin: {{ $headerSpace }}px 36px {{ $footerHeight + 34 }}px; }
+        @page { margin: {{ $headerSpace }}px 36px {{ $footerHeight + 34 + $footerLift }}px; }
         * { font-family: DejaVu Sans, sans-serif; }
         body { font-size: 8.5px; line-height: 1.45; color: #1f2933; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
@@ -82,9 +82,12 @@
         .right { text-align: right; }
         .center { text-align: center; }
 
-        /* The letterhead and footer repeat on every page. */
+        /* The background, letterhead and footer repeat on every page. */
+        .background { position: fixed; top: -{{ $headerSpace }}px; left: -36px; width: 794px; height: 1123px; z-index: -1; }
+        .background img { width: 794px; height: 1123px; z-index: -1; }
+        /* The company address, set in the top right corner of a background's header. */
+        .address { position: fixed; top: -{{ $headerSpace - 22 }}px; right: 0; width: 300px; text-align: right; font-size: 9px; color: #374151; line-height: 1.25; }
         .header { position: fixed; top: -{{ $headerSpace - 18 }}px; left: 0; right: 0; }
-        .header img.banner { width: 100%; height: {{ $bannerHeight }}px; }
         .header .logo { max-height: 58px; max-width: 200px; }
         .header .company { font-size: 14px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.3px; }
         .header .contact { font-size: 8px; color: #4b5563; line-height: 1.55; }
@@ -107,7 +110,7 @@
         .parties { margin-top: 8px; }
         .parties td.label, .parties td.body { border: 1px solid #d8dde5; }
         .parties td.label { background: #f3f5f8; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
-        .parties td.body { padding: 5px 8px; }
+        .parties td.body { padding: 4px 8px; line-height: 1.4; }
         .parties td.gap { width: 2%; border: none; }
         .parties .name { font-size: 10px; font-weight: bold; }
         .kv td { padding: 1px 0; }
@@ -117,7 +120,7 @@
         .items { margin-top: 8px; }
         .items th { background: #1f3a5f; color: #ffffff; font-size: 7.5px; font-weight: bold; padding: 4px 4px; text-align: center; }
         .items th.left { text-align: left; }
-        .items td { padding: 2.5px 4px; border-bottom: 1px solid #e5e8ee; font-size: 8.5px; line-height: 1.3; }
+        .items td { padding: 2px 4px; border-bottom: 1px solid #e5e8ee; font-size: 8.5px; line-height: 1.3; }
         .items tr.alt td { background: #f8f9fb; }
         .items .product { font-weight: bold; }
         .items .detail { font-size: 7.5px; color: #6b7280; }
@@ -135,13 +138,23 @@
 
         .section { margin-top: 10px; }
         .section .heading { font-size: 8px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1px solid #d8dde5; padding-bottom: 3px; margin-bottom: 5px; }
-        .terms td { padding: 1.5px 0; }
-        .terms .n { width: 16px; color: #6b7280; }
-        .terms .k { width: 90px; font-weight: bold; white-space: nowrap; }
-        .terms .sep { width: 10px; }
+        .summary td.bank { border: 1px solid #d8dde5; padding: 0; }
+        .summary td.bank .label { background: #f3f5f8; border-bottom: 1px solid #d8dde5; padding: 3px 8px; font-size: 7.5px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
+        .summary td.bank .body { padding: 4px 8px; }
+        .summary td.bank .kv td { padding: 0.5px 0; }
 
-        .signoff { position: absolute; bottom: 72px; left: 0; right: 0; }
-        .signoff .line { border-top: 1px solid #1f2933; margin-top: 38px; padding-top: 3px; }
+        .notes-terms { margin-top: 8px; }
+        .notes-terms td.label, .notes-terms td.body { border: 1px solid #d8dde5; }
+        .notes-terms td.label { background: #f3f5f8; padding: 3px 8px; font-size: 7px; font-weight: bold; color: #1f3a5f; letter-spacing: 0.8px; text-transform: uppercase; }
+        .notes-terms td.body { padding: 4px 8px; font-size: 7px; line-height: 1.35; }
+        .notes-terms td.gap { width: 2%; border: none; }
+        .terms td { padding: 0.5px 0; font-size: 7px; line-height: 1.3; }
+        .terms .n { width: 12px; color: #6b7280; }
+        .terms .k { width: 70px; font-weight: bold; white-space: nowrap; }
+        .terms .sep { width: 8px; }
+
+        .signoff { margin-top: 6px; page-break-inside: avoid; }
+        .signoff .line { border-top: 1px solid #1f2933; margin-top: 20px; padding-top: 2px; }
 
         .brands { border-top: 2px solid #1f3a5f; padding-top: 6px; text-align: center; }
         .brands .heading { font-size: 7px; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
@@ -151,10 +164,22 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        @if ($letterhead)
-            <img class="banner" src="{{ $letterhead }}" alt="{{ $companyName }}">
-        @else
+    @if ($background)
+        <div class="background"><img src="{{ $background }}" alt="{{ $companyName }}"></div>
+        <div class="address">
+            {{-- Each address line prints as it was entered for the branch. --}}
+            @foreach ((array) ($company['address'] ?? []) as $addressLine)
+                <div>{{ $addressLine }}</div>
+            @endforeach
+            @if ($companyPhones !== '')
+                <div>Ph: {{ $companyPhones }}</div>
+            @endif
+            @if (($company['email'] ?? null) || ($company['website'] ?? null))
+                <div>{{ implode('  |  ', array_filter([$company['email'] ?? null, $company['website'] ?? null])) }}</div>
+            @endif
+        </div>
+    @else
+        <div class="header">
             <table>
                 <tr>
                     <td style="width: 40%; vertical-align: middle;">
@@ -186,8 +211,8 @@
                 </tr>
             </table>
             <div class="rule"></div>
-        @endif
-    </div>
+        </div>
+    @endif
 
     <div class="footer">
         @if ($brands !== [])
@@ -206,8 +231,7 @@
         @endif
         <table class="pageline">
             <tr>
-                <td style="width: 70%;">{{ $companyName }} &middot; Quotation {{ $quotation->number }}</td>
-                <td class="right page" style="width: 30%;"></td>
+                <td class="right page"></td>
             </tr>
         </table>
     </div>
@@ -244,51 +268,48 @@
         <tr>
             <td class="body">
                 <div class="name">M/s {{ $buyerName ?? '—' }}</div>
-                @foreach ($buyerLines as $line)
-                    <div>{{ $line }}</div>
-                @endforeach
-                @if ($buyerState)
-                    <div>{{ $buyerState }}, India</div>
+                @if ($buyerLines !== [] || $buyerState)
+                    <div>{{ implode(', ', array_filter([...$buyerLines, $buyerState ? $buyerState.', India' : null])) }}</div>
                 @endif
-                @if ($buyerGstin)
-                    <div style="margin-top: 3px;"><span class="muted">GSTIN:</span> <span class="strong">{{ $buyerGstin }}</span></div>
+                @if ($buyerGstin || $quotation->project)
+                    <div>
+                        @if ($buyerGstin)
+                            <span class="muted">GSTIN:</span> <span class="strong">{{ $buyerGstin }}</span>
+                        @endif
+                        @if ($buyerGstin && $quotation->project)
+                            &nbsp;|&nbsp;
+                        @endif
+                        @if ($quotation->project)
+                            <span class="muted">Project:</span> <span class="strong">{{ $quotation->project->name }}</span>
+                        @endif
+                    </div>
                 @endif
-                @if ($quotation->project)
-                    <div style="margin-top: 3px;"><span class="muted">Project:</span> <span class="strong">{{ $quotation->project->name }}</span></div>
+                @if (filled($quotation->site_address))
+                    <div><span class="muted">Site Address:</span> {{ implode(', ', preg_split('/\R/u', $quotation->site_address, -1, PREG_SPLIT_NO_EMPTY)) }}</div>
                 @endif
                 @if ($attention || $attentionPhone || $attentionEmail)
-                    <div style="margin-top: 5px;">
-                        @if ($attention)
-                            <span class="muted">Kind Attn:</span> <span class="strong">{{ $attention->name }}</span><br>
-                        @endif
-                        @if ($attentionPhone)
-                            <span class="muted">Mobile:</span> {{ $attentionPhone }}<br>
-                        @endif
-                        @if ($attentionEmail)
-                            <span class="muted">Email:</span> {{ $attentionEmail }}
-                        @endif
+                    <div>
+                        {!! implode(' &nbsp;|&nbsp; ', array_filter([
+                            $attention ? '<span class="muted">Kind Attn:</span> <span class="strong">'.e($attention->name).'</span>' : null,
+                            $attentionPhone ? '<span class="muted">Mobile:</span> '.e($attentionPhone) : null,
+                            $attentionEmail ? '<span class="muted">Email:</span> '.e($attentionEmail) : null,
+                        ])) !!}
                     </div>
                 @endif
             </td>
             <td class="gap"></td>
             <td class="body">
                 <table class="kv">
-                    @if ($sender)
+                    @foreach (\App\Support\QuotationDocument::details($quotation) as $detail)
                         <tr>
-                            <td class="k">Sales Contact</td>
-                            <td class="v">{{ $sender->name }}</td>
+                            @if ($detail['label'] !== null)
+                                <td class="k">{{ $detail['label'] }}</td>
+                                <td class="v">{{ $detail['value'] }}</td>
+                            @else
+                                <td class="v" colspan="2">{{ $detail['value'] }}</td>
+                            @endif
                         </tr>
-                        <tr>
-                            <td class="k">Email</td>
-                            <td class="v">{{ $sender->email }}</td>
-                        </tr>
-                    @endif
-                    @if ($letterhead && ($company['gstin'] ?? null))
-                        <tr>
-                            <td class="k">GSTIN</td>
-                            <td class="v">{{ $company['gstin'] }}</td>
-                        </tr>
-                    @endif
+                    @endforeach
                 </table>
             </td>
         </tr>
@@ -326,37 +347,45 @@
         </tbody>
     </table>
 
+    {{-- One row of cells, so the bank box stretches to the height of the totals beside it. --}}
     <table class="summary" style="page-break-inside: avoid;">
         <tr>
-            <td style="width: 55%; padding-right: 16px;">
-                <div class="words">
-                    <div class="k">Amount in words</div>
-                    <div class="v">{{ $inWords }}</div>
-                </div>
-
-                @if ($bank['name'] ?? null)
-                    <div class="box">
-                        <div class="label">Bank Details</div>
-                        <div class="body">
-                            <table class="kv">
-                                @foreach ($bankRows as $label => $value)
-                                    <tr>
-                                        <td class="k">{{ $label }}</td>
-                                        <td class="v">{{ $value }}</td>
-                                    </tr>
-                                @endforeach
-                            </table>
-                        </div>
+            @if ($hasBank)
+                <td class="bank" style="width: 55%;">
+                    <div class="label">Bank Details</div>
+                    <div class="body">
+                        <table class="kv">
+                            @foreach ($bankRows as $label => $value)
+                                <tr>
+                                    <td class="k">{{ $label }}</td>
+                                    <td class="v">{{ $value }}</td>
+                                </tr>
+                            @endforeach
+                        </table>
                     </div>
-                @endif
-            </td>
-            <td style="width: 45%;">
+                </td>
+            @else
+                <td style="width: 55%;">
+                    <div class="words">
+                        <div class="k">Amount in words</div>
+                        <div class="v">{{ $inWords }}</div>
+                    </div>
+                </td>
+            @endif
+            <td style="width: 2%;"></td>
+            <td style="width: 43%;">
                 <table class="totals">
                     {{-- Line prices already carry any discount, so the lines add up to the taxable value. --}}
                     <tr>
                         <td class="k strong">Sub Total</td>
                         <td class="v">{{ $money($invoice->taxableValue()) }}</td>
                     </tr>
+                    @if ($invoice->freight() > 0)
+                        <tr>
+                            <td class="k">Freight</td>
+                            <td class="v">{{ $money($invoice->freight()) }}</td>
+                        </tr>
+                    @endif
                     @foreach ($invoice->taxLines() as $tax)
                         <tr>
                             <td class="k">{{ strtok($tax['label'], ' ') }} @ {{ $invoice->percent($taxRate($tax['amount'])) }}%</td>
@@ -377,41 +406,64 @@
             </td>
         </tr>
     </table>
-
-    @if ($terms !== [])
-        <div class="section">
-            <div class="heading">Terms and Conditions</div>
-            <table class="terms">
-                @foreach ($terms as $term)
-                    <tr>
-                        <td class="n">{{ $loop->iteration }}.</td>
-                        @if ($term['label'] !== null)
-                            <td class="k">{{ $term['label'] }}</td>
-                            <td class="sep">:</td>
-                            <td>{{ $term['value'] }}</td>
-                        @else
-                            <td colspan="3">{{ $term['value'] }}</td>
-                        @endif
-                    </tr>
-                @endforeach
-            </table>
+    @if ($hasBank)
+        <div class="words" style="margin-top: 6px; margin-bottom: 0;">
+            <span class="k">Amount in words:</span> <span class="v">{{ $inWords }}</span>
         </div>
     @endif
 
-    @if ($quotation->notes)
-        <div class="section">
-            <div class="heading">Notes</div>
-            <div>{!! nl2br(e($quotation->notes)) !!}</div>
-        </div>
+    {{-- Terms and notes share a row of boxes, each taking the full width when alone. --}}
+    @php
+        $hasNotes = filled($quotation->notes);
+        $termsWidth = $hasNotes ? '64%' : '100%';
+    @endphp
+    @if ($terms !== [] || $hasNotes)
+        <table class="notes-terms" style="page-break-inside: avoid;">
+            <tr>
+                @if ($terms !== [])
+                    <td class="label" style="width: {{ $termsWidth }};">Terms and Conditions</td>
+                @endif
+                @if ($terms !== [] && $hasNotes)
+                    <td class="gap"></td>
+                @endif
+                @if ($hasNotes)
+                    <td class="label">Notes</td>
+                @endif
+            </tr>
+            <tr>
+                @if ($terms !== [])
+                    <td class="body">
+                        <table class="terms">
+                            @foreach ($terms as $term)
+                                <tr>
+                                    <td class="n">{{ $loop->iteration }}.</td>
+                                    @if ($term['label'] !== null)
+                                        <td class="k">{{ $term['label'] }}</td>
+                                        <td class="sep">:</td>
+                                        <td>{{ $term['value'] }}</td>
+                                    @else
+                                        <td colspan="3">{{ $term['value'] }}</td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                        </table>
+                    </td>
+                @endif
+                @if ($terms !== [] && $hasNotes)
+                    <td class="gap"></td>
+                @endif
+                @if ($hasNotes)
+                    <td class="body">{!! nl2br(e($quotation->notes)) !!}</td>
+                @endif
+            </tr>
+        </table>
     @endif
 
-    {{-- Holds room at the end of the flow so the pinned sign-off below lands on the last page without covering anything. --}}
-    <div style="height: 86px;"></div>
+    {{-- The sign-off follows straight on from the terms, so a quotation that fits one page stays on one page. --}}
     <table class="signoff">
         <tr>
-            <td style="width: 50%;"></td>
-            <td style="width: 15%;"></td>
-            <td class="center" style="width: 35%;">
+            <td style="width: 70%;"></td>
+            <td class="center" style="width: 30%;">
                 <div class="strong">For {{ $companyName }}</div>
                 <div class="line">Authorised Signatory</div>
             </td>

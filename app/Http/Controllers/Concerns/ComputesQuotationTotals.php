@@ -19,11 +19,13 @@ trait ComputesQuotationTotals
      * it was given.
      * An agent commission is then spread over the lines in proportion to their
      * value, so the printed prices carry it without stating it.
+     * Freight is charged on top of the lines and taxed at its own rate, its
+     * tax joining the lines' in the CGST/SGST or IGST split.
      *
      * @param  array<int, array{product_id?: int|null, description: string, hsn_code?: string|null, quantity: numeric-string|float, rate_tier?: string|null, price_basis?: string|null, list_price?: numeric-string|float|null, price_percent?: numeric-string|float|null, unit_price: numeric-string|float, tax_percentage?: numeric-string|float|null}>  $items
      * @return array{rows: array<int, array<string, mixed>>, totals: array<string, float>}
      */
-    protected function computeQuotationTotals(array $items, float $discount, string $supplyType, float $agentCommission = 0.0): array
+    protected function computeQuotationTotals(array $items, float $discount, string $supplyType, float $agentCommission = 0.0, float $freight = 0.0, float $freightTaxPercent = Quotation::DEFAULT_FREIGHT_TAX_PERCENT): array
     {
         $items = array_map(fn (array $item): array => $this->withBasePrice($item), $items);
 
@@ -76,6 +78,10 @@ trait ComputesQuotationTotals
             ];
         }
 
+        $freight = round(max($freight, 0.0), 2);
+        $freightTaxPercent = $freight > 0 ? $freightTaxPercent : Quotation::DEFAULT_FREIGHT_TAX_PERCENT;
+        $totalTax += round($freight * $freightTaxPercent / 100, 2);
+
         $totalTax = round($totalTax, 2);
         $cgst = $sgst = $igst = 0.0;
 
@@ -92,11 +98,13 @@ trait ComputesQuotationTotals
                 'subtotal' => round($subtotal, 2),
                 'discount' => round($discount, 2),
                 'agent_commission' => round($agentCommission, 2),
+                'freight' => $freight,
+                'freight_tax_percent' => $freightTaxPercent,
                 'tax_amount' => $totalTax,
                 'cgst_amount' => $cgst,
                 'sgst_amount' => $sgst,
                 'igst_amount' => $igst,
-                'total' => round($subtotal - $discount + $totalTax, 2),
+                'total' => round($subtotal - $discount + $freight + $totalTax, 2),
             ],
         ];
     }
