@@ -132,3 +132,18 @@ test('branch scoping is automatically applied for search results based on user r
     $adminData = $adminResponse->json();
     expect($adminData['projects'])->toHaveCount(2);
 });
+
+test('products can be found by their code', function () {
+    $user = User::factory()->create(['branch_id' => Branch::factory()]);
+    $user->assignRole('Sales Executive');
+    $product = Product::factory()->create(['name' => 'Slotted Channel', 'code' => 'GISR1.2', 'brand_id' => Brand::factory()]);
+    $user->brands()->sync([$product->brand_id]);
+
+    $data = $this->actingAs($user)
+        ->getJson(route('global-search', ['q' => 'GISR1.2']))
+        ->assertOk()
+        ->json();
+
+    expect($data['products'])->toHaveCount(1);
+    expect($data['products'][0]['code'])->toBe('GISR1.2');
+});

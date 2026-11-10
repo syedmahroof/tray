@@ -45,7 +45,7 @@ type SearchResults = {
     projects: Entity[];
     builders: Entity[];
     contacts: PersonEntity[];
-    products: Entity[];
+    products: (Entity & { code: string | null })[];
     customers: PersonEntity[];
     enquiries: EnquiryEntity[];
     visit_reports: VisitReportEntity[];
@@ -301,6 +301,12 @@ onBeforeUnmount(() => {
                     >
                         <Package class="h-4 w-4 shrink-0 text-emerald-500" />
                         <span class="truncate">{{ product.name }}</span>
+                        <span
+                            v-if="product.code"
+                            class="ml-auto shrink-0 font-mono text-xs text-muted-foreground"
+                        >
+                            {{ product.code }}
+                        </span>
                     </button>
                 </div>
 

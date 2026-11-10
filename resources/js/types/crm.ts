@@ -342,6 +342,7 @@ export type OrderProductOption = NamedOption & {
 
 /** A product in the quotation line picker, with its ex-tax rates per branch. */
 export type QuotationProductOption = NamedOption & {
+    code: string | null;
     price: string | null;
     taxable_amount: string | null;
     hsn_code: string | null;

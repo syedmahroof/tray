@@ -147,6 +147,27 @@ test('the product search returns matching products a page at a time, with their 
         ->assertJsonMissing(['name' => 'Slotted Channel']);
 });
 
+test('the product search also matches product codes', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $brand = Brand::factory()->create();
+    $manager->brands()->sync([$brand->id]);
+
+    Product::factory()->create(['name' => 'Brass Ball Valve 15 MM', 'code' => 'GM20015', 'brand_id' => $brand->id]);
+    Product::factory()->create(['name' => 'Brass Ball Valve 20 MM', 'code' => 'GM20020', 'brand_id' => $brand->id]);
+
+    $this->actingAs($manager)
+        ->getJson(route('quotations.products', ['search' => 'gm20015']))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.code', 'GM20015');
+
+    $this->actingAs($manager)
+        ->getJson(route('quotations.products', ['search' => 'GM200 valve']))
+        ->assertJsonCount(2, 'data');
+});
+
 test('the edit form preloads only the products its lines use', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

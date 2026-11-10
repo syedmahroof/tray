@@ -208,7 +208,7 @@ onBeforeUnmount(() => {
                 <Input
                     ref="searchInput"
                     v-model="search"
-                    placeholder="Search products…"
+                    placeholder="Search by name or code…"
                     class="h-8"
                     data-test="product-search"
                     @keydown="onKeydown"
@@ -248,6 +248,12 @@ onBeforeUnmount(() => {
                         "
                     />
                     <span class="truncate">{{ product.name }}</span>
+                    <span
+                        v-if="product.code"
+                        class="ml-auto shrink-0 pl-2 font-mono text-xs text-muted-foreground"
+                    >
+                        {{ product.code }}
+                    </span>
                 </button>
                 <div
                     v-if="loading"

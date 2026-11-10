@@ -74,11 +74,12 @@ class GlobalSearchController extends Controller
             ]);
 
         $products = Product::query()
-            ->where('name', 'like', "%{$query}%")
+            ->where(fn ($q) => $q->where('name', 'like', "%{$query}%")->orWhere('code', 'like', "%{$query}%"))
             ->limit(5)
-            ->get(['id', 'name'])
+            ->get(['id', 'code', 'name'])
             ->map(fn ($product) => [
                 'id' => $product->id,
+                'code' => $product->code,
                 'name' => $product->name,
                 'url' => route('products.show', $product),
             ]);

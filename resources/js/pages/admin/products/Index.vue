@@ -181,7 +181,7 @@ const confirmDelete = (product: ProductListItem) => {
                         <Input
                             v-model="search"
                             type="search"
-                            placeholder="Search products…"
+                            placeholder="Search by name or code…"
                             class="px-9"
                             data-test="search-input"
                         />
