@@ -104,7 +104,8 @@ class QuotationDocument
     /**
      * The company identity printed on this quotation: the raising branch's
      * letterhead, with the brand behind the host supplying only what a
-     * branch does not keep (its state, declaration and the like).
+     * branch does not keep (its state, declaration and the like). The
+     * branch's city is not printed.
      *
      * @return array<string, mixed>
      */
@@ -112,7 +113,7 @@ class QuotationDocument
     {
         return [
             ...Branding::companyForHost($host),
-            ...($quotation->branch?->letterhead() ?? []),
+            ...($quotation->branch?->letterhead(withCity: false) ?? []),
         ];
     }
 

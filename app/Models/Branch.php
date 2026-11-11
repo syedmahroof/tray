@@ -122,16 +122,17 @@ class Branch extends Model
      * The company identity this branch prints on its paperwork. Each branch
      * stands on its own: a detail left blank is left off the page rather
      * than borrowed from another company, and the name falls back to the
-     * branch's own.
+     * branch's own. The city can be left off where the address alone says
+     * enough, as it does on a quotation.
      *
      * @return array{name: string, address: list<string>, phone: string|null, mobile: string|null, email: string|null, website: string|null, gstin: string|null, bank: array<string, string|null>|null}
      */
-    public function letterhead(): array
+    public function letterhead(bool $withCity = true): array
     {
         // \R also catches the line separators text pasted from Word or a PDF carries.
         $address = array_values(array_filter(array_map('trim', preg_split('/\R/u', (string) $this->address) ?: []), 'filled'));
 
-        if (filled($this->city)) {
+        if ($withCity && filled($this->city)) {
             $address[] = $this->city;
         }
 

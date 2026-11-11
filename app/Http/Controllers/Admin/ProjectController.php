@@ -54,7 +54,7 @@ class ProjectController extends Controller
                 'completed' => (int) $statusCounts->get('completed', 0),
             ],
             'projects' => $this->filteredQuery($request)
-                ->with(['builder', 'projectCategory', 'assignee', 'creator'])
+                ->with(['builder', 'projectCategory', 'assignee', 'creator', 'locationMaster:id,name', 'district:id,name'])
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),

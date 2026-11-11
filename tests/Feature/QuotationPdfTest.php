@@ -530,6 +530,16 @@ test('bank details sit beside the totals, and terms and notes share a row of box
         ->toMatch('/class="notes-terms"[^>]*>\s*<tr>\s*<td class="label" style="width: 64%;">Terms and Conditions<\/td>\s*<td class="gap"><\/td>\s*<td class="label">Notes<\/td>/s');
 });
 
+test('the branch city is left off the quotation', function () {
+    $this->quotation->branch->update(['address' => "12, MG Road\nKochi", 'city' => 'Ernakulam']);
+
+    $company = QuotationDocument::company($this->quotation->fresh(), 'localhost');
+    $html = view('quotations.pdf', QuotationDocument::for($this->quotation->fresh(), 'localhost'))->render();
+
+    expect($company['address'])->toBe(['12, MG Road', 'Kochi'])
+        ->and($html)->not->toContain('Ernakulam');
+});
+
 test('an address pasted with Word or PDF line separators keeps its line breaks', function () {
     $this->quotation->branch->update(['address' => "59/4699, Panchavadi Arcade,\u{2028}M.N. Road, Calicut\r\nKerala", 'city' => null]);
 

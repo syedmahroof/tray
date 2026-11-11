@@ -523,6 +523,7 @@ const confirmDelete = (project: ProjectListItem) => {
                             <TableHead class="w-12">S.No.</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Builder</TableHead>
+                            <TableHead>Location</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Assigned to</TableHead>
@@ -549,6 +550,23 @@ const confirmDelete = (project: ProjectListItem) => {
                                 </Link>
                             </TableCell>
                             <TableCell>{{ project.builder?.name }}</TableCell>
+                            <TableCell
+                                :data-test="`project-location-${project.id}`"
+                            >
+                                <div class="text-sm">
+                                    {{
+                                        project.location_master?.name ??
+                                        project.location ??
+                                        '—'
+                                    }}
+                                </div>
+                                <div
+                                    v-if="project.district"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{ project.district.name }}
+                                </div>
+                            </TableCell>
                             <TableCell>{{
                                 project.project_category?.name
                             }}</TableCell>
@@ -610,7 +628,7 @@ const confirmDelete = (project: ProjectListItem) => {
                         </TableRow>
                         <TableRow v-if="projects.data.length === 0">
                             <TableCell
-                                :colspan="8"
+                                :colspan="9"
                                 class="text-center text-muted-foreground"
                             >
                                 No projects yet.

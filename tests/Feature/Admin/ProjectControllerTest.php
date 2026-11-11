@@ -346,3 +346,23 @@ test('the project index can be filtered by assignee', function () {
             ->where('projects.data.0.name', 'Assigned Project')
             ->where('filters.assignee_id', (string) $assignee->id));
 });
+
+test('the project index shows each project\'s location and district', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $location = Location::factory()->create(['name' => 'Kakkanad']);
+    Project::factory()->create([
+        'name' => 'A Picked Location',
+        'district_id' => $location->district_id,
+        'location_id' => $location->id,
+    ]);
+    Project::factory()->create(['name' => 'B Typed Location', 'location' => 'Near Infopark', 'location_id' => null, 'district_id' => null]);
+
+    $this->actingAs($admin)
+        ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('projects.data.0.location_master.name', 'Kakkanad')
+            ->where('projects.data.0.district.name', $location->district->name)
+            ->where('projects.data.1.location_master', null)
+            ->where('projects.data.1.location', 'Near Infopark'));
+});
