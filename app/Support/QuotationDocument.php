@@ -164,10 +164,34 @@ class QuotationDocument
     }
 
     /**
-     * Render the printable page.
+     * Render the printable page. The items box is stretched down a short
+     * quotation's page; should that stretch tip the quotation onto another
+     * page, it is set again without it.
      */
     public static function render(Quotation $quotation, string $host): PdfDocument
     {
-        return Pdf::loadView('quotations.pdf', self::for($quotation, $host));
+        $data = self::for($quotation, $host);
+        $html = view('quotations.pdf', $data)->render();
+
+        if (str_contains($html, 'class="filler"') && ($pages = self::pageCount($html)) > 1) {
+            $unstretched = view('quotations.pdf', [...$data, 'fillItems' => false])->render();
+
+            if (self::pageCount($unstretched) < $pages) {
+                $html = $unstretched;
+            }
+        }
+
+        return Pdf::loadHTML($html);
+    }
+
+    /**
+     * The number of pages the page markup runs to once set.
+     */
+    private static function pageCount(string $html): int
+    {
+        $pdf = Pdf::loadHTML($html);
+        $pdf->render();
+
+        return $pdf->getDomPDF()->getCanvas()->get_page_count();
     }
 }

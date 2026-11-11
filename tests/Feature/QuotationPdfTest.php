@@ -395,6 +395,47 @@ test('a long quotation runs over several pages with the sign-off only once, at t
         ->toContain('Line item number 50');
 });
 
+test('a short quotation keeps its items box open down the page and still prints on one page', function (bool $withBackground) {
+    Storage::fake('public');
+    $this->quotation->items()->where('description', '!=', 'PC WALL BRACKET 24"')->delete();
+    $this->quotation->branch->update([
+        'bank_name' => 'Axis bank',
+        'bank_account_number' => '921020043177051',
+        'bank_ifsc' => 'UTIB0003079',
+        'bank_branch' => 'Jayamahal Extension',
+        'quotation_background_path' => $withBackground
+            ? UploadedFile::fake()->image('background.png', 1414, 2000)->store('branch-quotation-backgrounds', 'public')
+            : null,
+    ]);
+    $this->quotation->update([
+        'terms' => "GST : 18 % Included in above Grand Total rates.\nPayment : ADVANCE\nValidity : 20 DAYS\nDelivery Time : WITHIN 2 DAYS\nFreight Charge : FREE DELIVERY\nAll Above Prices Are Ex-Godown Karnataka.",
+        'notes' => 'DELIVERY',
+    ]);
+
+    $quotation = $this->quotation->fresh();
+    $html = view('quotations.pdf', QuotationDocument::for($quotation, 'localhost'))->render();
+    $pdf = QuotationDocument::render($quotation, 'localhost');
+
+    expect($html)->toMatch('/<tr class="filler">\s*<td colspan="7" style="height: [1-9]\d{2}px;"><\/td>/');
+    expect($pdf->getDomPDF()->getCanvas()->get_page_count())->toBe(1);
+})->with(['plain letterhead' => false, 'branch background' => true]);
+
+test('a quotation that fills its page leaves the items box at the height of its lines', function () {
+    $product = Product::factory()->create(['name' => 'FIBROCAST MHC', 'unit' => 'nos']);
+
+    QuotationItem::factory()->count(30)->create([
+        'quotation_id' => $this->quotation->id,
+        'product_id' => $product->id,
+        'description' => 'FIBROCAST MHC',
+        'quantity' => 1,
+        'unit_price' => 10,
+    ]);
+
+    $html = view('quotations.pdf', QuotationDocument::for($this->quotation->fresh(), 'localhost'))->render();
+
+    expect($html)->not->toContain('class="filler"');
+});
+
 test('a quotation without a customer or contact is billed to its builder', function () {
     $builder = Builder::factory()->create([
         'name' => 'Skyline Developers',

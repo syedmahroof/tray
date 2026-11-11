@@ -64,6 +64,17 @@
     $footerHeight = 30 + ($brandRows > 0 ? 18 + $brandRows * ($hasBrandLogos ? 38 : 20) : 0);
     // Lifts the page line clear of a background's own footer artwork.
     $footerLift = $background ? 22 : 0;
+    // A short quotation keeps its items box open down the page, so the totals,
+    // bank and terms sit low instead of riding up under the first line. The
+    // filler takes whatever room the lines, header and closing boxes leave.
+    $pageBody = 1123 - $headerSpace - ($footerHeight + 34 + $footerLift);
+    $lineHeight = fn (array $line): int => 16
+        + 11 * max(0, (int) ceil(mb_strlen((string) $line['description']) / 62) - 1)
+        + 10 * count(preg_split('/\R/u', (string) $line['detail'], -1, PREG_SPLIT_NO_EMPTY));
+    $closingRows = max(count($terms), count(preg_split('/\R/u', (string) $quotation->notes, -1, PREG_SPLIT_NO_EMPTY)));
+    $closingHeight = ($hasBank ? 150 : 115) + ($closingRows > 0 ? 30 + 10 * $closingRows : 0) + 65;
+    $partiesHeight = 175 + 12 * max(0, count(\App\Support\QuotationDocument::details($quotation)) - 4);
+    $itemsFiller = ($fillItems ?? true) === false ? 0 : max(0,$pageBody - $partiesHeight - $closingHeight - collect($lines)->sum($lineHeight) - 40);
     $inWords = 'Rupees '.ucwords(str_replace('-', ' ', (string) (new NumberFormatter('en_IN', NumberFormatter::SPELLOUT))->format($invoice->total()))).' Only';
 @endphp
 <!DOCTYPE html>
@@ -117,7 +128,8 @@
         .kv .k { color: #6b7280; width: 34%; white-space: nowrap; padding-right: 6px; }
         .kv .v { font-weight: bold; }
 
-        .items { margin-top: 8px; }
+        .items { margin-top: 8px; border: 1px solid #d8dde5; }
+        .items tr.filler td { border-bottom: none; padding: 0; }
         .items th { background: #1f3a5f; color: #ffffff; font-size: 7.5px; font-weight: bold; padding: 4px 4px; text-align: center; }
         .items th.left { text-align: left; }
         .items td { padding: 2px 4px; border-bottom: 1px solid #e5e8ee; font-size: 8.5px; line-height: 1.3; }
@@ -344,6 +356,11 @@
                     <td class="right strong">{{ $plain($line['net_amount']) }}</td>
                 </tr>
             @endforeach
+            @if ($itemsFiller > 0)
+                <tr class="filler">
+                    <td colspan="7" style="height: {{ $itemsFiller }}px;"></td>
+                </tr>
+            @endif
         </tbody>
     </table>
 
