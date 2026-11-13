@@ -405,6 +405,7 @@ export type Quotation = {
 export type QuotationListItem = Quotation & {
     customer: NamedOption | null;
     contact: NamedOption | null;
+    builder: NamedOption | null;
     project: NamedOption | null;
     creator: NamedOption | null;
 };

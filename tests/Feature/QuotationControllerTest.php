@@ -782,3 +782,24 @@ test('the quotation index can be filtered by status', function () {
             ->where('quotations.data.0.status', 'accepted')
             ->where('filters.status', 'accepted'));
 });
+
+test('the quotation index loads builders and projects and searches them by name', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $builder = Builder::factory()->create(['name' => 'Skyline Builders']);
+    $project = Project::factory()->create(['name' => 'Harbour Towers']);
+    Quotation::factory()->create(['customer_id' => null, 'contact_id' => null, 'project_id' => null, 'builder_id' => $builder->id]);
+    Quotation::factory()->create(['customer_id' => null, 'contact_id' => null, 'builder_id' => null, 'project_id' => $project->id]);
+
+    $this->actingAs($admin)
+        ->get(route('quotations.index', ['search' => 'skyline']))
+        ->assertInertia(fn ($page) => $page
+            ->has('quotations.data', 1)
+            ->where('quotations.data.0.builder.name', 'Skyline Builders'));
+
+    $this->actingAs($admin)
+        ->get(route('quotations.index', ['search' => 'harbour']))
+        ->assertInertia(fn ($page) => $page
+            ->has('quotations.data', 1)
+            ->where('quotations.data.0.project.name', 'Harbour Towers'));
+});

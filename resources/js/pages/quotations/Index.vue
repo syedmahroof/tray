@@ -70,6 +70,19 @@ import type {
     QuotationListItem,
 } from '@/types';
 
+/**
+ * Who the quotation is for: the customer, else the contact, builder or project.
+ */
+function partyName(quotation: QuotationListItem): string | null {
+    return (
+        quotation.customer?.name ??
+        quotation.contact?.name ??
+        quotation.builder?.name ??
+        quotation.project?.name ??
+        null
+    );
+}
+
 const props = defineProps<{
     quotations: Paginated<QuotationListItem>;
     statuses: string[];
@@ -276,7 +289,7 @@ const sendEmail = () => {
                         <Input
                             v-model="search"
                             type="search"
-                            placeholder="Search number or contact…"
+                            placeholder="Search number or party…"
                             class="px-9"
                             data-test="search-input"
                         />
@@ -341,7 +354,7 @@ const sendEmail = () => {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Number</TableHead>
-                            <TableHead>Contact</TableHead>
+                            <TableHead>Party</TableHead>
                             <TableHead>Quote Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead class="text-right">Total</TableHead>
@@ -363,7 +376,7 @@ const sendEmail = () => {
                                 </Link>
                             </TableCell>
                             <TableCell>{{
-                                quotation.contact?.name ?? '—'
+                                partyName(quotation) ?? '—'
                             }}</TableCell>
                             <TableCell>{{
                                 formatDate(quotation.quotation_date)
@@ -487,8 +500,8 @@ const sendEmail = () => {
                 <DialogTitle>Email quotation</DialogTitle>
                 <DialogDescription>
                     Send {{ quotationToEmail?.number }} with the PDF attached to
-                    {{ quotationToEmail?.contact?.name ?? 'the contact' }}. If
-                    the contact has no email address you'll be notified.
+                    {{ quotationToEmail?.customer?.name ?? 'the customer' }}. If
+                    the customer has no email address you'll be notified.
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>

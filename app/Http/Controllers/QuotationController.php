@@ -66,11 +66,14 @@ class QuotationController extends Controller
                 'accepted' => (int) $statusCounts->get('accepted', 0),
             ],
             'quotations' => Quotation::query()
-                ->with(['customer', 'contact', 'project', 'creator'])
+                ->with(['customer', 'contact', 'builder', 'project', 'creator'])
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('number', 'like', "%{$search}%")
-                            ->orWhereHas('contact', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
+                            ->orWhereHas('customer', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('contact', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('builder', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('project', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
                     });
                 })
                 ->when($status, fn ($query) => $query->where('status', $status))
@@ -96,11 +99,14 @@ class QuotationController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $quotations = Quotation::query()
-            ->with(['customer', 'contact', 'project', 'creator'])
+            ->with(['customer', 'contact', 'builder', 'project', 'creator'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('number', 'like', "%{$search}%")
-                        ->orWhereHas('contact', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('customer', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('contact', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('builder', fn ($sub) => $sub->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('project', fn ($sub) => $sub->where('name', 'like', "%{$search}%"));
                 });
             })
             ->when($request->input('status'), fn ($query, $value) => $query->where('status', $value))
@@ -110,7 +116,7 @@ class QuotationController extends Controller
 
         $rows = $quotations->map(fn (Quotation $quotation): array => [
             $quotation->number,
-            $quotation->contact?->name,
+            $quotation->customer?->name ?? $quotation->contact?->name ?? $quotation->builder?->name ?? $quotation->project?->name,
             $quotation->project?->name,
             $quotation->quotation_date?->format('Y-m-d'),
             ucfirst($quotation->status),
@@ -120,7 +126,7 @@ class QuotationController extends Controller
 
         return Excel::download(
             new GenericSheetExport(
-                ['Number', 'Contact', 'Project', 'Date', 'Status', 'Total', 'Created By'],
+                ['Number', 'Party', 'Project', 'Date', 'Status', 'Total', 'Created By'],
                 $rows,
             ),
             'quotations.xlsx',
