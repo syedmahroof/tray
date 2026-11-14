@@ -9,6 +9,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DEFAULT_TIMEZONE } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 
@@ -29,7 +30,7 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const selectedTimezone = ref(user.value?.timezone || 'UTC');
+const selectedTimezone = ref(user.value?.timezone || DEFAULT_TIMEZONE);
 
 const timezoneOptions = computed(() =>
     props.timezones.map((tz) => ({
