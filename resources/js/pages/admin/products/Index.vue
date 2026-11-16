@@ -315,6 +315,7 @@ const confirmDelete = (product: ProductListItem) => {
                             <TableCell class="font-medium">
                                 <div class="flex items-center gap-3">
                                     <Thumbnail
+                                        :fallback-icon="Package"
                                         :src="product.image_url"
                                         :name="product.name"
                                     />

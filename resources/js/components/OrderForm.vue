@@ -29,6 +29,7 @@ import {
     orderRoutes,
     orderStatusLabel,
 } from '@/lib/orders';
+import { productPickerOption } from '@/lib/products';
 import type {
     Branch,
     OrderDetail,
@@ -106,14 +107,7 @@ const selectParty = (id: string | undefined) => {
 
     form.gstin = party?.gst_number ?? '';
 };
-const productOptions = computed(() =>
-    props.products.map((product) => ({
-        value: String(product.id),
-        label: product.code
-            ? `${product.name} (${product.code})`
-            : product.name,
-    })),
-);
+const productOptions = computed(() => props.products.map(productPickerOption));
 const productFor = (id: string | undefined) =>
     props.products.find((product) => String(product.id) === id);
 const addItem = () => form.items.push(emptyItem());
@@ -308,11 +302,17 @@ const submit = () => {
                                     v-model="item.product_id"
                                     :options="productOptions"
                                     placeholder="Select product"
+                                    thumbnails
+                                    content-class="w-[28rem] max-w-[90vw]"
                                     @update:model-value="selectProduct(index)"
                                 />
                             </TableCell>
                             <TableCell>
-                                <Input v-model="item.description" />
+                                <Textarea
+                                    v-model="item.description"
+                                    rows="1"
+                                    class="min-h-9 resize-none py-1.5 leading-snug"
+                                />
                                 <InputError
                                     class="mt-1"
                                     :message="

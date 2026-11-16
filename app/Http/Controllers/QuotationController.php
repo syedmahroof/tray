@@ -508,9 +508,9 @@ class QuotationController extends Controller
     private function productOptionsQuery(): EloquentBuilder
     {
         return Product::query()
-            ->with('branchPrices:id,product_id,branch_id,cost,mrp,rate_basis,sr_discount,sr_rate,pr_discount,pr_rate,cr_discount,cr_rate')
+            ->with(['brand:id,name', 'branchPrices:id,product_id,branch_id,cost,mrp,rate_basis,sr_discount,sr_rate,pr_discount,pr_rate,cr_discount,cr_rate'])
             ->orderBy('name')
-            ->select(['id', 'code', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']);
+            ->select(['id', 'code', 'name', 'brand_id', 'image_path', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']);
     }
 
     /**
@@ -524,7 +524,8 @@ class QuotationController extends Controller
     private function productOption(Product $product): array
     {
         return [
-            ...$product->only(['id', 'code', 'name', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+            ...$product->only(['id', 'code', 'name', 'image_url', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+            'brand' => $product->brand?->only(['id', 'name']),
             'rates' => $product->branchPrices->mapWithKeys(fn (ProductBranchPrice $price): array => [
                 $price->branch_id => [
                     'SR' => $price->sr_rate,

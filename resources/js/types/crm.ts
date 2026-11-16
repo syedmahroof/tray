@@ -331,8 +331,17 @@ export type OrderDetail = Order & {
     items: OrderItem[];
 };
 
-export type OrderProductOption = NamedOption & {
+/** What a product picker shows under a product's name, and its picture. */
+export type ProductPickerDetails = {
     code: string | null;
+    image_url: string | null;
+    brand: NamedOption | null;
+};
+
+/** A product as the enquiry and project pickers receive it. */
+export type ProductPickerOption = NamedOption & ProductPickerDetails;
+
+export type OrderProductOption = ProductPickerOption & {
     unit: string | null;
     hsn_code: string | null;
     price: string | null;
@@ -341,8 +350,7 @@ export type OrderProductOption = NamedOption & {
 };
 
 /** A product in the quotation line picker, with its ex-tax rates per branch. */
-export type QuotationProductOption = NamedOption & {
-    code: string | null;
+export type QuotationProductOption = ProductPickerOption & {
     price: string | null;
     taxable_amount: string | null;
     hsn_code: string | null;

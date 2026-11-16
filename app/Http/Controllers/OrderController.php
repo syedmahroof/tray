@@ -205,8 +205,9 @@ class OrderController extends Controller
                 : [],
             'products' => Product::query()
                 ->selectable($order?->items->pluck('product_id') ?? [])
+                ->with('brand:id,name')
                 ->orderBy('name')
-                ->get(['id', 'name', 'code', 'unit', 'hsn_code', 'price', 'taxable_amount', 'tax_percentage']),
+                ->get(['id', 'name', 'code', 'brand_id', 'image_path', 'unit', 'hsn_code', 'price', 'taxable_amount', 'tax_percentage']),
             'statuses' => Order::STATUSES,
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'defaultBranchId' => request()->user()?->branch_id,

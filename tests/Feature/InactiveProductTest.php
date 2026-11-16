@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\Contact;
 use App\Models\Order;
 use App\Models\Product;
@@ -100,6 +101,21 @@ test('inactive products are hidden from order, enquiry and project pickers', fun
             ->assertInertia(fn ($page) => $page
                 ->has('products', 1)
                 ->where('products.0.name', 'Active Cover'));
+    }
+});
+
+test('order, enquiry and project pickers carry each product brand, code and image', function () {
+    $brand = Brand::factory()->create(['name' => 'Zoloto']);
+    Product::factory()->create(['name' => 'Gate Valve', 'code' => 'ZV25', 'brand_id' => $brand->id, 'image_path' => 'products/gate-valve.png']);
+
+    foreach (['sales-orders.create', 'enquiries.create', 'projects.create'] as $routeName) {
+        $this->actingAs($this->admin)
+            ->get(route($routeName))
+            ->assertInertia(fn ($page) => $page
+                ->where('products.0.code', 'ZV25')
+                ->where('products.0.brand.name', 'Zoloto')
+                ->where('products.0.image_url', fn (?string $url) => str_contains((string) $url, 'products/gate-valve.png'))
+                ->etc());
     }
 });
 

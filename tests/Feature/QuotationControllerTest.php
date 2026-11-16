@@ -168,6 +168,24 @@ test('the product search also matches product codes', function () {
         ->assertJsonCount(2, 'data');
 });
 
+test('the product search gives each product its brand and image for the picker', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $brand = Brand::factory()->create(['name' => 'Zoloto']);
+    $manager->brands()->sync([$brand->id]);
+
+    Product::factory()->create(['name' => 'Gate Valve 25 MM', 'code' => 'ZV25', 'brand_id' => $brand->id, 'image_path' => 'products/gate-valve.png']);
+
+    $response = $this->actingAs($manager)
+        ->getJson(route('quotations.products', ['search' => 'gate valve']))
+        ->assertOk()
+        ->assertJsonPath('data.0.code', 'ZV25')
+        ->assertJsonPath('data.0.brand.name', 'Zoloto');
+
+    expect($response->json('data.0.image_url'))->toContain('products/gate-valve.png');
+});
+
 test('the edit form preloads only the products its lines use', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

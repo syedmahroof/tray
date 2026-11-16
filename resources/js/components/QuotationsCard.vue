@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { FileText, Plus } from '@lucide/vue';
+import QuotationStatusBadge from '@/components/QuotationStatusBadge.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,22 +23,6 @@ defineProps<{
     createHref?: string;
     canCreate?: boolean;
 }>();
-
-const statusVariant = (status: string) => {
-    if (status === 'accepted') {
-        return 'default' as const;
-    }
-
-    if (status === 'rejected' || status === 'expired') {
-        return 'destructive' as const;
-    }
-
-    if (status === 'sent') {
-        return 'outline' as const;
-    }
-
-    return 'secondary' as const;
-};
 
 const money = (value: string | number) =>
     `₹${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -99,12 +84,7 @@ const money = (value: string | number) =>
                             formatDate(quotation.quotation_date)
                         }}</TableCell>
                         <TableCell>
-                            <Badge
-                                :variant="statusVariant(quotation.status)"
-                                class="capitalize"
-                            >
-                                {{ quotation.status }}
-                            </Badge>
+                            <QuotationStatusBadge :status="quotation.status" />
                         </TableCell>
                         <TableCell class="text-right tabular-nums">{{
                             money(quotation.total)

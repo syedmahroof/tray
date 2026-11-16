@@ -1,4 +1,4 @@
-import type { RateBasis, RateTier } from '@/types';
+import type { ProductPickerOption, RateBasis, RateTier } from '@/types';
 
 /** Units of measure used across the catalogue. */
 export const UNIT_OPTIONS = ['Mtr', 'Nos', 'Kg', 'Sqm', 'Ltr', 'Set'] as const;
@@ -187,3 +187,16 @@ export const impliedFreight = (
 
     return Math.max(0, roundTo2(best.basis - cost));
 };
+
+/** The brand and code shown under a product's name in pickers. */
+export const productDetailsLine = (
+    product: Pick<ProductPickerOption, 'code' | 'brand'>,
+): string => [product.brand?.name, product.code].filter(Boolean).join(' · ');
+
+/** A product as a combobox option: its full name, details line and picture. */
+export const productPickerOption = (product: ProductPickerOption) => ({
+    value: String(product.id),
+    label: product.name,
+    description: productDetailsLine(product) || undefined,
+    image: product.image_url,
+});

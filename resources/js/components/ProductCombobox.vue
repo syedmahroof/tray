@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, LoaderCircle } from '@lucide/vue';
+import { Package, Check, ChevronsUpDown, LoaderCircle } from '@lucide/vue';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import Thumbnail from '@/components/Thumbnail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -8,6 +9,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { productDetailsLine } from '@/lib/products';
 import { cn } from '@/lib/utils';
 import { products as searchProducts } from '@/routes/quotations';
 import type { QuotationProductOption } from '@/types';
@@ -19,8 +21,8 @@ import type { QuotationProductOption } from '@/types';
 const props = defineProps<{
     /** The selected product's id. */
     modelValue?: string;
-    /** The selected product's name, shown on the trigger. */
-    selectedLabel?: string;
+    /** The selected product, shown on the trigger with its brand, code and picture. */
+    selected?: QuotationProductOption;
     placeholder?: string;
     contentClass?: string;
 }>();
@@ -184,18 +186,33 @@ onBeforeUnmount(() => {
                 variant="outline"
                 role="combobox"
                 :aria-expanded="open"
-                :title="props.selectedLabel"
-                class="w-full justify-between font-normal"
+                :title="props.selected?.name"
+                class="h-auto min-h-9 w-full justify-between py-1.5 text-left font-normal whitespace-normal"
             >
                 <span
-                    :class="
-                        cn(
-                            'truncate',
-                            !props.selectedLabel && 'text-muted-foreground',
-                        )
-                    "
+                    v-if="props.selected"
+                    class="flex min-w-0 items-center gap-2"
                 >
-                    {{ props.selectedLabel ?? placeholder ?? 'Select…' }}
+                    <Thumbnail
+                        v-if="props.selected.image_url"
+                        :src="props.selected.image_url"
+                        :name="props.selected.name"
+                        class="size-8"
+                    />
+                    <span class="min-w-0">
+                        <span class="block leading-snug break-words">
+                            {{ props.selected.name }}
+                        </span>
+                        <span
+                            v-if="productDetailsLine(props.selected)"
+                            class="block text-xs text-muted-foreground"
+                        >
+                            {{ productDetailsLine(props.selected) }}
+                        </span>
+                    </span>
+                </span>
+                <span v-else class="text-muted-foreground">
+                    {{ placeholder ?? 'Select…' }}
                 </span>
                 <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -217,7 +234,7 @@ onBeforeUnmount(() => {
             <div
                 ref="list"
                 role="listbox"
-                class="max-h-72 overflow-y-auto p-1"
+                class="max-h-96 overflow-y-auto p-1"
                 @scroll="onScroll"
             >
                 <button
@@ -229,7 +246,7 @@ onBeforeUnmount(() => {
                     :aria-selected="String(product.id) === modelValue"
                     :class="
                         cn(
-                            'flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm',
+                            'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm',
                             index === highlighted &&
                                 'bg-accent text-accent-foreground',
                         )
@@ -240,19 +257,35 @@ onBeforeUnmount(() => {
                     <Check
                         :class="
                             cn(
-                                'mr-2 h-4 w-4 shrink-0',
+                                'h-4 w-4 shrink-0',
                                 String(product.id) === modelValue
                                     ? 'opacity-100'
                                     : 'opacity-0',
                             )
                         "
                     />
-                    <span class="truncate">{{ product.name }}</span>
-                    <span
-                        v-if="product.code"
-                        class="ml-auto shrink-0 pl-2 font-mono text-xs text-muted-foreground"
-                    >
-                        {{ product.code }}
+                    <Thumbnail
+                        :fallback-icon="Package"
+                        :src="product.image_url"
+                        :name="product.name"
+                    />
+                    <span class="min-w-0 flex-1">
+                        <span class="block leading-snug break-words">
+                            {{ product.name }}
+                        </span>
+                        <span
+                            v-if="productDetailsLine(product)"
+                            :class="
+                                cn(
+                                    'block text-xs',
+                                    index === highlighted
+                                        ? 'text-accent-foreground/70'
+                                        : 'text-muted-foreground',
+                                )
+                            "
+                        >
+                            {{ productDetailsLine(product) }}
+                        </span>
                     </span>
                 </button>
                 <div

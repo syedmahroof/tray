@@ -920,7 +920,7 @@ const submit = () => {
                         <TableHeader>
                             <TableRow class="hover:bg-transparent">
                                 <TableHead class="w-10 pl-6">#</TableHead>
-                                <TableHead class="w-56">Product</TableHead>
+                                <TableHead class="w-80">Product</TableHead>
                                 <TableHead>Description *</TableHead>
                                 <TableHead class="w-24">HSN</TableHead>
                                 <TableHead class="w-20 text-right"
@@ -953,9 +953,7 @@ const submit = () => {
                                 <TableCell>
                                     <ProductCombobox
                                         :model-value="item.product_id"
-                                        :selected-label="
-                                            productFor(item.product_id)?.name
-                                        "
+                                        :selected="productFor(item.product_id)"
                                         placeholder="Select product"
                                         content-class="w-[28rem] max-w-[90vw]"
                                         @select="
@@ -965,8 +963,10 @@ const submit = () => {
                                     />
                                 </TableCell>
                                 <TableCell class="whitespace-normal">
-                                    <Input
+                                    <Textarea
                                         v-model="item.description"
+                                        rows="1"
+                                        class="min-h-9 resize-none py-1.5 leading-snug"
                                         placeholder="Item description"
                                         :data-test="`description-${index}`"
                                     />

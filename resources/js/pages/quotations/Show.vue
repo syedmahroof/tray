@@ -18,6 +18,7 @@ import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import QuotationSheet from '@/components/QuotationSheet.vue';
+import QuotationStatusBadge from '@/components/QuotationStatusBadge.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,22 +90,6 @@ defineOptions({
 });
 
 const permissions = computed(() => usePage().props.auth.permissions);
-
-const statusVariant = (status: string) => {
-    if (status === 'accepted') {
-        return 'default' as const;
-    }
-
-    if (status === 'rejected' || status === 'expired') {
-        return 'destructive' as const;
-    }
-
-    if (status === 'sent') {
-        return 'outline' as const;
-    }
-
-    return 'secondary' as const;
-};
 
 const money = (value: string | number) =>
     `₹${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -236,12 +221,7 @@ const createRevision = () => {
                 <DropdownMenu v-if="canUpdate">
                     <DropdownMenuTrigger as-child>
                         <Button variant="outline">
-                            <Badge
-                                :variant="statusVariant(quotation.status)"
-                                class="capitalize"
-                            >
-                                {{ quotation.status }}
-                            </Badge>
+                            <QuotationStatusBadge :status="quotation.status" />
                             <ChevronDown
                                 class="h-4 w-4 text-muted-foreground"
                             />
@@ -455,12 +435,7 @@ const createRevision = () => {
 
                 <div class="flex justify-between gap-4">
                     <span class="text-muted-foreground">Status</span>
-                    <Badge
-                        :variant="statusVariant(quotation.status)"
-                        class="capitalize"
-                    >
-                        {{ quotation.status }}
-                    </Badge>
+                    <QuotationStatusBadge :status="quotation.status" />
                 </div>
             </CardContent>
         </Card>
@@ -510,12 +485,9 @@ const createRevision = () => {
                                 formatDate(version.created_at)
                             }}</TableCell>
                             <TableCell>
-                                <Badge
-                                    :variant="statusVariant(version.status)"
-                                    class="capitalize"
-                                >
-                                    {{ version.status }}
-                                </Badge>
+                                <QuotationStatusBadge
+                                    :status="version.status"
+                                />
                             </TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 money(version.total)

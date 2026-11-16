@@ -15,21 +15,24 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { productPickerOption } from '@/lib/products';
 import { edit, index, show, update } from '@/routes/enquiries';
 import {
-    contactOptionLabel,
-    type Branch,
-    type ContactSelectOption,
-    type Enquiry,
-    type NamedOption,
+    contactOptionLabel
+    
+    
+    
+    
+    
 } from '@/types';
+import type {Branch, ContactSelectOption, Enquiry, NamedOption, ProductPickerOption} from '@/types';
 
 const props = defineProps<{
     enquiry: Enquiry;
     customers: NamedOption[];
     contacts: ContactSelectOption[];
     projects: NamedOption[];
-    products: NamedOption[];
+    products: ProductPickerOption[];
     users: NamedOption[];
     statuses: string[];
     branches: Branch[];
@@ -66,12 +69,7 @@ const projectOptions = computed(() =>
 const userOptions = computed(() =>
     props.users.map((user) => ({ value: String(user.id), label: user.name })),
 );
-const productOptions = computed(() =>
-    props.products.map((product) => ({
-        value: String(product.id),
-        label: product.name,
-    })),
-);
+const productOptions = computed(() => props.products.map(productPickerOption));
 </script>
 
 <template>
@@ -96,7 +94,11 @@ const productOptions = computed(() =>
                         name="customer_id"
                         placeholder="Select a customer"
                         :options="customerOptions"
-                        :model-value="enquiry.customer_id ? String(enquiry.customer_id) : undefined"
+                        :model-value="
+                            enquiry.customer_id
+                                ? String(enquiry.customer_id)
+                                : undefined
+                        "
                     />
                     <InputError :message="errors.customer_id" />
                 </div>
@@ -107,7 +109,11 @@ const productOptions = computed(() =>
                         name="contact_id"
                         placeholder="Select a contact"
                         :options="contactOptions"
-                        :model-value="enquiry.contact_id ? String(enquiry.contact_id) : undefined"
+                        :model-value="
+                            enquiry.contact_id
+                                ? String(enquiry.contact_id)
+                                : undefined
+                        "
                     />
                     <InputError :message="errors.contact_id" />
                 </div>
@@ -135,6 +141,7 @@ const productOptions = computed(() =>
                         name="product_id"
                         placeholder="Select a product"
                         :options="productOptions"
+                        thumbnails
                         :model-value="
                             enquiry.product_id
                                 ? String(enquiry.product_id)

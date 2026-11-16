@@ -20,12 +20,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { productPickerOption } from '@/lib/products';
 import { edit, index, update } from '@/routes/projects';
 import type {
     Branch,
     ContactListItem,
     Country,
     NamedOption,
+    ProductPickerOption,
     Project,
     Route,
 } from '@/types';
@@ -40,15 +42,10 @@ const props = defineProps<{
     branches: Branch[];
     users: NamedOption[];
     contacts: ContactListItem[];
-    products: NamedOption[];
+    products: ProductPickerOption[];
 }>();
 
-const productOptions = computed(() =>
-    props.products.map((product) => ({
-        value: String(product.id),
-        label: product.name,
-    })),
-);
+const productOptions = computed(() => props.products.map(productPickerOption));
 
 const selectedProductIds = computed(() =>
     (props.project.products ?? []).map((product) => String(product.id)),
@@ -619,6 +616,7 @@ const removeProjectContact = (key: number) => {
                                     name="product_ids"
                                     placeholder="Select products (optional)"
                                     :options="productOptions"
+                                    thumbnails
                                     :model-value="selectedProductIds"
                                 />
                                 <InputError :message="errors.product_ids" />

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, X } from '@lucide/vue';
+import { Package, Check, ChevronsUpDown, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import Thumbnail from '@/components/Thumbnail.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,10 @@ import { cn } from '@/lib/utils';
 type Option = {
     value: string;
     label: string;
+    /** A second, smaller line under the label, e.g. a product's brand and code. */
+    description?: string;
+    /** A thumbnail URL; options without one show their initials when `thumbnails` is on. */
+    image?: string | null;
 };
 
 const props = withDefaults(
@@ -31,6 +36,10 @@ const props = withDefaults(
         emptyText?: string;
         disabled?: boolean;
         modelValue?: string[];
+        /** Show a picture beside each option, e.g. for products. */
+        thumbnails?: boolean;
+        /** Extra classes for the dropdown, e.g. to widen it past a narrow trigger. */
+        contentClass?: string;
     }>(),
     {
         modelValue: () => [],
@@ -110,7 +119,11 @@ const remove = (value: string) => {
                     <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent class="w-(--reka-popover-trigger-width) p-0">
+            <PopoverContent
+                :class="
+                    cn('w-(--reka-popover-trigger-width) p-0', contentClass)
+                "
+            >
                 <Command>
                     <CommandInput :placeholder="placeholder ?? 'Search…'" />
                     <CommandList>
@@ -134,7 +147,23 @@ const remove = (value: string) => {
                                         )
                                     "
                                 />
-                                {{ option.label }}
+                                <Thumbnail
+                                    :fallback-icon="Package"
+                                    v-if="thumbnails"
+                                    :src="option.image"
+                                    :name="option.label"
+                                />
+                                <span class="min-w-0 flex-1">
+                                    <span class="block break-words">
+                                        {{ option.label }}
+                                    </span>
+                                    <span
+                                        v-if="option.description"
+                                        class="block text-xs text-muted-foreground"
+                                    >
+                                        {{ option.description }}
+                                    </span>
+                                </span>
                             </CommandItem>
                         </CommandGroup>
                     </CommandList>
@@ -147,9 +176,24 @@ const remove = (value: string) => {
                 v-for="option in selectedOptions"
                 :key="option.value"
                 variant="secondary"
-                class="gap-1 pr-1"
+                class="h-auto gap-1.5 py-1 pr-1 text-left whitespace-normal"
             >
-                {{ option.label }}
+                <Thumbnail
+                    :fallback-icon="Package"
+                    v-if="thumbnails"
+                    :src="option.image"
+                    :name="option.label"
+                    class="size-5 rounded"
+                />
+                <span>
+                    {{ option.label }}
+                    <span
+                        v-if="option.description"
+                        class="text-muted-foreground"
+                    >
+                        · {{ option.description }}
+                    </span>
+                </span>
                 <button
                     type="button"
                     class="rounded-full p-0.5 hover:bg-muted-foreground/20"

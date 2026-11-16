@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, Plus } from '@lucide/vue';
+import { Package, Check, ChevronsUpDown, Plus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import Thumbnail from '@/components/Thumbnail.vue';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -20,6 +21,10 @@ import { cn } from '@/lib/utils';
 type Option = {
     value: string;
     label: string;
+    /** A second, smaller line under the label, e.g. a product's brand and code. */
+    description?: string;
+    /** A thumbnail URL; options without one show their initials when `thumbnails` is on. */
+    image?: string | null;
 };
 
 const props = defineProps<{
@@ -32,6 +37,8 @@ const props = defineProps<{
     contentClass?: string;
     /** Label for the inline create action; omit to hide it. */
     createLabel?: string;
+    /** Show a picture beside each option, e.g. for products. */
+    thumbnails?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -55,11 +62,11 @@ const startCreate = () => {
     emit('create', searchTerm.value.trim());
 };
 
-const selectedLabel = computed(
-    () =>
-        props.options.find((option) => option.value === modelValue.value)
-            ?.label,
+const selectedOption = computed(() =>
+    props.options.find((option) => option.value === modelValue.value),
 );
+
+const selectedLabel = computed(() => selectedOption.value?.label);
 
 const select = (value: string) => {
     modelValue.value = modelValue.value === value ? undefined : value;
@@ -79,17 +86,34 @@ const select = (value: string) => {
                 :aria-expanded="open"
                 :disabled="disabled"
                 :title="selectedLabel"
-                class="w-full justify-between font-normal"
+                class="h-auto min-h-9 w-full justify-between py-1.5 text-left font-normal whitespace-normal"
             >
-                <span
-                    :class="
-                        cn(
-                            'truncate',
-                            !selectedLabel && 'text-muted-foreground',
-                        )
-                    "
-                >
-                    {{ selectedLabel ?? placeholder ?? 'Select…' }}
+                <span class="flex min-w-0 items-center gap-2">
+                    <Thumbnail
+                        :fallback-icon="Package"
+                        v-if="thumbnails && selectedOption?.image"
+                        :src="selectedOption.image"
+                        :name="selectedOption.label"
+                        class="size-7"
+                    />
+                    <span class="min-w-0">
+                        <span
+                            :class="
+                                cn(
+                                    'block break-words',
+                                    !selectedLabel && 'text-muted-foreground',
+                                )
+                            "
+                        >
+                            {{ selectedLabel ?? placeholder ?? 'Select…' }}
+                        </span>
+                        <span
+                            v-if="selectedOption?.description"
+                            class="block text-xs text-muted-foreground"
+                        >
+                            {{ selectedOption.description }}
+                        </span>
+                    </span>
                 </span>
                 <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -125,7 +149,23 @@ const select = (value: string) => {
                                     )
                                 "
                             />
-                            {{ option.label }}
+                            <Thumbnail
+                                :fallback-icon="Package"
+                                v-if="thumbnails"
+                                :src="option.image"
+                                :name="option.label"
+                            />
+                            <span class="min-w-0 flex-1">
+                                <span class="block break-words">
+                                    {{ option.label }}
+                                </span>
+                                <span
+                                    v-if="option.description"
+                                    class="block text-xs text-muted-foreground"
+                                >
+                                    {{ option.description }}
+                                </span>
+                            </span>
                         </CommandItem>
                     </CommandGroup>
                 </CommandList>

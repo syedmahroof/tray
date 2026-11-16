@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { initializeIconTooltips } from '@/lib/iconTooltips';
 import { initializeNumberInputWheelGuard } from '@/lib/numberInputs';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -36,6 +37,9 @@ initializeFlashToast();
 
 // This will stop the mouse wheel changing number fields...
 initializeNumberInputWheelGuard();
+
+// This will show a tooltip over every icon-only button and link...
+initializeIconTooltips();
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

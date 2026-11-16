@@ -12,7 +12,6 @@ import {
     Package,
     ReceiptText,
 } from '@lucide/vue';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import NotesPanel from '@/components/NotesPanel.vue';
@@ -20,6 +19,7 @@ import QuotationsCard from '@/components/QuotationsCard.vue';
 import RemindersPanel from '@/components/RemindersPanel.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTabQuery } from '@/composables/useTabQuery';
 import { show as showContact } from '@/routes/contacts';

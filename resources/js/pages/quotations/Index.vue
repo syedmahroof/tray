@@ -21,9 +21,9 @@ import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import QuotationStatusBadge from '@/components/QuotationStatusBadge.vue';
 import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -179,22 +179,6 @@ const statCards = computed(() => [
         color: '#16a34a',
     },
 ]);
-
-const statusVariant = (value: string) => {
-    if (value === 'accepted') {
-        return 'default' as const;
-    }
-
-    if (value === 'rejected' || value === 'expired') {
-        return 'destructive' as const;
-    }
-
-    if (value === 'sent') {
-        return 'outline' as const;
-    }
-
-    return 'secondary' as const;
-};
 
 const money = (value: string) =>
     `₹${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -353,6 +337,7 @@ const sendEmail = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead class="w-12">S.No.</TableHead>
                             <TableHead>Number</TableHead>
                             <TableHead>Party</TableHead>
                             <TableHead>Quote Date</TableHead>
@@ -364,9 +349,14 @@ const sendEmail = () => {
                     </TableHeader>
                     <TableBody>
                         <TableRow
-                            v-for="quotation in quotations.data"
+                            v-for="(quotation, index) in quotations.data"
                             :key="quotation.id"
                         >
+                            <TableCell
+                                class="text-muted-foreground tabular-nums"
+                            >
+                                {{ (quotations.from ?? 1) + index }}
+                            </TableCell>
                             <TableCell class="font-medium">
                                 <Link
                                     :href="show(quotation.id)"
@@ -382,12 +372,9 @@ const sendEmail = () => {
                                 formatDate(quotation.quotation_date)
                             }}</TableCell>
                             <TableCell>
-                                <Badge
-                                    :variant="statusVariant(quotation.status)"
-                                    class="capitalize"
-                                >
-                                    {{ quotation.status }}
-                                </Badge>
+                                <QuotationStatusBadge
+                                    :status="quotation.status"
+                                />
                             </TableCell>
                             <TableCell class="text-right tabular-nums">{{
                                 money(quotation.total)
@@ -406,6 +393,7 @@ const sendEmail = () => {
                                     size="sm"
                                     as-child
                                     :aria-label="`View ${quotation.number}`"
+                                    class="text-sky-600 hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-950"
                                     :data-test="`view-quotation-${quotation.id}`"
                                 >
                                     <Link :href="show(quotation.id)">
@@ -417,6 +405,7 @@ const sendEmail = () => {
                                     size="sm"
                                     as-child
                                     :aria-label="`Print ${quotation.number}`"
+                                    class="text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-950"
                                 >
                                     <a
                                         :href="print.url(quotation.id)"
@@ -431,6 +420,7 @@ const sendEmail = () => {
                                     size="sm"
                                     as-child
                                     :aria-label="`Download ${quotation.number}`"
+                                    class="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950"
                                 >
                                     <a :href="pdf.url(quotation.id)">
                                         <Download class="h-4 w-4" />
@@ -441,6 +431,7 @@ const sendEmail = () => {
                                     variant="ghost"
                                     size="sm"
                                     :aria-label="`Email ${quotation.number}`"
+                                    class="text-violet-600 hover:bg-violet-50 hover:text-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
                                     :data-test="`email-quotation-${quotation.id}`"
                                     @click="confirmEmail(quotation)"
                                 >
@@ -451,6 +442,7 @@ const sendEmail = () => {
                                     size="sm"
                                     as-child
                                     :aria-label="`Edit ${quotation.number}`"
+                                    class="text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
                                     :data-test="`edit-quotation-${quotation.id}`"
                                 >
                                     <Link :href="edit(quotation.id)">
@@ -461,6 +453,7 @@ const sendEmail = () => {
                                     variant="ghost"
                                     size="sm"
                                     :aria-label="`Delete ${quotation.number}`"
+                                    class="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950"
                                     :data-test="`delete-quotation-${quotation.id}`"
                                     @click="confirmDelete(quotation)"
                                 >
@@ -470,7 +463,7 @@ const sendEmail = () => {
                         </TableRow>
                         <TableRow v-if="quotations.data.length === 0">
                             <TableCell
-                                :colspan="7"
+                                :colspan="8"
                                 class="text-center text-muted-foreground"
                             >
                                 No quotations yet.
