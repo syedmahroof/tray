@@ -175,7 +175,7 @@ class QuotationController extends Controller
      */
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['customer.state', 'contact.state', 'project.state', 'enquiry.contact:id,name', 'builder.state', 'creator', 'branch', 'items.product']);
+        $quotation->load(['customer.state', 'contact.state', 'project.state', 'enquiry.contact:id,name', 'builder.state', 'creator', 'branch', 'items.product.brand']);
 
         $rootId = $quotation->rootId();
 

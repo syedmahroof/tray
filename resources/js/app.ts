@@ -3,6 +3,7 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import { initializeEnterSubmitGuard } from '@/lib/enterSubmit';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { initializeIconTooltips } from '@/lib/iconTooltips';
 import { initializeNumberInputWheelGuard } from '@/lib/numberInputs';
@@ -37,6 +38,9 @@ initializeFlashToast();
 
 // This will stop the mouse wheel changing number fields...
 initializeNumberInputWheelGuard();
+
+// This will stop the Enter key from saving a form...
+initializeEnterSubmitGuard();
 
 // This will show a tooltip over every icon-only button and link...
 initializeIconTooltips();

@@ -22,7 +22,7 @@ final readonly class QuotationInvoice
      * Each line also carries its share of the quotation's discount, stated as
      * the percentage off list and the price and total that leaves.
      *
-     * @return list<array{sl: int, description: string, detail: string|null, hsn: string|null, quantity: float, unit: string, rate: float, amount: float, discount_percent: float, net_rate: float, net_amount: float}>
+     * @return list<array{sl: int, description: string, detail: string|null, brand: string|null, code: string|null, image_url: string|null, hsn: string|null, quantity: float, unit: string, rate: float, amount: float, discount_percent: float, net_rate: float, net_amount: float}>
      */
     public function lines(): array
     {
@@ -42,6 +42,9 @@ final readonly class QuotationInvoice
                     'detail' => filled($item->product?->description) && $item->product->description !== $description
                         ? $item->product->description
                         : null,
+                    'brand' => $item->product?->brand?->name,
+                    'code' => $item->product?->code,
+                    'image_url' => $item->product?->image_url,
                     'hsn' => $item->hsn_code,
                     'quantity' => (float) $item->quantity,
                     'unit' => $this->unitFor($item),

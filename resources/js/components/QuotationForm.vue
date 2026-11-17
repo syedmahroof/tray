@@ -83,6 +83,9 @@ const gstRateOptions = computed(() =>
     [...new Set(Object.values(props.gstSlabs))].sort((a, b) => a - b),
 );
 
+/** The GST rate a line starts on until a product or the user sets one. */
+const DEFAULT_GST = 18;
+
 const emptyItem = (rateTier: QuotationLineRateTier = 'SR') => ({
     product_id: undefined as string | undefined,
     description: '',
@@ -96,7 +99,7 @@ const emptyItem = (rateTier: QuotationLineRateTier = 'SR') => ({
     price_percent: '',
     /** The line's own price, before any agent commission is spread over it. */
     unit_price: '0',
-    tax_percentage: '0',
+    tax_percentage: String(DEFAULT_GST),
 });
 
 type QuotationLine = ReturnType<typeof emptyItem>;
@@ -169,7 +172,9 @@ const form = useForm({
                   list_price: item.list_price ?? '',
                   price_percent: plainNumber(item.price_percent),
                   unit_price: item.base_price ?? item.unit_price,
-                  tax_percentage: String(Number(item.tax_percentage ?? 0)),
+                  tax_percentage: String(
+                      Number(item.tax_percentage ?? DEFAULT_GST),
+                  ),
               }))
             : [emptyItem((props.quotation?.rate_tier ?? 'SR') as RateTier)],
 });
@@ -454,7 +459,9 @@ const onProductSelect = (index: number, picked: QuotationProductOption) => {
             item.hsn_code = product.hsn_code;
         }
 
-        item.tax_percentage = String(Number(product.tax_percentage ?? 0));
+        item.tax_percentage = String(
+            Number(product.tax_percentage ?? DEFAULT_GST),
+        );
     }
 };
 
@@ -915,19 +922,18 @@ const submit = () => {
                     </Button>
                 </CardHeader>
                 <CardContent class="px-0">
-                    <!-- Fixed columns total 61rem, leaving Description 13rem at the minimum width. -->
-                    <Table class="min-w-[74rem] table-fixed">
+                    <!-- Fixed columns total 44rem; Product and Description share the rest, 14rem each at the minimum width. -->
+                    <Table class="min-w-[72rem] table-fixed">
                         <TableHeader>
                             <TableRow class="hover:bg-transparent">
                                 <TableHead class="w-10 pl-6">#</TableHead>
-                                <TableHead class="w-80">Product</TableHead>
+                                <TableHead>Product</TableHead>
                                 <TableHead>Description *</TableHead>
-                                <TableHead class="w-24">HSN</TableHead>
-                                <TableHead class="w-20 text-right"
+                                <TableHead class="w-24 text-right"
                                     >Qty</TableHead
                                 >
-                                <TableHead class="w-32">Price Type</TableHead>
-                                <TableHead class="w-28 text-right"
+                                <TableHead class="w-36">Price Type</TableHead>
+                                <TableHead class="w-32 text-right"
                                     >Unit Price</TableHead
                                 >
                                 <TableHead class="w-24">GST</TableHead>
@@ -943,14 +949,14 @@ const submit = () => {
                             <TableRow
                                 v-for="(item, index) in form.items"
                                 :key="index"
-                                class="hover:bg-transparent [&>td]:align-top"
+                                class="hover:bg-transparent [&>td]:py-3 [&>td]:align-top"
                             >
                                 <TableCell
                                     class="pl-6 leading-9 text-muted-foreground tabular-nums"
                                 >
                                     {{ index + 1 }}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="whitespace-normal">
                                     <ProductCombobox
                                         :model-value="item.product_id"
                                         :selected="productFor(item.product_id)"
@@ -962,28 +968,36 @@ const submit = () => {
                                         "
                                     />
                                 </TableCell>
-                                <TableCell class="whitespace-normal">
+                                <TableCell class="space-y-2 whitespace-normal">
                                     <Textarea
                                         v-model="item.description"
                                         rows="1"
-                                        class="min-h-9 resize-none py-1.5 leading-snug"
+                                        class="min-h-9 resize-none py-1.5 text-sm leading-snug"
                                         placeholder="Item description"
+                                        aria-label="Description"
                                         :data-test="`description-${index}`"
                                     />
                                     <InputError
-                                        class="mt-1"
                                         :message="
                                             form.errors[
                                                 `items.${index}.description`
                                             ]
                                         "
                                     />
-                                </TableCell>
-                                <TableCell>
-                                    <Input
-                                        v-model="item.hsn_code"
-                                        placeholder="Code"
-                                    />
+                                    <div class="flex items-center gap-2">
+                                        <Label
+                                            :for="`hsn-${index}`"
+                                            class="text-xs font-normal text-muted-foreground"
+                                            >HSN</Label
+                                        >
+                                        <Input
+                                            :id="`hsn-${index}`"
+                                            v-model="item.hsn_code"
+                                            placeholder="HSN code"
+                                            class="h-8 w-36 text-sm tabular-nums"
+                                            :data-test="`hsn-${index}`"
+                                        />
+                                    </div>
                                 </TableCell>
                                 <TableCell>
                                     <Input

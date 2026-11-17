@@ -464,6 +464,10 @@ export type QuotationDetail = Quotation & {
 export type InvoiceLine = {
     sl: number;
     description: string;
+    /** The picked product's brand, code and image; null for typed-in lines. */
+    brand: string | null;
+    code: string | null;
+    image_url: string | null;
     hsn: string | null;
     quantity: number;
     unit: string;

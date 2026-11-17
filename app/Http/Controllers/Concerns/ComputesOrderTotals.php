@@ -10,6 +10,10 @@ trait ComputesOrderTotals
      */
     protected function computeOrderTotals(array $items, float $discount, string $supplyType): array
     {
+        // Validation moves lines missing a field (a typed-in line has no
+        // product_id) to the end; sorting by their entered position undoes it.
+        ksort($items);
+
         $subtotal = array_reduce(
             $items,
             fn (float $carry, array $item): float => $carry + ((float) $item['quantity'] * (float) $item['unit_price']),

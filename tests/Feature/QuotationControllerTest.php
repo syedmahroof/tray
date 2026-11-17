@@ -94,6 +94,57 @@ test('an inter-state quotation applies IGST instead of CGST and SGST', function 
     expect((float) $quotation->total)->toBe(1180.0);
 });
 
+test('lines are saved in the order they were entered, typed-in lines included', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+    $valve = Product::factory()->create(['brand_id' => Brand::factory()]);
+    $globe = Product::factory()->create(['brand_id' => Brand::factory()]);
+
+    // Typed-in lines arrive without a product_id key at all, as the form sends them.
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [
+                ['product_id' => $valve->id, 'description' => 'Sluice valve', 'quantity' => 1, 'unit_price' => 100, 'tax_percentage' => 18],
+                ['description' => 'cccc', 'quantity' => 1, 'unit_price' => 1, 'tax_percentage' => 5],
+                ['description' => 'dddd', 'quantity' => 1, 'unit_price' => 1, 'tax_percentage' => 5],
+                ['product_id' => $globe->id, 'description' => 'Globe valve', 'quantity' => 1, 'unit_price' => 100, 'tax_percentage' => 18],
+            ],
+        ])
+        ->assertRedirect();
+
+    expect(Quotation::first()->items()->orderBy('id')->pluck('description')->all())
+        ->toBe(['Sluice valve', 'cccc', 'dddd', 'Globe valve']);
+});
+
+test('a line saved without a GST rate is charged the default 18%', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'inter',
+            'items' => [
+                ['product_id' => null, 'description' => 'Item', 'quantity' => 1, 'unit_price' => 1000],
+            ],
+        ])
+        ->assertRedirect();
+
+    $quotation = Quotation::first();
+    expect((float) $quotation->items->first()->tax_percentage)->toBe(18.0);
+    expect((float) $quotation->total)->toBe(1180.0);
+});
+
 test('the quotation form loads no products until they are searched for', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

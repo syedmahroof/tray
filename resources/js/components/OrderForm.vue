@@ -59,7 +59,7 @@ const emptyItem = () => ({
     hsn_code: '',
     quantity: '1',
     unit_price: '0',
-    tax_percentage: '0',
+    tax_percentage: '18',
 });
 const asId = (value?: number | null) => (value ? String(value) : undefined);
 

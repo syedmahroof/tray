@@ -57,6 +57,30 @@ test('a sales order is created with calculated GST totals and product items', fu
         ->and($order->items)->toHaveCount(2);
 });
 
+test('order lines are saved in the order they were entered, typed-in lines included', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+    $product = Product::factory()->create();
+
+    $this->actingAs($manager)
+        ->post(route('sales-orders.store'), [
+            'customer_id' => $customer->id,
+            'order_date' => '2026-10-16',
+            'status' => 'confirmed',
+            'supply_type' => 'intra',
+            'items' => [
+                ['description' => 'Fitting', 'quantity' => 1, 'unit_price' => 200, 'tax_percentage' => 18],
+                ['product_id' => $product->id, 'description' => 'Pipe', 'quantity' => 2, 'unit_price' => 500, 'tax_percentage' => 18],
+            ],
+        ])
+        ->assertRedirect();
+
+    expect(Order::query()->sole()->items()->orderBy('id')->pluck('description')->all())
+        ->toBe(['Fitting', 'Pipe']);
+});
+
 test('a purchase order requires a supplier and applies inter-state IGST', function () {
     $branch = Branch::factory()->create();
     $manager = User::factory()->create(['branch_id' => $branch->id]);

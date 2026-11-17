@@ -2,6 +2,7 @@
 import {
     Building2,
     FileText,
+    ImageIcon,
     Landmark,
     Package,
     ReceiptText,
@@ -285,13 +286,13 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                 </CardTitle>
             </CardHeader>
             <CardContent class="px-0">
-                <Table class="min-w-[48rem] table-fixed">
+                <Table class="min-w-[50rem] table-fixed">
                     <TableHeader>
                         <TableRow class="bg-muted/50 hover:bg-muted/50">
                             <TableHead class="w-12 pl-6 text-center"
                                 >#</TableHead
                             >
-                            <TableHead class="w-[24rem]">Product</TableHead>
+                            <TableHead class="w-[26rem]">Product</TableHead>
                             <TableHead class="w-24">HSN</TableHead>
                             <TableHead class="w-24 text-right">Qty</TableHead>
                             <TableHead class="w-28 text-right">Price</TableHead>
@@ -310,15 +311,50 @@ const percent = (value: number) => `${Number(value.toFixed(2))}%`;
                             <TableCell
                                 class="align-top break-words whitespace-normal"
                             >
-                                <p class="font-medium">
-                                    {{ line.description }}
-                                </p>
-                                <p
-                                    v-if="line.detail"
-                                    class="text-xs whitespace-pre-line text-muted-foreground"
-                                >
-                                    {{ line.detail }}
-                                </p>
+                                <div class="flex items-start gap-3">
+                                    <div
+                                        class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted/50"
+                                        :data-test="`line-image-${line.sl}`"
+                                    >
+                                        <img
+                                            v-if="line.image_url"
+                                            :src="line.image_url"
+                                            :alt="line.description"
+                                            class="size-full object-cover"
+                                        />
+                                        <ImageIcon
+                                            v-else
+                                            class="size-5 text-muted-foreground/60"
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+                                    <div class="min-w-0 space-y-1">
+                                        <p class="font-medium">
+                                            {{ line.description }}
+                                        </p>
+                                        <p
+                                            v-if="line.brand || line.code"
+                                            class="flex flex-wrap items-center gap-1.5 text-xs"
+                                        >
+                                            <span
+                                                v-if="line.brand"
+                                                class="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground/80"
+                                                >{{ line.brand }}</span
+                                            >
+                                            <span
+                                                v-if="line.code"
+                                                class="font-mono text-muted-foreground"
+                                                >{{ line.code }}</span
+                                            >
+                                        </p>
+                                        <p
+                                            v-if="line.detail"
+                                            class="text-xs whitespace-pre-line text-muted-foreground"
+                                        >
+                                            {{ line.detail }}
+                                        </p>
+                                    </div>
+                                </div>
                             </TableCell>
                             <TableCell class="align-top text-muted-foreground">
                                 {{ line.hsn ?? '—' }}

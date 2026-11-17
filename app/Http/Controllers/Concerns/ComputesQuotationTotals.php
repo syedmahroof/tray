@@ -9,6 +9,11 @@ use App\Models\QuotationItem;
 trait ComputesQuotationTotals
 {
     /**
+     * The GST rate a line is charged when it doesn't state one.
+     */
+    public const float DEFAULT_TAX_PERCENTAGE = 18.0;
+
+    /**
      * Compute per-item tax/discount allocation and the quotation-level totals
      * (subtotal, discount, tax, CGST/SGST/IGST split, grand total) for a set
      * of line items. Shared between the web and API quotation controllers so
@@ -27,6 +32,11 @@ trait ComputesQuotationTotals
      */
     protected function computeQuotationTotals(array $items, float $discount, string $supplyType, float $agentCommission = 0.0, float $freight = 0.0, float $freightTaxPercent = Quotation::DEFAULT_FREIGHT_TAX_PERCENT): array
     {
+        // Validation rebuilds the lines rule by rule, which moves lines missing a
+        // field (a typed-in line has no product_id) to the end; each line keeps
+        // its position as its key, so sorting by it restores the entered order.
+        ksort($items);
+
         $items = array_map(fn (array $item): array => $this->withBasePrice($item), $items);
 
         $baseSubtotal = array_reduce(
@@ -58,7 +68,7 @@ trait ComputesQuotationTotals
             $base = (float) $item['quantity'] * $item['unit_price'];
             $allocatedDiscount = $subtotal > 0 ? $discount * ($base / $subtotal) : 0.0;
             $taxable = max($base - $allocatedDiscount, 0);
-            $rate = (float) ($item['tax_percentage'] ?? 0);
+            $rate = (float) ($item['tax_percentage'] ?? self::DEFAULT_TAX_PERCENTAGE);
             $taxAmount = round($taxable * $rate / 100, 2);
             $totalTax += $taxAmount;
 

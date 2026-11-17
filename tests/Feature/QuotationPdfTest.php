@@ -251,6 +251,22 @@ test('the quotation page is handed the same document the print is built from', f
             ->has('invoice.hsn_summary', 1));
 });
 
+test('the quotation page shows each line with its product brand, code and image', function () {
+    $brand = Brand::factory()->create(['name' => 'SKS VALVE']);
+    $valve = Product::factory()->create(['brand_id' => $brand->id, 'code' => 'SKS170200', 'image_path' => null]);
+    $this->quotation->items()->first()->update(['product_id' => $valve->id]);
+    $this->quotation->items()->latest('id')->first()->update(['product_id' => null]);
+
+    $this->actingAs($this->admin)
+        ->get(route('quotations.show', $this->quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('invoice.lines.0.brand', 'SKS VALVE')
+            ->where('invoice.lines.0.code', 'SKS170200')
+            ->where('invoice.lines.0.image_url', null)
+            ->where('invoice.lines.2.brand', null)
+            ->where('invoice.lines.2.code', null));
+});
+
 test('a branch letterhead replaces the company details it fills in', function () {
     Storage::fake('public');
     $logo = UploadedFile::fake()->image('logo.png')->store('branch-logos', 'public');
