@@ -41,6 +41,8 @@ test('managers can create, update, and delete a project within their own branch'
             'owner_name' => 'John Doe',
             'owner_phone' => '1234567890',
             'owner_email' => 'john@example.com',
+            'gst_number' => '32AAACS1234B1Z9',
+            'address' => "Plot 7, Skyline Layout\nNear Bypass Junction\n".str_repeat('Kozhikode ', 40),
             'pincode' => '123456',
             'expected_maturity' => '2026-12-31',
             'preferred_material' => 'Steel & Concrete',
@@ -59,6 +61,8 @@ test('managers can create, update, and delete a project within their own branch'
     expect($project->owner_name)->toBe('John Doe');
     expect($project->owner_phone)->toBe('1234567890');
     expect($project->owner_email)->toBe('john@example.com');
+    expect($project->gst_number)->toBe('32AAACS1234B1Z9');
+    expect($project->address)->toStartWith("Plot 7, Skyline Layout\nNear Bypass Junction\n");
     expect($project->pincode)->toBe('123456');
     expect($project->expected_maturity)->toBe('2026-12-31');
     expect($project->preferred_material)->toBe('Steel & Concrete');

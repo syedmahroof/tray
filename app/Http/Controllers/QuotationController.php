@@ -16,6 +16,8 @@ use App\Models\ProductBranchPrice;
 use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Models\Scopes\BranchScope;
+use App\Models\Scopes\BrandScope;
 use App\Models\User;
 use App\Support\BranchAccess;
 use App\Support\QuotationDocument;
@@ -365,6 +367,7 @@ class QuotationController extends Controller
                     'description' => $item->description,
                     'hsn_code' => $item->hsn_code,
                     'quantity' => $item->quantity,
+                    'unit' => $item->unit,
                     'rate_tier' => $item->rate_tier,
                     'price_basis' => $item->price_basis,
                     'list_price' => $item->list_price,
@@ -409,6 +412,21 @@ class QuotationController extends Controller
     }
 
     /**
+     * The units a quotation line can be quoted in: the standard units, then any
+     * other unit the catalogue uses, each listed once whatever its case.
+     *
+     * @return list<string>
+     */
+    private function unitOptions(): array
+    {
+        return collect(Product::UNITS)
+            ->merge(Product::withoutGlobalScope(BrandScope::class)->whereNotNull('unit')->where('unit', '!=', '')->distinct()->orderBy('unit')->pluck('unit'))
+            ->unique(fn (string $unit): string => mb_strtolower($unit))
+            ->values()
+            ->all();
+    }
+
+    /**
      * Shared lookup data for the create/edit forms.
      *
      * @param  iterable<int, int|null>  $keepProductIds  Inactive products the quotation already uses.
@@ -417,20 +435,25 @@ class QuotationController extends Controller
     private function formData(iterable $keepProductIds = []): array
     {
         return [
-            'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'rate_tier', 'gst_number']),
-            'contacts' => Contact::query()->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email', 'gst_number']),
-            'projects' => Project::query()->orderBy('name')->get(['id', 'name', 'address']),
-            'enquiries' => Enquiry::query()->with('contact:id,name')->latest()->get(['id', 'contact_id', 'project_id'])
+            // A quotation can be raised on a party from any branch, so the
+            // pickers list every branch's records.
+            'customers' => Customer::withoutGlobalScope(BranchScope::class)->orderBy('name')->get(['id', 'name', 'rate_tier', 'gst_number']),
+            'contacts' => Contact::withoutGlobalScope(BranchScope::class)->with('contactType:id,name')->orderBy('name')->get(['id', 'name', 'contact_type_id', 'phone', 'email', 'gst_number']),
+            'projects' => Project::withoutGlobalScope(BranchScope::class)->orderBy('name')->get(['id', 'name', 'address', 'gst_number']),
+            'enquiries' => Enquiry::withoutGlobalScope(BranchScope::class)
+                ->with(['contact' => fn ($query) => $query->withoutGlobalScope(BranchScope::class)->select(['id', 'name'])])
+                ->latest()->get(['id', 'contact_id', 'project_id'])
                 ->map(fn (Enquiry $enquiry): array => [
                     'id' => $enquiry->id,
                     'name' => "#{$enquiry->id} — ".($enquiry->contact?->name ?? __('Enquiry')),
                 ]),
-            'builders' => Builder::query()->orderBy('name')->get(['id', 'name', 'gst_number']),
+            'builders' => Builder::withoutGlobalScope(BranchScope::class)->orderBy('name')->get(['id', 'name', 'gst_number']),
             'products' => $this->productOptions($keepProductIds),
             'statuses' => Quotation::STATUSES,
             'rateTiers' => ProductBranchPrice::RATE_TIERS,
             'lineRateTiers' => QuotationItem::rateTiers(),
             'gstSlabs' => Product::GST_SLABS,
+            'units' => $this->unitOptions(),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             // Users who cannot pick a branch quote from their own, so the form
             // needs it to look up branch rates.
@@ -510,7 +533,7 @@ class QuotationController extends Controller
         return Product::query()
             ->with(['brand:id,name', 'branchPrices:id,product_id,branch_id,cost,mrp,rate_basis,sr_discount,sr_rate,pr_discount,pr_rate,cr_discount,cr_rate'])
             ->orderBy('name')
-            ->select(['id', 'code', 'name', 'brand_id', 'image_path', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']);
+            ->select(['id', 'code', 'name', 'brand_id', 'image_path', 'unit', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']);
     }
 
     /**
@@ -524,7 +547,7 @@ class QuotationController extends Controller
     private function productOption(Product $product): array
     {
         return [
-            ...$product->only(['id', 'code', 'name', 'image_url', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
+            ...$product->only(['id', 'code', 'name', 'image_url', 'unit', 'price', 'taxable_amount', 'hsn_code', 'tax_type', 'tax_percentage']),
             'brand' => $product->brand?->only(['id', 'name']),
             'rates' => $product->branchPrices->mapWithKeys(fn (ProductBranchPrice $price): array => [
                 $price->branch_id => [
@@ -560,12 +583,12 @@ class QuotationController extends Controller
             'builder_id' => $request->integer('builder_id') ?: null,
         ];
 
-        if ($defaults['enquiry_id'] && $enquiry = Enquiry::find($defaults['enquiry_id'])) {
+        if ($defaults['enquiry_id'] && $enquiry = Enquiry::withoutGlobalScope(BranchScope::class)->find($defaults['enquiry_id'])) {
             $defaults['contact_id'] ??= $enquiry->contact_id;
             $defaults['project_id'] ??= $enquiry->project_id;
         }
 
-        if ($defaults['project_id'] && ! $defaults['builder_id'] && $project = Project::find($defaults['project_id'])) {
+        if ($defaults['project_id'] && ! $defaults['builder_id'] && $project = Project::withoutGlobalScope(BranchScope::class)->find($defaults['project_id'])) {
             $defaults['builder_id'] = $project->builder_id;
         }
 

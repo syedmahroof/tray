@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import AdditionalContacts from '@/components/AdditionalContacts.vue';
 import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -17,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { edit, index, update } from '@/routes/builders';
 import type { Branch, Builder, Country, NamedOption, Route } from '@/types';
 
@@ -115,16 +117,25 @@ const userOptions = computed(() =>
                             <InputError :message="errors.gst_number" />
                         </div>
 
-                        <div class="grid gap-2">
+                        <div class="grid gap-2 sm:col-span-2 lg:col-span-3">
                             <Label for="address">Address</Label>
-                            <Input
+                            <Textarea
                                 id="address"
                                 name="address"
+                                rows="3"
+                                class="min-h-20"
+                                placeholder="Building, street, area, landmark"
                                 :default-value="builder.address ?? undefined"
                             />
                             <InputError :message="errors.address" />
                         </div>
                     </div>
+
+                    <AdditionalContacts
+                        name="builder_contacts"
+                        :errors="errors"
+                        :initial="builder.builder_contacts"
+                    />
 
                     <LocationSelect
                         :countries="countries"

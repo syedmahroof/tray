@@ -77,6 +77,7 @@ trait ComputesQuotationTotals
                 'description' => $item['description'],
                 'hsn_code' => $item['hsn_code'] ?? null,
                 'quantity' => $item['quantity'],
+                'unit' => $item['unit'] ?? null,
                 'rate_tier' => $item['rate_tier'],
                 'price_basis' => $item['price_basis'],
                 'list_price' => $item['list_price'],

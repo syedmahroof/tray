@@ -31,6 +31,7 @@ defineProps<{
     rateTiers: Record<RateTier, string>;
     lineRateTiers: Record<QuotationLineRateTier, string>;
     gstSlabs: Record<string, number>;
+    units: string[];
     branches: Branch[];
     defaultBranchId: number | null;
     branchDefaults: Record<string, { details: string; terms: string }>;
@@ -81,6 +82,7 @@ defineOptions({
             :rate-tiers="rateTiers"
             :line-rate-tiers="lineRateTiers"
             :gst-slabs="gstSlabs"
+            :units="units"
             :branches="branches"
             :default-branch-id="defaultBranchId"
             :branch-defaults="branchDefaults"

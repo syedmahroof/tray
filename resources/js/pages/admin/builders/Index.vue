@@ -14,6 +14,7 @@ import {
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import ClippedText from '@/components/ClippedText.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import PhoneLink from '@/components/PhoneLink.vue';
@@ -330,6 +331,7 @@ const confirmDelete = (builder: BuilderListItem) => {
                             <TableHead>Name</TableHead>
                             <TableHead>Contact</TableHead>
                             <TableHead>Location</TableHead>
+                            <TableHead>Address</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Assigned to</TableHead>
                             <TableHead>Created</TableHead>
@@ -376,6 +378,9 @@ const confirmDelete = (builder: BuilderListItem) => {
                                         .filter(Boolean)
                                         .join(', ') || '—'
                                 }}
+                            </TableCell>
+                            <TableCell>
+                                <ClippedText :text="builder.address" />
                             </TableCell>
                             <TableCell>
                                 <Badge
@@ -442,7 +447,7 @@ const confirmDelete = (builder: BuilderListItem) => {
                         </TableRow>
                         <TableRow v-if="builders.data.length === 0">
                             <TableCell
-                                :colspan="8"
+                                :colspan="9"
                                 class="text-center text-muted-foreground"
                             >
                                 No builders yet.

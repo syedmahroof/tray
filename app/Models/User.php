@@ -44,6 +44,8 @@ class User extends Authenticatable implements PasskeyUser
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
+    protected string $guard_name = 'web';
+
     /**
      * Get the attributes that should be cast.
      *

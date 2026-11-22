@@ -20,6 +20,7 @@ import {
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import ClippedText from '@/components/ClippedText.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
@@ -524,6 +525,7 @@ const confirmDelete = (project: ProjectListItem) => {
                             <TableHead>Name</TableHead>
                             <TableHead>Builder</TableHead>
                             <TableHead>Location</TableHead>
+                            <TableHead>Address</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Assigned to</TableHead>
@@ -566,6 +568,9 @@ const confirmDelete = (project: ProjectListItem) => {
                                 >
                                     {{ project.district.name }}
                                 </div>
+                            </TableCell>
+                            <TableCell>
+                                <ClippedText :text="project.address" />
                             </TableCell>
                             <TableCell>{{
                                 project.project_category?.name
@@ -628,7 +633,7 @@ const confirmDelete = (project: ProjectListItem) => {
                         </TableRow>
                         <TableRow v-if="projects.data.length === 0">
                             <TableCell
-                                :colspan="9"
+                                :colspan="10"
                                 class="text-center text-muted-foreground"
                             >
                                 No projects yet.

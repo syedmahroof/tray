@@ -56,6 +56,7 @@ class SaveQuotationRequest extends FormRequest
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.hsn_code' => ['nullable', 'string', 'max:20'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'items.*.unit' => ['nullable', 'string', 'max:20'],
             'items.*.rate_tier' => ['nullable', Rule::in(array_keys(QuotationItem::rateTiers()))],
             'items.*.price_basis' => ['nullable', Rule::in(array_keys(ProductBranchPrice::RATE_BASES))],
             'items.*.list_price' => ['nullable', 'numeric', 'min:0'],

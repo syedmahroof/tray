@@ -325,6 +325,14 @@ const activeTab = useTabQuery(
                                     {{ project.owner_email ?? '—' }}
                                 </p>
                             </div>
+                            <div>
+                                <p class="text-sm text-muted-foreground">
+                                    GST Number
+                                </p>
+                                <p class="text-sm font-medium">
+                                    {{ project.gst_number ?? '—' }}
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
 

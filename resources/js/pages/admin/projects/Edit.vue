@@ -328,7 +328,9 @@ const removeProjectContact = (key: number) => {
                     <CardHeader>
                         <CardTitle>Owner Details</CardTitle>
                     </CardHeader>
-                    <CardContent class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <CardContent
+                        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+                    >
                         <div class="grid gap-2">
                             <Label for="owner_name">Name</Label>
                             <Input
@@ -366,6 +368,17 @@ const removeProjectContact = (key: number) => {
                             />
                             <InputError :message="errors.owner_email" />
                         </div>
+
+                        <div class="grid gap-2">
+                            <Label for="gst_number">GST Number</Label>
+                            <Input
+                                id="gst_number"
+                                name="gst_number"
+                                placeholder="GST Number"
+                                :default-value="project.gst_number ?? undefined"
+                            />
+                            <InputError :message="errors.gst_number" />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -379,10 +392,12 @@ const removeProjectContact = (key: number) => {
                     >
                         <div class="grid gap-2 md:col-span-1 lg:col-span-3">
                             <Label for="address">Address</Label>
-                            <Input
+                            <Textarea
                                 id="address"
                                 name="address"
-                                placeholder="Address line"
+                                rows="3"
+                                class="min-h-20"
+                                placeholder="Building, street, area, landmark"
                                 :default-value="project.address ?? undefined"
                             />
                             <InputError :message="errors.address" />

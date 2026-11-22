@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $description
  * @property string|null $hsn_code
  * @property string $quantity
+ * @property string|null $unit
  * @property string|null $rate_tier
  * @property string|null $price_basis
  * @property string|null $list_price
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Quotation $quotation
  * @property-read Product|null $product
  */
-#[Fillable(['quotation_id', 'product_id', 'description', 'hsn_code', 'quantity', 'rate_tier', 'price_basis', 'list_price', 'price_percent', 'base_price', 'unit_price', 'tax_percentage', 'tax_amount'])]
+#[Fillable(['quotation_id', 'product_id', 'description', 'hsn_code', 'quantity', 'unit', 'rate_tier', 'price_basis', 'list_price', 'price_percent', 'base_price', 'unit_price', 'tax_percentage', 'tax_amount'])]
 class QuotationItem extends Model
 {
     /** @use HasFactory<QuotationItemFactory> */

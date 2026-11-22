@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\DefaultsToHomeCountry;
 use Database\Factories\BuilderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Route|null $route
  * @property-read User|null $assignee
  * @property-read User|null $creator
+ * @property-read Collection<int, BuilderContact> $builderContacts
  */
 #[Fillable(['branch_id', 'name', 'contact_person', 'phone', 'email', 'gst_number', 'address', 'country_id', 'state_id', 'district_id', 'location_id', 'route_id', 'is_active', 'assigned_to', 'created_by'])]
 class Builder extends Model
@@ -101,6 +103,16 @@ class Builder extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
+    }
+
+    /**
+     * The people to reach at the builder beside its main contact person.
+     *
+     * @return HasMany<BuilderContact, $this>
+     */
+    public function builderContacts(): HasMany
+    {
+        return $this->hasMany(BuilderContact::class);
     }
 
     /**

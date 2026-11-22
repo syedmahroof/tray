@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $owner_name
  * @property string|null $owner_phone
  * @property string|null $owner_email
+ * @property string|null $gst_number
  * @property string|null $location
  * @property string|null $pincode
  * @property string|null $expected_maturity
@@ -64,6 +65,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'owner_name',
     'owner_phone',
     'owner_email',
+    'gst_number',
     'location',
     'pincode',
     'expected_maturity',

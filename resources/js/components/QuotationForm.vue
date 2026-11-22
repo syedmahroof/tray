@@ -63,7 +63,10 @@ const props = defineProps<{
         gst_number?: string | null;
     }[];
     contacts: ContactOption[];
-    projects: (NamedOption & { address?: string | null })[];
+    projects: (NamedOption & {
+        address?: string | null;
+        gst_number?: string | null;
+    })[];
     enquiries: NamedOption[];
     builders: (NamedOption & { gst_number?: string | null })[];
     products: QuotationProductOption[];
@@ -71,6 +74,7 @@ const props = defineProps<{
     rateTiers: Record<RateTier, string>;
     lineRateTiers: Record<QuotationLineRateTier, string>;
     gstSlabs: Record<string, number>;
+    units: string[];
     branches: Branch[];
     defaultBranchId?: number | null;
     /** What the details box and the terms start as, per branch id. */
@@ -83,6 +87,24 @@ const gstRateOptions = computed(() =>
     [...new Set(Object.values(props.gstSlabs))].sort((a, b) => a - b),
 );
 
+/** A unit as the unit list spells it, matched whatever its case. */
+const listedUnit = (unit?: string | null): string =>
+    (unit &&
+        props.units.find(
+            (option) => option.toLowerCase() === unit.toLowerCase(),
+        )) ||
+    (unit ?? '');
+
+/** The unit a product is sold in, as the unit list spells it. */
+const productUnit = (productId?: number | null): string =>
+    listedUnit(
+        props.products.find((product) => product.id === productId)?.unit,
+    );
+
+/** The unit list, plus a line's own unit when it is not one of them. */
+const unitOptions = (unit: string): string[] =>
+    unit && !props.units.includes(unit) ? [...props.units, unit] : props.units;
+
 /** The GST rate a line starts on until a product or the user sets one. */
 const DEFAULT_GST = 18;
 
@@ -91,6 +113,7 @@ const emptyItem = (rateTier: QuotationLineRateTier = 'SR') => ({
     description: '',
     hsn_code: '',
     quantity: '1',
+    unit: '',
     rate_tier: rateTier,
     /** What the line's % is stated against: off MRP, or on cost. */
     price_basis: '' as RateBasis | '',
@@ -165,6 +188,7 @@ const form = useForm({
                   description: item.description,
                   hsn_code: item.hsn_code ?? '',
                   quantity: item.quantity,
+                  unit: item.unit ?? productUnit(item.product_id),
                   rate_tier: (item.rate_tier ??
                       props.quotation?.rate_tier ??
                       'SR') as QuotationLineRateTier,
@@ -459,6 +483,13 @@ const onProductSelect = (index: number, picked: QuotationProductOption) => {
             item.hsn_code = product.hsn_code;
         }
 
+        if (
+            product.unit &&
+            (!item.unit || item.unit === listedUnit(previous?.unit))
+        ) {
+            item.unit = listedUnit(product.unit);
+        }
+
         item.tax_percentage = String(
             Number(product.tax_percentage ?? DEFAULT_GST),
         );
@@ -510,6 +541,7 @@ const suggestedGstin = computed(() => {
         byId(allCustomers.value, form.customer_id)?.gst_number ||
         byId(props.contacts, form.contact_id)?.gst_number ||
         byId(props.builders, form.builder_id)?.gst_number ||
+        byId(props.projects, form.project_id)?.gst_number ||
         ''
     );
 });
@@ -999,13 +1031,43 @@ const submit = () => {
                                         />
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="space-y-2">
                                     <Input
                                         v-model="item.quantity"
                                         type="number"
                                         min="0"
                                         step="0.01"
                                         class="text-right tabular-nums"
+                                    />
+                                    <Select
+                                        :model-value="item.unit || undefined"
+                                        @update:model-value="
+                                            (unit) => (item.unit = String(unit))
+                                        "
+                                    >
+                                        <SelectTrigger
+                                            class="h-8 w-full text-sm"
+                                            aria-label="Unit"
+                                            :data-test="`unit-${index}`"
+                                        >
+                                            <SelectValue placeholder="Unit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                v-for="unit in unitOptions(
+                                                    item.unit,
+                                                )"
+                                                :key="unit"
+                                                :value="unit"
+                                            >
+                                                {{ unit }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        :message="
+                                            form.errors[`items.${index}.unit`]
+                                        "
                                     />
                                 </TableCell>
                                 <TableCell class="whitespace-normal">

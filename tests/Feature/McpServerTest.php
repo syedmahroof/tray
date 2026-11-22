@@ -6,16 +6,18 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\Reminder;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Support\McpListings;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Testing\TestResponse;
-use Laravel\Sanctum\Sanctum;
+use Laravel\Passport\Passport;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
+    $this->configurePassportTestKeys();
 });
 
 function callTrayTool(string $name, array $arguments = []): TestResponse
@@ -37,7 +39,7 @@ function trayManager(): User
 {
     $user = User::factory()->create(['branch_id' => Branch::factory()->create()->id]);
     $user->assignRole('Manager');
-    Sanctum::actingAs($user);
+    Passport::actingAs($user, ['mcp:use']);
 
     return $user;
 }
@@ -45,8 +47,8 @@ function trayManager(): User
 test('MCP requires a bearer token and supports protocol initialization', function () {
     $this->postJson('/api/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize'])->assertUnauthorized();
     $user = User::factory()->create();
-    $this->withToken($user->createToken('mcp')->plainTextToken)
-        ->postJson('/api/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => ['protocolVersion' => '2025-03-26', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'tests', 'version' => '1.0']]])
+    Passport::actingAs($user, ['mcp:use']);
+    $this->postJson('/api/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => ['protocolVersion' => '2025-03-26', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'tests', 'version' => '1.0']]])
         ->assertOk()->assertJsonPath('result.serverInfo.name', 'Tray CRM');
 });
 
@@ -54,8 +56,8 @@ test('MCP publishes discoverable schemas for all listing and creation tools', fu
     trayManager();
     $response = $this->postJson('/api/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => ['per_page' => 50]])->assertOk();
     $tools = collect($response->json('result.tools'));
-    expect($tools)->toHaveCount(27);
-    expect($tools->pluck('name')->all())->toContain('list_quotations', 'list_contacts', 'list_visit_reports', 'create_quotation', 'create_sales_order', 'create_purchase_order');
+    expect($tools)->toHaveCount(28);
+    expect($tools->pluck('name')->all())->toContain('get_quotation_details', 'list_quotations', 'list_contacts', 'list_visit_reports', 'create_quotation', 'create_sales_order', 'create_purchase_order');
     expect($tools->firstWhere('name', 'create_purchase_order')['inputSchema']['required'])->toContain('supplier_id', 'items');
 });
 
@@ -67,7 +69,7 @@ test('every listing executes with a permitted user', function (string $module) {
 })->with(array_keys(McpListings::definitions()));
 
 test('every listing denies users without its permission', function (string $module) {
-    Sanctum::actingAs(User::factory()->create());
+    Passport::actingAs(User::factory()->create(), ['mcp:use']);
     callTrayTool('list_'.str_replace('-', '_', $module))->assertOk()->assertJsonPath('result.isError', true);
 })->with(array_keys(McpListings::definitions()));
 
@@ -83,7 +85,7 @@ test('contact listings search paginate and isolate branches', function () {
 });
 
 test('creation tools validate and enforce create permissions', function (string $tool) {
-    Sanctum::actingAs(User::factory()->create());
+    Passport::actingAs(User::factory()->create(), ['mcp:use']);
     callTrayTool($tool)->assertJsonPath('result.isError', true);
     trayManager();
     callTrayTool($tool)->assertJsonPath('result.isError', true);
@@ -146,7 +148,7 @@ test('user listings never expose authentication fields', function () {
 test('product listings enforce brand access and price permissions', function () {
     $user = User::factory()->create(['branch_id' => Branch::factory()->create()->id]);
     $user->givePermissionTo('products.view');
-    Sanctum::actingAs($user);
+    Passport::actingAs($user, ['mcp:use']);
     $visible = Product::factory()->create(['created_by' => $user->id]);
     Product::factory()->create();
     $data = trayToolData(callTrayTool('list_products'));
@@ -188,4 +190,38 @@ test('quotation creation applies commission freight and branch numbering', funct
         ->and((float) $data['document']['cgst_amount'])->toBe(103.5)
         ->and((float) $data['document']['sgst_amount'])->toBe(103.5)
         ->and($data['document']['number'])->toContain('MCP');
+});
+
+test('quotation details include items parties totals and revisions', function () {
+    $manager = trayManager();
+    $customer = Customer::factory()->create(['branch_id' => $manager->branch_id]);
+    $quotation = Quotation::factory()->create(['branch_id' => $manager->branch_id, 'customer_id' => $customer->id, 'contact_id' => null, 'total' => 118, 'notes' => 'Deliver next week', 'created_by' => $manager->id, 'version' => 1]);
+    $product = Product::factory()->create(['created_by' => $manager->id]);
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id, 'product_id' => $product->id, 'description' => 'Pipe', 'unit_price' => 100]);
+    $revision = Quotation::factory()->create(['branch_id' => $manager->branch_id, 'parent_id' => $quotation->id, 'version' => 2]);
+    $data = trayToolData(callTrayTool('get_quotation_details', ['quotation_id' => $quotation->id]));
+    expect($data['quotation']['customer']['id'])->toBe($customer->id)
+        ->and($data['quotation']['total'])->toBe('118.00')
+        ->and($data['quotation']['notes'])->toBe('Deliver next week')
+        ->and($data['quotation']['items'][0]['description'])->toBe('Pipe')
+        ->and($data['quotation']['items'][0]['product'])->not->toHaveKeys(['price', 'taxable_amount'])
+        ->and($data['quotation']['creator'])->toBe(['id' => $manager->id, 'name' => $manager->name])
+        ->and(array_column($data['versions'], 'id'))->toBe([$quotation->id, $revision->id]);
+});
+
+test('quotation details deny unauthorized and cross branch access', function () {
+    $quotation = Quotation::factory()->create();
+    Passport::actingAs(User::factory()->create(), ['mcp:use']);
+    callTrayTool('get_quotation_details', ['quotation_id' => $quotation->id])->assertJsonPath('result.isError', true);
+    trayManager();
+    $hidden = callTrayTool('get_quotation_details', ['quotation_id' => $quotation->id])->assertJsonPath('result.isError', true);
+    $missing = callTrayTool('get_quotation_details', ['quotation_id' => 999999])->assertJsonPath('result.isError', true);
+    expect($hidden->json('result.content'))->toBe($missing->json('result.content'));
+});
+
+test('quotation details require a valid ID', function () {
+    trayManager();
+    foreach ([[], ['quotation_id' => 0], ['quotation_id' => 'invalid']] as $arguments) {
+        callTrayTool('get_quotation_details', $arguments)->assertJsonPath('result.isError', true);
+    }
 });

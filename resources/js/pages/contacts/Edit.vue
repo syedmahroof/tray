@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { edit, index, show, update } from '@/routes/contacts';
 import type { Branch, Contact, Country, NamedOption, Route } from '@/types';
 
@@ -129,9 +130,12 @@ const userOptions = computed(() =>
 
                     <div class="grid gap-2">
                         <Label for="address">Address</Label>
-                        <Input
+                        <Textarea
                             id="address"
                             name="address"
+                            rows="3"
+                            class="min-h-20"
+                            placeholder="Building, street, area, landmark"
                             :default-value="contact.address ?? undefined"
                         />
                         <InputError :message="errors.address" />

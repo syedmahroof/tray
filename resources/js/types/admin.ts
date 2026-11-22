@@ -171,6 +171,17 @@ export type Builder = {
     assigned_to: number | null;
     created_by: number | null;
     created_at: string;
+    builder_contacts?: BuilderContact[];
+};
+
+/** A person to reach at a builder beside its main contact person. */
+export type BuilderContact = {
+    id: number;
+    builder_id: number;
+    name: string;
+    role: string | null;
+    phone: string | null;
+    email: string | null;
 };
 
 export type BuilderListItem = Builder & {
@@ -214,6 +225,7 @@ export type Project = {
     owner_name: string | null;
     owner_phone: string | null;
     owner_email: string | null;
+    gst_number: string | null;
     location: string | null;
     pincode: string | null;
     expected_maturity: string | null;

@@ -14,6 +14,7 @@ use App\Support\BranchAccess;
 use App\Support\RouteLocationFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -138,11 +139,15 @@ class BuilderController extends Controller
      */
     public function store(SaveBuilderRequest $request): RedirectResponse
     {
-        Builder::create([
-            ...$request->validated(),
-            'is_active' => $request->boolean('is_active'),
-            'created_by' => $request->user()->id,
-        ]);
+        DB::transaction(function () use ($request): void {
+            $builder = Builder::create([
+                ...$request->safe()->except('builder_contacts'),
+                'is_active' => $request->boolean('is_active'),
+                'created_by' => $request->user()->id,
+            ]);
+
+            $builder->builderContacts()->createMany($request->validated('builder_contacts', []));
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Builder created.')]);
 
@@ -154,7 +159,7 @@ class BuilderController extends Controller
      */
     public function show(Builder $builder): Response
     {
-        $builder->load(['country', 'state', 'district', 'location', 'route', 'assignee', 'projects', 'visitReports.user']);
+        $builder->load(['country', 'state', 'district', 'location', 'route', 'assignee', 'builderContacts', 'projects', 'visitReports.user']);
 
         return Inertia::render('admin/builders/Show', [
             'builder' => $builder,
@@ -169,7 +174,7 @@ class BuilderController extends Controller
     public function edit(Builder $builder): Response
     {
         return Inertia::render('admin/builders/Edit', [
-            'builder' => $builder,
+            'builder' => $builder->load('builderContacts'),
             'countries' => Country::query()->orderBy('name')->get(['id', 'name', 'code']),
             'routes' => Route::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
@@ -182,10 +187,15 @@ class BuilderController extends Controller
      */
     public function update(SaveBuilderRequest $request, Builder $builder): RedirectResponse
     {
-        $builder->update([
-            ...$request->validated(),
-            'is_active' => $request->boolean('is_active'),
-        ]);
+        DB::transaction(function () use ($request, $builder): void {
+            $builder->update([
+                ...$request->safe()->except('builder_contacts'),
+                'is_active' => $request->boolean('is_active'),
+            ]);
+
+            $builder->builderContacts()->delete();
+            $builder->builderContacts()->createMany($request->validated('builder_contacts', []));
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Builder updated.')]);
 

@@ -195,3 +195,61 @@ test('the builder index can be filtered by assignee', function () {
             ->where('builders.data.0.name', 'Assigned Builds')
             ->where('filters.assigned_to', (string) $assignee->id));
 });
+
+test('a builder keeps a multi-line address and any number of additional contacts, replaced on update', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $address = "Skyline Towers, 3rd Floor\nMG Road, Near Metro Station\n".trim(str_repeat('Kochi ', 60));
+
+    $this->actingAs($manager)
+        ->post(route('builders.store'), [
+            'name' => 'Acme Developers',
+            'address' => $address,
+            'is_active' => true,
+            'builder_contacts' => [
+                ['name' => 'Ravi', 'role' => 'Purchase Manager', 'phone' => '9847000001', 'email' => 'ravi@example.com'],
+                ['name' => 'Anu', 'role' => null, 'phone' => '9847000002', 'email' => null],
+            ],
+        ])
+        ->assertRedirect(route('builders.index'));
+
+    $builder = Builder::where('name', 'Acme Developers')->first();
+    expect($builder->address)->toBe($address);
+    expect($builder->builderContacts()->orderBy('id')->pluck('name')->all())->toBe(['Ravi', 'Anu']);
+
+    $this->actingAs($manager)
+        ->get(route('builders.show', $builder))
+        ->assertInertia(fn ($page) => $page
+            ->has('builder.builder_contacts', 2)
+            ->where('builder.builder_contacts.0.role', 'Purchase Manager'));
+
+    $this->actingAs($manager)
+        ->get(route('builders.edit', $builder))
+        ->assertInertia(fn ($page) => $page->has('builder.builder_contacts', 2));
+
+    $this->actingAs($manager)
+        ->put(route('builders.update', $builder), [
+            'name' => 'Acme Developers',
+            'is_active' => true,
+            'builder_contacts' => [
+                ['name' => 'Meera', 'phone' => '9847000003'],
+            ],
+        ])
+        ->assertRedirect(route('builders.index'));
+
+    expect($builder->builderContacts()->pluck('name')->all())->toBe(['Meera']);
+});
+
+test('an additional builder contact needs a name', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $this->actingAs($manager)
+        ->post(route('builders.store'), [
+            'name' => 'Acme Developers',
+            'builder_contacts' => [['phone' => '9847000001']],
+        ])
+        ->assertSessionHasErrors('builder_contacts.0.name');
+});

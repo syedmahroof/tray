@@ -228,6 +228,7 @@ export type QuotationItem = {
     description: string;
     hsn_code: string | null;
     quantity: string;
+    unit: string | null;
     rate_tier: QuotationLineRateTier | null;
     /** What `price_percent` is stated against: off MRP, or on cost. */
     price_basis: RateBasis | null;
@@ -351,6 +352,7 @@ export type OrderProductOption = ProductPickerOption & {
 
 /** A product in the quotation line picker, with its ex-tax rates per branch. */
 export type QuotationProductOption = ProductPickerOption & {
+    unit?: string | null;
     price: string | null;
     taxable_amount: string | null;
     hsn_code: string | null;

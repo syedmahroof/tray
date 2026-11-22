@@ -22,7 +22,7 @@ class SaveContactRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'gst_number' => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:1000'],
             'country_id' => ['nullable', Rule::exists('countries', 'id')],
             'state_id' => ['nullable', Rule::exists('states', 'id')],
             'district_id' => ['nullable', Rule::exists('districts', 'id')],

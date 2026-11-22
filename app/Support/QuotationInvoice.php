@@ -282,11 +282,11 @@ final readonly class QuotationInvoice
     }
 
     /**
-     * The unit a line is quoted in, falling back to the catalogue's default.
+     * The unit a line is quoted in, falling back to its product's unit.
      */
     private function unitFor(QuotationItem $item): string
     {
-        return $item->product?->unit ?: 'nos';
+        return $item->unit ?: ($item->product?->unit ?: 'nos');
     }
 
     /**

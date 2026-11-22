@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\User;
+use App\Support\QuotationInvoice;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -143,6 +144,95 @@ test('a line saved without a GST rate is charged the default 18%', function () {
     $quotation = Quotation::first();
     expect((float) $quotation->items->first()->tax_percentage)->toBe(18.0);
     expect((float) $quotation->total)->toBe(1180.0);
+});
+
+test('each line keeps the unit it is quoted in, which prints in place of its product unit and carries into a revision', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+    $pipe = Product::factory()->create(['brand_id' => Brand::factory(), 'unit' => 'Nos', 'created_by' => $manager->id]);
+    Product::factory()->create(['brand_id' => Brand::factory(), 'unit' => 'PKT']);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.create'))
+        ->assertInertia(fn ($page) => $page
+            ->where('units', fn ($units) => collect($units)->contains('Mtr') && collect($units)->contains('PKT')));
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [
+                ['product_id' => $pipe->id, 'description' => 'Pipe', 'quantity' => 6, 'unit' => 'Mtr', 'unit_price' => 100, 'tax_percentage' => 18],
+                ['product_id' => $pipe->id, 'description' => 'Pipe', 'quantity' => 2, 'unit_price' => 100, 'tax_percentage' => 18],
+            ],
+        ])
+        ->assertRedirect();
+
+    $quotation = Quotation::first();
+    expect($quotation->items()->orderBy('id')->pluck('unit')->all())->toBe(['Mtr', null]);
+    expect(array_column((new QuotationInvoice($quotation))->lines(), 'unit'))->toBe(['Mtr', 'Nos']);
+
+    $this->actingAs($manager)->post(route('quotations.revise', $quotation))->assertRedirect();
+
+    expect(Quotation::where('parent_id', $quotation->id)->first()->items()->orderBy('id')->pluck('unit')->all())
+        ->toBe(['Mtr', null]);
+});
+
+test('a quotation can be raised on customers, contacts, projects, builders and enquiries from any branch', function () {
+    $branch = Branch::factory()->create();
+    $otherBranch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+
+    $customer = Customer::factory()->create(['branch_id' => $otherBranch->id, 'name' => 'Far Customer']);
+    $contact = Contact::factory()->create(['branch_id' => $otherBranch->id, 'name' => 'Far Contact']);
+    $builder = Builder::factory()->create(['branch_id' => $otherBranch->id, 'name' => 'Far Builder']);
+    $project = Project::factory()->create(['branch_id' => $otherBranch->id, 'name' => 'Far Project', 'builder_id' => $builder->id]);
+    $enquiry = Enquiry::factory()->create(['branch_id' => $otherBranch->id, 'contact_id' => $contact->id, 'project_id' => $project->id]);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.create', ['enquiry_id' => $enquiry->id]))
+        ->assertInertia(fn ($page) => $page
+            ->where('customers', fn ($list) => collect($list)->pluck('name')->contains('Far Customer'))
+            ->where('contacts', fn ($list) => collect($list)->pluck('name')->contains('Far Contact'))
+            ->where('projects', fn ($list) => collect($list)->pluck('name')->contains('Far Project'))
+            ->where('builders', fn ($list) => collect($list)->pluck('name')->contains('Far Builder'))
+            ->where('enquiries', fn ($list) => collect($list)->pluck('name')->contains("#{$enquiry->id} — Far Contact"))
+            ->where('defaults.project_id', $project->id)
+            ->where('defaults.builder_id', $builder->id));
+
+    $this->actingAs($manager)
+        ->post(route('quotations.store'), [
+            'customer_id' => $customer->id,
+            'contact_id' => $contact->id,
+            'project_id' => $project->id,
+            'builder_id' => $builder->id,
+            'enquiry_id' => $enquiry->id,
+            'quotation_date' => '2026-06-22',
+            'status' => 'draft',
+            'supply_type' => 'intra',
+            'items' => [['description' => 'Item', 'quantity' => 1, 'unit_price' => 100]],
+        ])
+        ->assertRedirect();
+
+    $quotation = Quotation::first();
+    expect($quotation->branch_id)->toBe($branch->id);
+
+    $this->actingAs($manager)
+        ->get(route('quotations.show', $quotation))
+        ->assertInertia(fn ($page) => $page
+            ->where('quotation.customer.name', 'Far Customer')
+            ->where('quotation.contact.name', 'Far Contact')
+            ->where('quotation.project.name', 'Far Project')
+            ->where('quotation.builder.name', 'Far Builder'));
+
+    $this->actingAs($manager)
+        ->get(route('quotations.index', ['search' => 'Far Project']))
+        ->assertInertia(fn ($page) => $page->has('quotations.data', 1));
 });
 
 test('the quotation form loads no products until they are searched for', function () {

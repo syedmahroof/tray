@@ -473,10 +473,12 @@ test('a quotation without a customer or contact is billed to its builder', funct
         ->toContain('9847000000');
 });
 
-test('a quotation raised on a contact or builder prints their GST number', function (string $party) {
-    $record = $party === 'contact'
-        ? Contact::factory()->create(['gst_number' => '32CONTACT1234Z5'])
-        : Builder::factory()->create(['gst_number' => '32BUILDER1234Z5']);
+test('a quotation raised on a contact, builder or project prints their GST number', function (string $party) {
+    $record = match ($party) {
+        'contact' => Contact::factory()->create(['gst_number' => '32CONTACT1234Z5']),
+        'builder' => Builder::factory()->create(['gst_number' => '32BUILDER1234Z5']),
+        'project' => Project::factory()->create(['gst_number' => '32PROJECT1234Z5']),
+    };
 
     $this->quotation->update(['customer_id' => null, 'gstin' => null, "{$party}_id" => $record->id]);
 
@@ -488,7 +490,7 @@ test('a quotation raised on a contact or builder prints their GST number', funct
     ])->render();
 
     expect($html)->toContain($record->gst_number);
-})->with(['contact', 'builder']);
+})->with(['contact', 'builder', 'project']);
 
 test('the quotation details box prints the quotation\'s own lines, else the branch\'s, else the sender and GSTIN', function () {
     $sender = User::factory()->create(['name' => 'Anu Sales', 'email' => 'anu@example.com']);

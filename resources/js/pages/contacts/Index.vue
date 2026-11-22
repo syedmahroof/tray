@@ -19,6 +19,7 @@ import {
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import ClippedText from '@/components/ClippedText.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
 import PhoneLink from '@/components/PhoneLink.vue';
@@ -429,6 +430,7 @@ const confirmDelete = (contact: ContactListItem) => {
                             <TableHead>Type</TableHead>
                             <TableHead>Contact</TableHead>
                             <TableHead>Location</TableHead>
+                            <TableHead>Address</TableHead>
                             <TableHead>Assigned to</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
@@ -469,6 +471,9 @@ const confirmDelete = (contact: ContactListItem) => {
                                 >
                                     {{ contact.district.name }}
                                 </div>
+                            </TableCell>
+                            <TableCell>
+                                <ClippedText :text="contact.address" />
                             </TableCell>
                             <TableCell>{{
                                 contact.assignee?.name ?? '—'
@@ -535,7 +540,7 @@ const confirmDelete = (contact: ContactListItem) => {
                         </TableRow>
                         <TableRow v-if="contacts.data.length === 0">
                             <TableCell
-                                :colspan="8"
+                                :colspan="9"
                                 class="text-center text-muted-foreground"
                             >
                                 No contacts yet.

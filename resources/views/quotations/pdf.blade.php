@@ -18,7 +18,7 @@
     $fallback = $quotation->builder ?? $quotation->project;
     $buyerName = $buyer?->name ?? $contact?->name ?? $fallback?->name;
     $buyerAddress = $buyer?->address ?? $contact?->address ?? $fallback?->address;
-    $buyerGstin = $quotation->gstin ?: ($buyer?->gst_number ?? $contact?->gst_number ?? $quotation->builder?->gst_number);
+    $buyerGstin = $quotation->gstin ?: ($buyer?->gst_number ?? $contact?->gst_number ?? $quotation->builder?->gst_number ?? $quotation->project?->gst_number);
     $buyerState = $buyer?->state?->name ?? $contact?->state?->name ?? $fallback?->state?->name;
     $buyerLines = preg_split('/\R/u', (string) $buyerAddress, -1, PREG_SPLIT_NO_EMPTY);
 

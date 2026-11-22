@@ -7,6 +7,7 @@ import {
     Pencil,
     Mail,
     User,
+    Users,
     ClipboardList,
     Plus,
     FileText,
@@ -36,6 +37,7 @@ import {
 } from '@/routes/visit-reports';
 import type {
     Builder,
+    BuilderContact,
     Country,
     State,
     District,
@@ -59,6 +61,7 @@ type BuilderDetail = Builder & {
     location: Location | null;
     route: Route | null;
     assignee: NamedOption | null;
+    builder_contacts: BuilderContact[];
     projects: Project[];
 };
 
@@ -234,6 +237,51 @@ const permissions = computed(() => usePage().props.auth.permissions);
                                 {{ builder.country?.name ?? '—' }}
                             </p>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Additional contacts -->
+            <Card v-if="builder.builder_contacts.length" class="md:col-span-2">
+                <CardHeader
+                    class="flex flex-row items-center gap-2 border-b pb-3"
+                >
+                    <Users class="h-5 w-5 text-[#0891b2]" />
+                    <CardTitle class="text-base font-semibold"
+                        >Additional Contacts ({{
+                            builder.builder_contacts.length
+                        }})</CardTitle
+                    >
+                </CardHeader>
+                <CardContent
+                    class="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                    <div
+                        v-for="contact in builder.builder_contacts"
+                        :key="contact.id"
+                        class="space-y-1 rounded-lg border p-3"
+                        data-test="builder-contact"
+                    >
+                        <p class="text-sm font-semibold">{{ contact.name }}</p>
+                        <p
+                            v-if="contact.role"
+                            class="text-xs text-muted-foreground"
+                        >
+                            {{ contact.role }}
+                        </p>
+                        <p
+                            v-if="contact.phone"
+                            class="flex items-center gap-1.5 text-sm"
+                        >
+                            <PhoneLink :phone="contact.phone" />
+                        </p>
+                        <p
+                            v-if="contact.email"
+                            class="flex items-center gap-1.5 text-sm"
+                        >
+                            <Mail class="h-3.5 w-3.5 text-blue-500" />
+                            {{ contact.email }}
+                        </p>
                     </div>
                 </CardContent>
             </Card>

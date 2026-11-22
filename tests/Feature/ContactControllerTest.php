@@ -179,3 +179,24 @@ test('the contact list shows each contact\'s location', function () {
             ->where('contacts.data.0.location.name', 'Kalpetta')
             ->where('contacts.data.0.district.id', $location->district_id));
 });
+
+test('a contact keeps a long multi-line address and the list carries it', function () {
+    $branch = Branch::factory()->create();
+    $salesExecutive = User::factory()->create(['branch_id' => $branch->id]);
+    $salesExecutive->assignRole('Sales Executive');
+    $address = "Door 12, Rose Villa\nNear Town Hall\n".trim(str_repeat('Calicut ', 50));
+
+    $this->actingAs($salesExecutive)
+        ->post(route('contacts.store'), [
+            'contact_type_id' => ContactType::factory()->create()->id,
+            'name' => 'Jane Prospect',
+            'address' => $address,
+        ])
+        ->assertRedirect();
+
+    expect(Contact::where('name', 'Jane Prospect')->value('address'))->toBe($address);
+
+    $this->actingAs($salesExecutive)
+        ->get(route('contacts.index'))
+        ->assertInertia(fn ($page) => $page->where('contacts.data.0.address', $address));
+});

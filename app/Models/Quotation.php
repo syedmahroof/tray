@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Scopes\BranchScope;
 use Database\Factories\QuotationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -105,7 +106,7 @@ class Quotation extends Model
      */
     public function contact(): BelongsTo
     {
-        return $this->belongsTo(Contact::class);
+        return $this->belongsTo(Contact::class)->withoutGlobalScope(BranchScope::class);
     }
 
     /**
@@ -113,7 +114,7 @@ class Quotation extends Model
      */
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class)->withoutGlobalScope(BranchScope::class);
     }
 
     /**
@@ -121,7 +122,7 @@ class Quotation extends Model
      */
     public function project(): BelongsTo
     {
-        return $this->belongsTo(Project::class);
+        return $this->belongsTo(Project::class)->withoutGlobalScope(BranchScope::class);
     }
 
     /**
@@ -129,7 +130,7 @@ class Quotation extends Model
      */
     public function enquiry(): BelongsTo
     {
-        return $this->belongsTo(Enquiry::class);
+        return $this->belongsTo(Enquiry::class)->withoutGlobalScope(BranchScope::class);
     }
 
     /**
@@ -137,7 +138,7 @@ class Quotation extends Model
      */
     public function builder(): BelongsTo
     {
-        return $this->belongsTo(Builder::class);
+        return $this->belongsTo(Builder::class)->withoutGlobalScope(BranchScope::class);
     }
 
     /**
