@@ -128,7 +128,7 @@ class CreateDocument extends Tool
         $fields = [
             'branch_id' => $schema->integer()->min(1)->description('Defaults to your branch. Must be accessible to you.'),
             'supply_type' => $schema->string()->enum(['intra', 'inter'])->default('intra'),
-            'status' => $schema->string()->enum($isQuotation ? Models\Quotation::STATUSES : Models\Order::STATUSES)->default('draft'),
+            'status' => $schema->string()->enum($isQuotation ? Models\Quotation::STATUSES : Models\Order::statusesFor($this->document === 'purchase_order' ? 'purchase' : 'sale'))->default('draft'),
             ($isQuotation ? 'quotation_date' : 'order_date') => $schema->string()->description('YYYY-MM-DD; defaults to today.'),
             ($isQuotation ? 'valid_until' : 'expected_date') => $schema->string()->description('YYYY-MM-DD'),
             'gstin' => $schema->string()->max(20),

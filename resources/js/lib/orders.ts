@@ -20,10 +20,14 @@ export const orderStatusLabel = (status: string) => status.replaceAll('_', ' ');
 /** Badge variant for an order status. */
 export const orderStatusVariant = (status: string) => {
     switch (status) {
+        case 'goods_received':
         case 'fulfilled':
             return 'default' as const;
         case 'cancelled':
             return 'destructive' as const;
+        case 'send':
+        case 'payment_done':
+        case 'dispatched':
         case 'confirmed':
             return 'outline' as const;
         default:

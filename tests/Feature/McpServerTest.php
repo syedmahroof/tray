@@ -59,6 +59,7 @@ test('MCP publishes discoverable schemas for all listing and creation tools', fu
     expect($tools)->toHaveCount(28);
     expect($tools->pluck('name')->all())->toContain('get_quotation_details', 'list_quotations', 'list_contacts', 'list_visit_reports', 'create_quotation', 'create_sales_order', 'create_purchase_order');
     expect($tools->firstWhere('name', 'create_purchase_order')['inputSchema']['required'])->toContain('supplier_id', 'items');
+    expect($tools->firstWhere('name', 'create_purchase_order')['inputSchema']['properties']['status']['enum'])->toBe(['draft', 'send', 'payment_done', 'dispatched', 'goods_received']);
 });
 
 test('every listing executes with a permitted user', function (string $module) {

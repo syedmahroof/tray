@@ -56,6 +56,14 @@ class Order extends Model
 
     public const array STATUSES = ['draft', 'confirmed', 'partially_fulfilled', 'fulfilled', 'cancelled'];
 
+    public const array PURCHASE_STATUSES = ['draft', 'send', 'payment_done', 'dispatched', 'goods_received'];
+
+    /** @return list<string> */
+    public static function statusesFor(string $type): array
+    {
+        return $type === 'purchase' ? self::PURCHASE_STATUSES : self::STATUSES;
+    }
+
     public const array SUPPLY_TYPES = ['intra', 'inter'];
 
     /**

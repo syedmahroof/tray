@@ -21,10 +21,10 @@ defineProps<{
 <template>
     <div class="space-y-4 rounded-lg border p-4">
         <div>
-            <Label class="text-base">Quotation letterhead</Label>
+            <Label class="text-base">Document letterhead</Label>
             <p class="text-sm text-muted-foreground">
-                Printed on this branch's quotations. Leave blank to use the
-                company's own details.
+                Printed on this branch's quotations and orders. Leave blank to
+                use the company's own details.
             </p>
         </div>
 
@@ -50,6 +50,24 @@ defineProps<{
                 A full A4 page with the header and footer artwork (logo, brands)
                 already on it. Quotations are printed on top of it, in place of
                 the logo, contact lines and brand strip.
+            </p>
+        </div>
+
+        <div class="grid gap-2">
+            <ImageInput
+                id="purchase_order_background"
+                name="purchase_order_background"
+                label="Purchase order background"
+                :current-url="branch?.purchase_order_background_url"
+                :error="errors.purchase_order_background"
+                :max-megabytes="5"
+                page
+            />
+            <p class="text-sm text-muted-foreground">
+                A full A4 page with the header and footer artwork (logo, brands)
+                already on it. Purchase orders are printed on top of it, in
+                place of the order header. Upload a separate file from the
+                quotation background.
             </p>
         </div>
 

@@ -4,6 +4,9 @@
     /** @var string|null $logo */
     /** @var string|null $letterhead */
 
+    $background ??= null;
+    $headerSpace = $background ? 118 : ($letterhead ? 140 : 128);
+
     $isSale = $order->type === 'sale';
     $docTitle = $isSale ? 'SALES ORDER' : 'PURCHASE ORDER';
 
@@ -42,7 +45,7 @@
     <meta charset="utf-8">
     <title>{{ $order->number }}</title>
     <style>
-        @page { margin: {{ $letterhead ? '140px' : '128px' }} 36px 64px; }
+        @page { margin: {{ $headerSpace }}px 36px {{ $background ? 86 : 64 }}px; }
         * { font-family: DejaVu Sans, sans-serif; }
         body { font-size: 8.5px; line-height: 1.45; color: #1f2933; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
@@ -53,6 +56,8 @@
         .center { text-align: center; }
 
         /* The letterhead and footer repeat on every page. */
+        .background { position: fixed; top: -{{ $headerSpace }}px; left: -36px; width: 794px; height: 1123px; z-index: -1; }
+        .background img { width: 794px; height: 1123px; }
         .header { position: fixed; top: {{ $letterhead ? '-122px' : '-110px' }}; left: 0; right: 0; }
         .header img.banner { width: 100%; max-height: 110px; }
         .header .logo { max-height: 58px; max-width: 200px; }
@@ -104,6 +109,9 @@
     </style>
 </head>
 <body>
+    @if ($background)
+        <div class="background"><img src="{{ $background }}" alt="{{ $companyName }}"></div>
+    @else
     <div class="header">
         @if ($letterhead)
             <img class="banner" src="{{ $letterhead }}" alt="{{ $companyName }}">
@@ -141,6 +149,8 @@
             <div class="rule"></div>
         @endif
     </div>
+
+    @endif
 
     <table class="footer">
         <tr>

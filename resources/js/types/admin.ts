@@ -10,6 +10,7 @@ export type Branch = {
     letterhead_url?: string | null;
     /** The full-page background this branch's quotations are printed on. */
     quotation_background_url?: string | null;
+    purchase_order_background_url?: string | null;
     phone?: string | null;
     mobile?: string | null;
     email?: string | null;

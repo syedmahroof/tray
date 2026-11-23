@@ -52,12 +52,7 @@ const props = defineProps<{
     orderType: OrderType;
     orders: Paginated<OrderListItem>;
     statuses: string[];
-    stats: {
-        total: number;
-        draft: number;
-        confirmed: number;
-        fulfilled: number;
-    };
+    stats: Record<string, number>;
     filters: Filters & { status?: string };
 }>();
 const routes = orderRoutes(props.orderType);
@@ -137,14 +132,22 @@ defineOptions({
                 color="#64748b"
             />
             <StatCard
-                label="Confirmed"
-                :value="stats.confirmed"
+                :label="orderType === 'purchase' ? 'Send' : 'Confirmed'"
+                :value="stats[orderType === 'purchase' ? 'send' : 'confirmed']"
                 :icon="Send"
                 color="#0ea5e9"
             />
             <StatCard
-                label="Fulfilled"
-                :value="stats.fulfilled"
+                :label="
+                    orderType === 'purchase' ? 'Goods Received' : 'Fulfilled'
+                "
+                :value="
+                    stats[
+                        orderType === 'purchase'
+                            ? 'goods_received'
+                            : 'fulfilled'
+                    ]
+                "
                 :icon="CheckCheck"
                 color="#16a34a"
             />

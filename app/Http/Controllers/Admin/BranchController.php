@@ -53,11 +53,12 @@ class BranchController extends Controller
     public function store(SaveBranchRequest $request): RedirectResponse
     {
         $branch = Branch::create([
-            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'purchase_order_background', 'remove_purchase_order_background', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(null, $request->file('logo'), false, 'branch-logos'),
             'letterhead_path' => StoredImage::sync(null, $request->file('letterhead'), false, 'branch-letterheads'),
             'quotation_background_path' => StoredImage::sync(null, $request->file('quotation_background'), false, 'branch-quotation-backgrounds'),
+            'purchase_order_background_path' => StoredImage::sync(null, $request->file('purchase_order_background'), false, 'branch-purchase-order-backgrounds'),
         ]);
 
         $branch->brands()->sync($request->validated('brands', []));
@@ -87,7 +88,7 @@ class BranchController extends Controller
     public function update(SaveBranchRequest $request, Branch $branch): RedirectResponse
     {
         $branch->update([
-            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'brands']),
+            ...$request->safe()->except(['logo', 'remove_logo', 'letterhead', 'remove_letterhead', 'quotation_background', 'remove_quotation_background', 'purchase_order_background', 'remove_purchase_order_background', 'brands']),
             'is_active' => $request->boolean('is_active'),
             'logo_path' => StoredImage::sync(
                 $branch->logo_path,
@@ -106,6 +107,12 @@ class BranchController extends Controller
                 $request->file('quotation_background'),
                 $request->boolean('remove_quotation_background'),
                 'branch-quotation-backgrounds',
+            ),
+            'purchase_order_background_path' => StoredImage::sync(
+                $branch->purchase_order_background_path,
+                $request->file('purchase_order_background'),
+                $request->boolean('remove_purchase_order_background'),
+                'branch-purchase-order-backgrounds',
             ),
         ]);
 
@@ -130,6 +137,7 @@ class BranchController extends Controller
         StoredImage::delete($branch->logo_path);
         StoredImage::delete($branch->letterhead_path);
         StoredImage::delete($branch->quotation_background_path);
+        StoredImage::delete($branch->purchase_order_background_path);
         $branch->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branch deleted.')]);

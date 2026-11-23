@@ -46,12 +46,11 @@ class OrderController extends Controller
                 })
                 ->when($status, fn ($query) => $query->where('status', $status))
                 ->latest()->paginate(15)->withQueryString(),
-            'statuses' => Order::STATUSES,
+            'statuses' => Order::statusesFor($type),
             'stats' => [
                 'total' => (int) $statusCounts->sum(),
-                'draft' => (int) $statusCounts->get('draft', 0),
-                'confirmed' => (int) $statusCounts->get('confirmed', 0),
-                'fulfilled' => (int) $statusCounts->get('fulfilled', 0),
+                ...array_fill_keys(Order::statusesFor($type), 0),
+                ...$statusCounts->map(fn ($count): int => (int) $count)->all(),
             ],
             'filters' => ['search' => $search, 'status' => $status],
         ]);
@@ -106,7 +105,7 @@ class OrderController extends Controller
         $this->ensureType($order, $type);
         $order->load(['customer', 'supplier', 'creator', 'branch', 'items.product']);
 
-        return Inertia::render('orders/Show', ['orderType' => $type, 'order' => $order, 'statuses' => Order::STATUSES]);
+        return Inertia::render('orders/Show', ['orderType' => $type, 'order' => $order, 'statuses' => Order::statusesFor($type)]);
     }
 
     /**
@@ -168,7 +167,7 @@ class OrderController extends Controller
     {
         $type = $this->orderType($request);
         $this->ensureType($order, $type);
-        $order->update($request->validate(['status' => ['required', Rule::in(Order::STATUSES)]]));
+        $order->update($request->validate(['status' => ['required', Rule::in(Order::statusesFor($type))]]));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Order status updated.')]);
 
@@ -208,7 +207,7 @@ class OrderController extends Controller
                 ->with('brand:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'brand_id', 'image_path', 'unit', 'hsn_code', 'price', 'taxable_amount', 'tax_percentage']),
-            'statuses' => Order::STATUSES,
+            'statuses' => Order::statusesFor($type),
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'defaultBranchId' => request()->user()?->branch_id,
         ];

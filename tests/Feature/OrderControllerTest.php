@@ -9,6 +9,8 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Support\OrderDocument;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -177,7 +179,7 @@ test('updating an order replaces its items and recalculates totals', function ()
         ->put(route('purchase-orders.update', $order), [
             'supplier_id' => $newSupplier->id,
             'order_date' => '2026-10-16',
-            'status' => 'confirmed',
+            'status' => 'send',
             'supply_type' => 'intra',
             'branch_id' => $branch->id,
             'items' => [['description' => 'Valve', 'quantity' => 2, 'unit_price' => 250, 'tax_percentage' => 12]],
@@ -187,7 +189,7 @@ test('updating an order replaces its items and recalculates totals', function ()
     $order->refresh();
 
     expect($order->supplier_id)->toBe($newSupplier->id)
-        ->and($order->status)->toBe('confirmed')
+        ->and($order->status)->toBe('send')
         ->and($order->items)->toHaveCount(1)
         ->and((float) $order->total)->toBe(560.0);
 });
@@ -389,4 +391,63 @@ test('order analytics report value and leave out cancelled orders', function () 
         ->get(route('analytics.show', ['section' => 'purchase-orders', 'period' => 'this_month']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('report.stats.1.value', 700));
+});
+
+test('purchase order statuses are available on every form and accepted when saving', function (string $status) {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $supplier = Supplier::factory()->create();
+    $this->actingAs($manager)->post(route('purchase-orders.store'), [
+        'supplier_id' => $supplier->id,
+        'order_date' => now()->toDateString(),
+        'status' => $status,
+        'supply_type' => 'intra',
+        'items' => [['description' => 'Pipe', 'quantity' => 1, 'unit_price' => 100]],
+    ])->assertSessionHasNoErrors()->assertRedirect();
+    $order = Order::query()->sole();
+    expect($order->status)->toBe($status);
+    foreach (['index', 'create', 'edit', 'show'] as $action) {
+        $this->get(route("purchase-orders.{$action}", in_array($action, ['edit', 'show']) ? $order : []))
+            ->assertInertia(fn ($page) => $page->where('statuses', ['draft', 'send', 'payment_done', 'dispatched', 'goods_received']));
+    }
+    $this->patch(route('purchase-orders.status', $order), ['status' => $status])->assertSessionHasNoErrors();
+    $this->patch(route('purchase-orders.status', $order), ['status' => 'confirmed'])->assertSessionHasErrors('status');
+})->with(['draft', 'send', 'payment_done', 'dispatched', 'goods_received']);
+
+test('purchase statuses are rejected for sales orders', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $order = Order::factory()->create(['branch_id' => $branch->id]);
+    $this->actingAs($manager)->patch(route('sales-orders.status', $order), ['status' => 'goods_received'])->assertSessionHasErrors('status');
+});
+
+test('purchase order backgrounds are independent and render on purchase documents only', function () {
+    Storage::fake('public');
+    $disk = Storage::disk('public');
+    $background = UploadedFile::fake()->image('purchase.png')->store('branch-purchase-order-backgrounds', 'public');
+    $quotation = UploadedFile::fake()->image('quotation.png')->store('branch-quotation-backgrounds', 'public');
+    $branch = Branch::factory()->create(['purchase_order_background_path' => $background, 'quotation_background_path' => $quotation]);
+    $purchase = Order::factory()->purchase()->create(['branch_id' => $branch->id]);
+    $sale = Order::factory()->create(['branch_id' => $branch->id]);
+    $data = OrderDocument::for($purchase, 'localhost');
+    expect($data['background'])->toBe($disk->path($background))
+        ->and(OrderDocument::for($sale, 'localhost')['background'])->toBeNull();
+    $html = view('orders.pdf', $data)->render();
+    expect($html)->toContain('class="background"')->not->toContain('class="header"', $disk->path($quotation));
+    expect(OrderDocument::render($purchase, 'localhost')->output())->toStartWith('%PDF');
+    $disk->delete($background);
+    expect(OrderDocument::for($purchase, 'localhost')['background'])->toBeNull();
+});
+
+test('purchase analytics count received goods as fulfilled and payments and dispatches as open', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    foreach (['goods_received', 'send', 'payment_done', 'dispatched'] as $status) {
+        Order::factory()->purchase()->create(['branch_id' => $branch->id, 'status' => $status, 'total' => 100, 'order_date' => now()->toDateString()]);
+    }
+    $this->actingAs($manager)->get(route('analytics.show', ['section' => 'purchase-orders', 'period' => 'this_month']))
+        ->assertInertia(fn ($page) => $page->where('report.stats.2.value', 100)->where('report.stats.3.value', 300));
 });

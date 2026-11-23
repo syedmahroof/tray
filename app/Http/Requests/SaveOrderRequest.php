@@ -36,7 +36,7 @@ class SaveOrderRequest extends FormRequest
             'supply_type' => ['required', Rule::in(Order::SUPPLY_TYPES)],
             'order_date' => ['required', 'date'],
             'expected_date' => ['nullable', 'date'],
-            'status' => ['required', Rule::in(Order::STATUSES)],
+            'status' => ['required', Rule::in(Order::statusesFor($this->orderType()))],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],

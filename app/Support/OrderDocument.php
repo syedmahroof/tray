@@ -17,7 +17,7 @@ class OrderDocument
      * Everything the document is made of.
      *
      * @param  string  $host  the request host, which supplies company details a branch does not keep
-     * @return array{order: Order, company: array<string, mixed>, logo: string|null, letterhead: string|null}
+     * @return array{order: Order, company: array<string, mixed>, logo: string|null, letterhead: string|null, background: string|null}
      */
     public static function for(Order $order, string $host): array
     {
@@ -30,6 +30,7 @@ class OrderDocument
                 ...$order->branch->letterhead(),
             ],
             'logo' => self::storedFile($order->branch->logo_path),
+            'background' => $order->type === 'purchase' ? self::storedFile($order->branch->purchase_order_background_path) : null,
             'letterhead' => self::storedFile($order->branch->letterhead_path),
         ];
     }

@@ -44,6 +44,8 @@ class SaveBranchRequest extends FormRequest
             'remove_letterhead' => ['nullable', 'boolean'],
             'quotation_background' => ['nullable', File::image()->max(5 * 1024)],
             'remove_quotation_background' => ['nullable', 'boolean'],
+            'purchase_order_background' => ['nullable', File::image()->max(5 * 1024)],
+            'remove_purchase_order_background' => ['nullable', 'boolean'],
             'phone' => ['nullable', 'string', 'max:50'],
             'mobile' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],

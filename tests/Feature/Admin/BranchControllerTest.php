@@ -337,3 +337,45 @@ test('a branch keeps the brands it deals in', function () {
     expect($branch->brands()->pluck('brands.id')->sort()->values()->all())
         ->toBe([$astral->id, $supreme->id]);
 });
+
+test('purchase backgrounds can be uploaded replaced and removed independently', function () {
+    Storage::fake('public');
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    $this->actingAs($admin)->post(route('branches.store'), [
+        'name' => 'Purchase branch', 'code' => 'POB',
+        'purchase_order_background' => UploadedFile::fake()->image('purchase.png'),
+        'quotation_background' => UploadedFile::fake()->image('quotation.png'),
+    ])->assertSessionHasNoErrors()->assertRedirect();
+    $branch = Branch::where('code', 'POB')->sole();
+    $original = $branch->purchase_order_background_path;
+    $quotation = $branch->quotation_background_path;
+    expect($original)->toStartWith('branch-purchase-order-backgrounds/');
+    Storage::disk('public')->assertExists($original);
+    $this->get(route('branches.edit', $branch))->assertInertia(fn ($page) => $page
+        ->where('branch.purchase_order_background_url', Storage::disk('public')->url($original)));
+    $this->put(route('branches.update', $branch), [
+        'name' => $branch->name, 'code' => $branch->code,
+        'purchase_order_background' => UploadedFile::fake()->image('replacement.png'),
+    ])->assertSessionHasNoErrors();
+    $replacement = $branch->refresh()->purchase_order_background_path;
+    Storage::disk('public')->assertMissing($original);
+    Storage::disk('public')->assertExists($replacement);
+    $this->put(route('branches.update', $branch), [
+        'name' => $branch->name, 'code' => $branch->code, 'remove_purchase_order_background' => true,
+    ])->assertSessionHasNoErrors();
+    expect($branch->refresh()->purchase_order_background_path)->toBeNull()
+        ->and($branch->quotation_background_path)->toBe($quotation);
+    Storage::disk('public')->assertMissing($replacement);
+    Storage::disk('public')->assertExists($quotation);
+});
+
+test('purchase backgrounds reject non images and oversized uploads', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    foreach ([UploadedFile::fake()->create('file.pdf', 20, 'application/pdf'), UploadedFile::fake()->image('large.png')->size(5121)] as $file) {
+        $this->actingAs($admin)->post(route('branches.store'), [
+            'name' => 'Purchase branch', 'code' => 'POB', 'purchase_order_background' => $file,
+        ])->assertSessionHasErrors('purchase_order_background');
+    }
+});

@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string|null $logo_url
  * @property string|null $letterhead_path
  * @property-read string|null $letterhead_url
+ * @property string|null $purchase_order_background_path
+ * @property-read string|null $purchase_order_background_url
  * @property string|null $quotation_background_path
  * @property-read string|null $quotation_background_url
  * @property string|null $phone
@@ -43,7 +45,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'name', 'code', 'address', 'city', 'is_active',
-    'company_name', 'logo_path', 'letterhead_path', 'quotation_background_path', 'phone', 'mobile', 'email', 'website', 'gstin',
+    'company_name', 'logo_path', 'letterhead_path', 'quotation_background_path', 'purchase_order_background_path', 'phone', 'mobile', 'email', 'website', 'gstin',
     'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms', 'quotation_details',
     'quotation_prefix', 'quotation_next_number',
 ])]
@@ -55,7 +57,7 @@ class Branch extends Model
     /**
      * @var list<string>
      */
-    protected $appends = ['logo_url', 'letterhead_url', 'quotation_background_url'];
+    protected $appends = ['logo_url', 'letterhead_url', 'quotation_background_url', 'purchase_order_background_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -116,6 +118,11 @@ class Branch extends Model
     protected function quotationBackgroundUrl(): Attribute
     {
         return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['quotation_background_path'] ?? null));
+    }
+
+    protected function purchaseOrderBackgroundUrl(): Attribute
+    {
+        return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['purchase_order_background_path'] ?? null));
     }
 
     /**
