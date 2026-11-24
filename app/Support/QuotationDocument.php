@@ -47,9 +47,20 @@ class QuotationDocument
      */
     public static function brands(Quotation $quotation): array
     {
+        return self::brandsFor($quotation->branch);
+    }
+
+    /**
+     * The active brands a branch deals in, alphabetically, each with its logo
+     * as a file on disk when it has one. Orders print the same strip.
+     *
+     * @return list<array{name: string, logo: string|null}>
+     */
+    public static function brandsFor(?Branch $branch): array
+    {
         $disk = Storage::disk(StoredImage::DISK);
 
-        return array_values(($quotation->branch?->brands ?? collect())
+        return array_values(($branch?->brands ?? collect())
             ->filter(fn (Brand $brand): bool => $brand->is_active)
             ->sortBy('name')
             ->map(fn (Brand $brand): array => [

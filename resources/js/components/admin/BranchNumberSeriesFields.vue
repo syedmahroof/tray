@@ -6,18 +6,38 @@ import { Label } from '@/components/ui/label';
 import type { Branch } from '@/types';
 
 /**
- * The series a branch numbers its quotations in, shared by the create and
- * edit forms. Leaving the prefix blank keeps the company-wide numbering.
+ * A series a branch numbers its documents in, shared by the create and edit
+ * forms. Leaving the prefix blank keeps the company-wide numbering.
  */
-const props = defineProps<{
-    branch?: Branch;
-    errors: Record<string, string | undefined>;
-}>();
-
-const prefix = ref(props.branch?.quotation_prefix ?? '');
-const nextNumber = ref<string | number>(
-    props.branch?.quotation_next_number ?? 1,
+const props = withDefaults(
+    defineProps<{
+        branch?: Branch;
+        errors: Record<string, string | undefined>;
+        document?: 'quotation' | 'purchase_order';
+    }>(),
+    { document: 'quotation' },
 );
+
+const settings = {
+    quotation: {
+        title: 'Quotation series',
+        noun: 'quotation',
+        fallback: 'QT-YYYY-NNNNN',
+        example: 'BTCLT/QT/26-27/',
+    },
+    purchase_order: {
+        title: 'Purchase order series',
+        noun: 'purchase order',
+        fallback: 'PO-YYYY-NNNNN',
+        example: 'BTCLT/PO/26-27/',
+    },
+}[props.document];
+
+const prefixField = `${props.document}_prefix` as const;
+const nextNumberField = `${props.document}_next_number` as const;
+
+const prefix = ref(props.branch?.[prefixField] ?? '');
+const nextNumber = ref<string | number>(props.branch?.[nextNumberField] ?? 1);
 
 const preview = computed(() => {
     if (prefix.value.trim() === '') {
@@ -33,41 +53,41 @@ const preview = computed(() => {
 <template>
     <div class="space-y-4 rounded-lg border p-4">
         <div>
-            <Label class="text-base">Quotation series</Label>
+            <Label class="text-base">{{ settings.title }}</Label>
             <p class="text-sm text-muted-foreground">
-                Numbers this branch's new quotations. Leave the prefix blank to
-                use the company-wide QT-YYYY-NNNNN numbering.
+                Numbers this branch's new {{ settings.noun }}s. Leave the prefix
+                blank to use the company-wide {{ settings.fallback }} numbering.
             </p>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="quotation_prefix">Prefix</Label>
+                <Label :for="prefixField">Prefix</Label>
                 <Input
-                    id="quotation_prefix"
+                    :id="prefixField"
                     v-model="prefix"
-                    name="quotation_prefix"
-                    placeholder="e.g. BTCLT/QT/26-27/"
+                    :name="prefixField"
+                    :placeholder="`e.g. ${settings.example}`"
                 />
-                <InputError :message="errors.quotation_prefix" />
+                <InputError :message="errors[prefixField]" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="quotation_next_number">Next number</Label>
+                <Label :for="nextNumberField">Next number</Label>
                 <Input
-                    id="quotation_next_number"
+                    :id="nextNumberField"
                     v-model="nextNumber"
-                    name="quotation_next_number"
+                    :name="nextNumberField"
                     type="number"
                     min="1"
                     step="1"
                 />
-                <InputError :message="errors.quotation_next_number" />
+                <InputError :message="errors[nextNumberField]" />
             </div>
         </div>
 
         <p v-if="preview" class="text-sm text-muted-foreground">
-            Next quotation will be
+            Next {{ settings.noun }} will be
             <span class="font-mono font-medium text-foreground">{{
                 preview
             }}</span>

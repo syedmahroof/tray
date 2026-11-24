@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $quotation_details
  * @property string|null $quotation_prefix
  * @property int $quotation_next_number
+ * @property string|null $purchase_order_prefix
+ * @property int $purchase_order_next_number
  * @property bool $is_active
  * @property-read Collection<int, Brand> $brands
  */
@@ -47,7 +49,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'code', 'address', 'city', 'is_active',
     'company_name', 'logo_path', 'letterhead_path', 'quotation_background_path', 'purchase_order_background_path', 'phone', 'mobile', 'email', 'website', 'gstin',
     'bank_name', 'bank_account_number', 'bank_branch', 'bank_ifsc', 'quotation_terms', 'quotation_details',
-    'quotation_prefix', 'quotation_next_number',
+    'quotation_prefix', 'quotation_next_number', 'purchase_order_prefix', 'purchase_order_next_number',
 ])]
 class Branch extends Model
 {
@@ -69,6 +71,7 @@ class Branch extends Model
         return [
             'is_active' => 'boolean',
             'quotation_next_number' => 'integer',
+            'purchase_order_next_number' => 'integer',
         ];
     }
 
@@ -87,6 +90,23 @@ class Branch extends Model
     public function quotationNumber(int $number): string
     {
         return $this->quotation_prefix.str_pad((string) $number, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Whether this branch numbers its purchase orders in its own series.
+     */
+    public function hasPurchaseOrderSeries(): bool
+    {
+        return filled($this->purchase_order_prefix);
+    }
+
+    /**
+     * Render a number in this branch's purchase order series, for example
+     * "BTCLT/PO/001". Numbers are padded to at least three digits.
+     */
+    public function purchaseOrderNumber(int $number): string
+    {
+        return $this->purchase_order_prefix.str_pad((string) $number, 3, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -120,6 +140,12 @@ class Branch extends Model
         return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['quotation_background_path'] ?? null));
     }
 
+    /**
+     * The public URL of the full-page background the branch's purchase
+     * orders are printed on.
+     *
+     * @return Attribute<string|null, never>
+     */
     protected function purchaseOrderBackgroundUrl(): Attribute
     {
         return Attribute::get(fn (): ?string => StoredImage::url($this->attributes['purchase_order_background_path'] ?? null));

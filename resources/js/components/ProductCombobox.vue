@@ -1,6 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends ProductPickerOption">
 import { Package, Check, ChevronsUpDown, LoaderCircle } from '@lucide/vue';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import type { Ref } from 'vue';
 import Thumbnail from '@/components/Thumbnail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import {
 import { productDetailsLine } from '@/lib/products';
 import { cn } from '@/lib/utils';
 import { products as searchProducts } from '@/routes/quotations';
-import type { QuotationProductOption } from '@/types';
+import type { ProductPickerOption } from '@/types';
 
 /**
  * A product picker that searches the server as you type and loads further
@@ -22,18 +23,23 @@ const props = defineProps<{
     /** The selected product's id. */
     modelValue?: string;
     /** The selected product, shown on the trigger with its brand, code and picture. */
-    selected?: QuotationProductOption;
+    selected?: T;
     placeholder?: string;
     contentClass?: string;
+    /**
+     * The address of one page of matches. Defaults to the quotation picker's,
+     * which carries each product's branch rates.
+     */
+    searchUrl?: (query: { search: string; page: number }) => string;
 }>();
 
 const emit = defineEmits<{
-    select: [product: QuotationProductOption];
+    select: [product: T];
 }>();
 
 const open = ref(false);
 const search = ref('');
-const results = ref<QuotationProductOption[]>([]);
+const results = ref<T[]>([]) as Ref<T[]>;
 const nextPage = ref<number | null>(1);
 const loading = ref(false);
 const highlighted = ref(0);
@@ -62,8 +68,9 @@ const load = async (fresh = false) => {
 
     try {
         const response = await fetch(
-            searchProducts.url({
-                query: { search: search.value.trim(), page: nextPage.value },
+            (props.searchUrl ?? ((query) => searchProducts.url({ query })))({
+                search: search.value.trim(),
+                page: nextPage.value ?? 1,
             }),
             {
                 headers: { Accept: 'application/json' },
@@ -76,7 +83,7 @@ const load = async (fresh = false) => {
         }
 
         const page = (await response.json()) as {
-            data: QuotationProductOption[];
+            data: T[];
             next_page: number | null;
         };
 
@@ -130,7 +137,7 @@ const onScroll = () => {
     }
 };
 
-const choose = (product: QuotationProductOption) => {
+const choose = (product: T) => {
     emit('select', product);
     open.value = false;
 };

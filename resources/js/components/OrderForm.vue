@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, reactive } from 'vue';
 import Combobox from '@/components/Combobox.vue';
 import InputError from '@/components/InputError.vue';
+import ProductCombobox from '@/components/ProductCombobox.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,6 @@ import {
     orderRoutes,
     orderStatusLabel,
 } from '@/lib/orders';
-import { productPickerOption } from '@/lib/products';
 import type {
     Branch,
     OrderDetail,
@@ -107,25 +107,35 @@ const selectParty = (id: string | undefined) => {
 
     form.gstin = party?.gst_number ?? '';
 };
-const productOptions = computed(() => props.products.map(productPickerOption));
+/**
+ * The products the lines use: those the order already had, plus any picked
+ * since. The picker searches the catalogue a page at a time.
+ */
+const knownProducts = reactive(
+    new Map(props.products.map((product) => [String(product.id), product])),
+);
 const productFor = (id: string | undefined) =>
-    props.products.find((product) => String(product.id) === id);
+    id ? knownProducts.get(id) : undefined;
+const searchProductsUrl = (query: { search: string; page: number }) =>
+    routes.products.url({ query });
 const addItem = () => form.items.push(emptyItem());
 const removeItem = (index: number) => {
     if (form.items.length > 1) {
         form.items.splice(index, 1);
     }
 };
-const selectProduct = (index: number) => {
+const selectProduct = (index: number, product: OrderProductOption) => {
     const item = form.items[index];
-    const product = productFor(item.product_id);
+    const previous = productFor(item.product_id);
 
-    if (!product) {
-        return;
+    knownProducts.set(String(product.id), product);
+    item.product_id = String(product.id);
+
+    if (!item.description || item.description === previous?.name) {
+        item.description = product.name;
     }
 
-    item.description ||= product.name;
-    item.hsn_code ||= product.hsn_code ?? '';
+    item.hsn_code = product.hsn_code ?? item.hsn_code;
     item.tax_percentage = String(Number(product.tax_percentage));
     item.unit_price = product.taxable_amount ?? product.price ?? '0';
 };
@@ -281,7 +291,7 @@ const submit = () => {
                 <Table class="min-w-[58rem]">
                     <TableHeader>
                         <TableRow>
-                            <TableHead class="pl-6">Product</TableHead>
+                            <TableHead class="w-72 pl-6">Product</TableHead>
                             <TableHead>Description *</TableHead>
                             <TableHead>HSN</TableHead>
                             <TableHead class="text-right">Qty</TableHead>
@@ -297,14 +307,17 @@ const submit = () => {
                             :key="index"
                             class="[&>td]:align-top"
                         >
-                            <TableCell class="pl-6">
-                                <Combobox
-                                    v-model="item.product_id"
-                                    :options="productOptions"
+                            <TableCell class="pl-6 whitespace-normal">
+                                <ProductCombobox
+                                    :model-value="item.product_id"
+                                    :selected="productFor(item.product_id)"
+                                    :search-url="searchProductsUrl"
                                     placeholder="Select product"
-                                    thumbnails
                                     content-class="w-[28rem] max-w-[90vw]"
-                                    @update:model-value="selectProduct(index)"
+                                    @select="
+                                        (product) =>
+                                            selectProduct(index, product)
+                                    "
                                 />
                             </TableCell>
                             <TableCell>

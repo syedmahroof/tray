@@ -132,6 +132,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middlewareFor('destroy', 'permission:quotations.delete');
 
     foreach (['sales-orders' => 'sale', 'purchase-orders' => 'purchase'] as $uri => $orderType) {
+        Route::get("{$uri}/products", [OrderController::class, 'products'])
+            ->middleware("permission:{$uri}.create|{$uri}.update")
+            ->name("{$uri}.products");
+
         Route::patch("{$uri}/{order}/status", [OrderController::class, 'updateStatus'])
             ->middleware("permission:{$uri}.update")
             ->name("{$uri}.status");

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
 import BranchLetterheadFields from '@/components/admin/BranchLetterheadFields.vue';
-import BranchQuotationSeriesFields from '@/components/admin/BranchQuotationSeriesFields.vue';
+import BranchNumberSeriesFields from '@/components/admin/BranchNumberSeriesFields.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -99,7 +99,12 @@ defineOptions({
                 :errors="errors"
             />
 
-            <BranchQuotationSeriesFields :branch="branch" :errors="errors" />
+            <BranchNumberSeriesFields :branch="branch" :errors="errors" />
+            <BranchNumberSeriesFields
+                :branch="branch"
+                :errors="errors"
+                document="purchase_order"
+            />
 
             <div class="space-y-4 rounded-lg border p-4">
                 <div>

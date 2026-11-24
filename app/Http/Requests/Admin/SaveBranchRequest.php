@@ -15,8 +15,10 @@ class SaveBranchRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        if (trim((string) $this->input('quotation_next_number')) === '') {
-            $this->request->remove('quotation_next_number');
+        foreach (['quotation_next_number', 'purchase_order_next_number'] as $field) {
+            if (trim((string) $this->input($field)) === '') {
+                $this->request->remove($field);
+            }
         }
     }
 
@@ -59,6 +61,8 @@ class SaveBranchRequest extends FormRequest
             'quotation_details' => ['nullable', 'string', 'max:2000'],
             'quotation_prefix' => ['nullable', 'string', 'max:50'],
             'quotation_next_number' => ['sometimes', 'integer', 'min:1', 'max:99999999'],
+            'purchase_order_prefix' => ['nullable', 'string', 'max:50'],
+            'purchase_order_next_number' => ['sometimes', 'integer', 'min:1', 'max:99999999'],
             'brands' => ['nullable', 'array'],
             'brands.*' => [Rule::exists('brands', 'id')],
         ];
