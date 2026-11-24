@@ -242,7 +242,7 @@ const permissions = computed(() => usePage().props.auth.permissions);
             </Card>
 
             <!-- Additional contacts -->
-            <Card v-if="builder.builder_contacts.length" class="md:col-span-2">
+            <Card class="md:col-span-2">
                 <CardHeader
                     class="flex flex-row items-center gap-2 border-b pb-3"
                 >
@@ -254,6 +254,24 @@ const permissions = computed(() => usePage().props.auth.permissions);
                     >
                 </CardHeader>
                 <CardContent
+                    v-if="builder.builder_contacts.length === 0"
+                    class="pt-6"
+                >
+                    <p
+                        class="rounded-lg border border-dashed py-3 text-center text-sm text-muted-foreground"
+                        data-test="builder-contacts-empty"
+                    >
+                        No additional contacts.
+                        <Link
+                            v-if="permissions.includes('builders.update')"
+                            :href="edit(builder.id)"
+                            class="font-medium text-primary hover:underline"
+                            >Add one</Link
+                        >
+                    </p>
+                </CardContent>
+                <CardContent
+                    v-else
                     class="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-3"
                 >
                     <div

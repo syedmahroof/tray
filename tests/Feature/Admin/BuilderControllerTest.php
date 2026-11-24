@@ -253,3 +253,14 @@ test('an additional builder contact needs a name', function () {
         ])
         ->assertSessionHasErrors('builder_contacts.0.name');
 });
+
+test('a builder without additional contacts still sends an empty contact list to the show page', function () {
+    $branch = Branch::factory()->create();
+    $manager = User::factory()->create(['branch_id' => $branch->id]);
+    $manager->assignRole('Manager');
+    $builder = Builder::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($manager)
+        ->get(route('builders.show', $builder))
+        ->assertInertia(fn ($page) => $page->has('builder.builder_contacts', 0));
+});
