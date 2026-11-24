@@ -6,7 +6,7 @@ import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationSelect from '@/components/LocationSelect.vue';
-import MultiCombobox from '@/components/MultiCombobox.vue';
+import ProductMultiPicker from '@/components/ProductMultiPicker.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,14 +20,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { productPickerOption } from '@/lib/products';
-import { edit, index, update } from '@/routes/projects';
+import {
+    edit,
+    index,
+    products as searchProducts,
+    update,
+} from '@/routes/projects';
 import type {
     Branch,
     ContactListItem,
     Country,
     NamedOption,
-    ProductPickerOption,
     Project,
     Route,
 } from '@/types';
@@ -42,14 +45,11 @@ const props = defineProps<{
     branches: Branch[];
     users: NamedOption[];
     contacts: ContactListItem[];
-    products: ProductPickerOption[];
 }>();
 
-const productOptions = computed(() => props.products.map(productPickerOption));
+const searchProductsUrl = (query: { search: string; page: number }) =>
+    searchProducts.url({ query: { ...query, active: 1 } });
 
-const selectedProductIds = computed(() =>
-    (props.project.products ?? []).map((product) => String(product.id)),
-);
 
 defineOptions({
     layout: (props: { project: Project }) => ({
@@ -627,12 +627,11 @@ const removeProjectContact = (key: number) => {
                         <CardContent class="space-y-4">
                             <div class="grid gap-2">
                                 <Label for="product_ids">Products</Label>
-                                <MultiCombobox
+                                <ProductMultiPicker
                                     name="product_ids"
-                                    placeholder="Select products (optional)"
-                                    :options="productOptions"
-                                    thumbnails
-                                    :model-value="selectedProductIds"
+                                    placeholder="Add products (optional)"
+                                    :search-url="searchProductsUrl"
+                                    :initial="project.products ?? []"
                                 />
                                 <InputError :message="errors.product_ids" />
                             </div>

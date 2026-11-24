@@ -24,7 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.export');
 
     Route::get('projects/products', [ProjectController::class, 'products'])
-        ->middleware('permission:projects.view')
+        ->middleware('permission:projects.view|projects.create|projects.update')
         ->name('projects.products');
 
     Route::resource('projects', ProjectController::class)

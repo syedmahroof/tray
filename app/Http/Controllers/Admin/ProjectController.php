@@ -90,14 +90,16 @@ class ProjectController extends Controller
     }
 
     /**
-     * One page of products for the listing's product filter, matching what
-     * was typed, so the listing never has to load the whole catalogue.
+     * One page of products matching what was typed, for the listing's product
+     * filter and the form's product picker, so neither loads the whole
+     * catalogue. The form asks for active products only.
      */
     public function products(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
 
         $page = $this->productFilterQuery()
+            ->when($request->boolean('active'), fn ($query) => $query->selectable())
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 foreach (preg_split('/\s+/', $search) as $term) {
                     $query->where(fn ($query) => $query
@@ -114,7 +116,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * Products as the product filter shows them, alphabetically.
+     * Products as the product filter and picker show them, alphabetically.
      *
      * @return EloquentBuilder<Product>
      */
@@ -231,7 +233,6 @@ class ProjectController extends Controller
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
-            'products' => Product::query()->selectable()->with('brand:id,name')->orderBy('name')->get(['id', 'name', 'code', 'brand_id', 'image_path']),
         ]);
     }
 
@@ -263,7 +264,13 @@ class ProjectController extends Controller
      */
     public function edit(Project $project): Response
     {
-        $project->load(['contacts', 'projectContacts', 'assignee', 'products']);
+        // Only the products the project already has; the picker searches for the rest.
+        $project->load([
+            'contacts',
+            'projectContacts',
+            'assignee',
+            'products' => fn ($query) => $query->with('brand:id,name')->select(['products.id', 'products.name', 'products.code', 'products.brand_id', 'products.image_path']),
+        ]);
 
         return Inertia::render('admin/projects/Edit', [
             'project' => $project,
@@ -275,7 +282,6 @@ class ProjectController extends Controller
             'branches' => BranchAccess::canChooseBranch() ? BranchAccess::options() : [],
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'contacts' => Contact::query()->with('contactType')->orderBy('name')->get(['id', 'name', 'contact_type_id']),
-            'products' => Product::query()->selectable($project->products->modelKeys())->with('brand:id,name')->orderBy('name')->get(['id', 'name', 'code', 'brand_id', 'image_path']),
         ]);
     }
 

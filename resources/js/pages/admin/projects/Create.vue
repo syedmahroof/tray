@@ -6,7 +6,7 @@ import Combobox from '@/components/Combobox.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationSelect from '@/components/LocationSelect.vue';
-import MultiCombobox from '@/components/MultiCombobox.vue';
+import ProductMultiPicker from '@/components/ProductMultiPicker.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,14 +20,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { productPickerOption } from '@/lib/products';
-import { create, index, store } from '@/routes/projects';
+import {
+    create,
+    index,
+    products as searchProducts,
+    store,
+} from '@/routes/projects';
 import type {
     Branch,
     ContactListItem,
     Country,
     NamedOption,
-    ProductPickerOption,
     Route,
 } from '@/types';
 
@@ -40,10 +43,10 @@ const props = defineProps<{
     branches: Branch[];
     users: NamedOption[];
     contacts: ContactListItem[];
-    products: ProductPickerOption[];
 }>();
 
-const productOptions = computed(() => props.products.map(productPickerOption));
+const searchProductsUrl = (query: { search: string; page: number }) =>
+    searchProducts.url({ query: { ...query, active: 1 } });
 
 defineOptions({
     layout: {
@@ -557,11 +560,10 @@ const removeProjectContact = (key: number) => {
                         <CardContent class="space-y-4">
                             <div class="grid gap-2">
                                 <Label for="product_ids">Products</Label>
-                                <MultiCombobox
+                                <ProductMultiPicker
                                     name="product_ids"
-                                    placeholder="Select products (optional)"
-                                    :options="productOptions"
-                                    thumbnails
+                                    placeholder="Add products (optional)"
+                                    :search-url="searchProductsUrl"
                                 />
                                 <InputError :message="errors.product_ids" />
                             </div>

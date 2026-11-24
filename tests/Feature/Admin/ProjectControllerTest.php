@@ -414,3 +414,41 @@ test('the project index shows each project\'s location and district', function (
             ->where('projects.data.1.location_master', null)
             ->where('projects.data.1.location', 'Near Infopark'));
 });
+
+test('the project forms do not load the product catalogue', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Product::factory()->count(3)->create();
+    $linked = Product::factory()->create();
+    $project = Project::factory()->create();
+    $project->products()->attach($linked);
+
+    $this->actingAs($admin)
+        ->get(route('projects.create'))
+        ->assertInertia(fn ($page) => $page->missing('products'));
+
+    $this->actingAs($admin)
+        ->get(route('projects.edit', $project))
+        ->assertInertia(fn ($page) => $page
+            ->missing('products')
+            ->has('project.products', 1)
+            ->where('project.products.0.id', $linked->id)
+            ->has('project.products.0.image_url')
+            ->has('project.products.0.brand'));
+});
+
+test('the project form product picker offers only active products', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Product::factory()->create(['name' => 'Active Valve']);
+    Product::factory()->create(['name' => 'Retired Valve', 'is_active' => false]);
+
+    $this->actingAs($admin)
+        ->getJson(route('projects.products', ['search' => 'valve', 'active' => 1]))
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'Active Valve');
+
+    $this->actingAs($admin)
+        ->getJson(route('projects.products', ['search' => 'valve']))
+        ->assertJsonCount(2, 'data');
+});

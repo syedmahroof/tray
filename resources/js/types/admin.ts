@@ -1,3 +1,5 @@
+import type { ProductPickerOption } from './crm';
+
 export type Branch = {
     id: number;
     name: string;
@@ -239,7 +241,7 @@ export type Project = {
     created_at: string;
     contacts?: NamedOption[];
     project_contacts?: ProjectContact[];
-    products?: NamedOption[];
+    products?: ProductPickerOption[];
 };
 
 export type ProjectListItem = Project & {
