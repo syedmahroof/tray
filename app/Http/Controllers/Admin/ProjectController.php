@@ -17,6 +17,7 @@ use App\Models\VisitReport;
 use App\Support\BranchAccess;
 use App\Support\RouteLocationFilter;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,6 +27,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProjectController extends Controller
 {
+    /**
+     * How many products the product filter loads at a time.
+     */
+    private const int PRODUCT_PAGE_SIZE = 30;
+
     /**
      * Display a listing of projects.
      */
@@ -60,7 +66,10 @@ class ProjectController extends Controller
                 ->withQueryString(),
             'builders' => Builder::query()->orderBy('name')->get(['id', 'name']),
             'projectCategories' => ProjectCategory::query()->orderBy('name')->get(['id', 'name']),
-            'products' => Product::query()->orderBy('name')->get(['id', 'name']),
+            // Only the filtered product; the picker searches the server for the rest.
+            'selectedProduct' => $productId
+                ? $this->productFilterQuery()->whereKey($productId)->first()
+                : null,
             'statuses' => Project::STATUSES,
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             ...RouteLocationFilter::options('projects'),
@@ -78,6 +87,43 @@ class ProjectController extends Controller
                 'no_visit_within' => $request->input('no_visit_within'),
             ],
         ]);
+    }
+
+    /**
+     * One page of products for the listing's product filter, matching what
+     * was typed, so the listing never has to load the whole catalogue.
+     */
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+
+        $page = $this->productFilterQuery()
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
+                foreach (preg_split('/\s+/', $search) as $term) {
+                    $query->where(fn ($query) => $query
+                        ->where('name', 'like', '%'.$term.'%')
+                        ->orWhere('code', 'like', '%'.$term.'%'));
+                }
+            }))
+            ->simplePaginate(self::PRODUCT_PAGE_SIZE);
+
+        return response()->json([
+            'data' => $page->items(),
+            'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null,
+        ]);
+    }
+
+    /**
+     * Products as the product filter shows them, alphabetically.
+     *
+     * @return EloquentBuilder<Product>
+     */
+    private function productFilterQuery(): EloquentBuilder
+    {
+        return Product::query()
+            ->with('brand:id,name')
+            ->orderBy('name')
+            ->select(['id', 'name', 'code', 'brand_id', 'image_path']);
     }
 
     /**

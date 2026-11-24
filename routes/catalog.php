@@ -23,6 +23,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:projects.view')
         ->name('projects.export');
 
+    Route::get('projects/products', [ProjectController::class, 'products'])
+        ->middleware('permission:projects.view')
+        ->name('projects.products');
+
     Route::resource('projects', ProjectController::class)
         ->middlewareFor(['index', 'show'], 'permission:projects.view')
         ->middlewareFor(['create', 'store'], 'permission:projects.create')

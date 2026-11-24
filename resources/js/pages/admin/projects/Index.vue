@@ -15,7 +15,6 @@ import {
     Loader,
     CircleCheckBig,
     BarChart3,
-    Package,
     Download,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
@@ -23,6 +22,7 @@ import { computed, ref } from 'vue';
 import ClippedText from '@/components/ClippedText.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import Heading from '@/components/Heading.vue';
+import ProductCombobox from '@/components/ProductCombobox.vue';
 import RouteLocationFilters from '@/components/RouteLocationFilters.vue';
 import StatCard from '@/components/StatCard.vue';
 import TablePagination from '@/components/TablePagination.vue';
@@ -55,6 +55,7 @@ import {
     edit,
     exportMethod,
     index,
+    products as searchProducts,
     show,
 } from '@/routes/projects';
 import type {
@@ -64,6 +65,7 @@ import type {
     LocationWithDistrict,
     NamedOption,
     Paginated,
+    ProductPickerOption,
     ProjectListItem,
     Route,
 } from '@/types';
@@ -77,7 +79,7 @@ const props = defineProps<{
     routes: Route[];
     builders: NamedOption[];
     projectCategories: NamedOption[];
-    products: NamedOption[];
+    selectedProduct: ProductPickerOption | null;
     statuses: string[];
     users: NamedOption[];
     stats: {
@@ -123,6 +125,7 @@ const status = ref(props.filters.status ?? 'all');
 const productId = ref(
     props.filters.product_id ? String(props.filters.product_id) : 'all',
 );
+const selectedProduct = ref<ProductPickerOption | null>(props.selectedProduct);
 const assigneeId = ref(
     props.filters.assignee_id ? String(props.filters.assignee_id) : 'all',
 );
@@ -162,6 +165,16 @@ const updateFilters = () => {
     );
 };
 
+const searchProductsUrl = (query: { search: string; page: number }) =>
+    searchProducts.url({ query });
+
+/** Filter by the picked product, or by none when cleared. */
+const selectProduct = (product: ProductPickerOption | null) => {
+    selectedProduct.value = product;
+    productId.value = product ? String(product.id) : 'all';
+    updateFilters();
+};
+
 const hasActiveFilters = computed(
     () =>
         search.value !== '' ||
@@ -183,6 +196,7 @@ const clearFilters = () => {
     categoryId.value = 'all';
     status.value = 'all';
     productId.value = 'all';
+    selectedProduct.value = null;
     assigneeId.value = 'all';
     createdBy.value = 'all';
     createdFrom.value = '';
@@ -384,27 +398,32 @@ const confirmDelete = (project: ProjectListItem) => {
                     </Select>
 
                     <!-- Product Filter -->
-                    <Select
-                        v-model="productId"
-                        @update:model-value="updateFilters"
+                    <div
+                        class="flex w-full items-center gap-1 sm:w-[260px]"
+                        data-test="product-filter"
                     >
-                        <SelectTrigger
-                            class="flex w-full items-center gap-1.5 sm:w-[170px]"
+                        <ProductCombobox
+                            :model-value="
+                                productId !== 'all' ? productId : undefined
+                            "
+                            :selected="selectedProduct ?? undefined"
+                            :search-url="searchProductsUrl"
+                            placeholder="All Products"
+                            content-class="w-[28rem] max-w-[90vw]"
+                            @select="selectProduct"
+                        />
+                        <Button
+                            v-if="productId !== 'all'"
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="shrink-0"
+                            aria-label="Clear product filter"
+                            @click="selectProduct(null)"
                         >
-                            <Package class="h-4 w-4 text-[#10b981]" />
-                            <SelectValue placeholder="All Products" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Products</SelectItem>
-                            <SelectItem
-                                v-for="product in products"
-                                :key="product.id"
-                                :value="String(product.id)"
-                            >
-                                {{ product.name }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                            <X class="h-4 w-4" />
+                        </Button>
+                    </div>
 
                     <RouteLocationFilters
                         v-model="place"

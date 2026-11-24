@@ -158,7 +158,51 @@ test('the project index can be filtered by product', function () {
         ->assertInertia(fn ($page) => $page
             ->has('projects.data', 1)
             ->where('projects.data.0.name', 'Has The Product')
-            ->where('filters.product_id', (string) $product->id));
+            ->where('filters.product_id', (string) $product->id)
+            ->where('selectedProduct.id', $product->id)
+            ->missing('products'));
+});
+
+test('the project index does not load the product catalogue', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Product::factory()->count(3)->create();
+
+    $this->actingAs($admin)
+        ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page
+            ->missing('products')
+            ->where('selectedProduct', null));
+});
+
+test('the project product filter searches products by name and code, a page at a time', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('Admin');
+    Product::factory()->create(['name' => 'Ball Valve 25mm', 'code' => 'BV25']);
+    Product::factory()->create(['name' => 'Cable Tray', 'code' => 'CT100']);
+    Product::factory()->count(35)->create(['name' => 'Gate Valve']);
+
+    $this->actingAs($admin)
+        ->getJson(route('projects.products', ['search' => 'ball 25']))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.code', 'BV25')
+        ->assertJsonPath('next_page', null);
+
+    $this->actingAs($admin)
+        ->getJson(route('projects.products', ['search' => 'CT100']))
+        ->assertJsonPath('data.0.name', 'Cable Tray');
+
+    $this->actingAs($admin)
+        ->getJson(route('projects.products', ['search' => 'gate']))
+        ->assertJsonCount(30, 'data')
+        ->assertJsonPath('next_page', 2);
+});
+
+test('the project product filter needs permission to view projects', function () {
+    $this->actingAs(User::factory()->create())
+        ->getJson(route('projects.products'))
+        ->assertForbidden();
 });
 
 test('a project can be created without a builder', function () {
